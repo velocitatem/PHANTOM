@@ -12,7 +12,7 @@ jobs:
         with:
           scheme: small
           run: |
-            tlmgr install biber biblatex csquotes geometry microtype hyperref cleveref siunitx booktabs graphics caption latexmk subcaption
+            tlmgr install biber biblatex csquotes geometry microtype hyperref cleveref siunitx booktabs graphics caption latexmk
             make pdf
       - name: Upload PDF
         uses: actions/upload-artifact@v4
