@@ -1,35 +1,10 @@
-\usepackage[margin=1in]{geometry}
-\usepackage{microtype}
+% acmart already includes: graphicx, hyperref, booktabs, amsmath, natbib
+% Only load packages not included in acmart
+
 \usepackage{csquotes}
-\usepackage{graphicx}
 \usepackage{subcaption}
-\usepackage{booktabs}
 \usepackage{siunitx}
-\usepackage{amsmath}
-\usepackage{hyperref}
-\usepackage{cleveref}
+
+% Use biblatex instead of natbib (acmart default)
 \usepackage[backend=bibtex,style=numeric]{biblatex}
 \addbibresource{bib/references.bib}
-\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
-\numberwithin{figure}{section}
-\numberwithin{table}{section}
-
-% Custom title formatting to match template
-\usepackage{titling}
-\pretitle{\begin{center}\noindent\rule{\linewidth}{0.4pt}\par\vspace{1em}\LARGE\bfseries}
-\posttitle{\par\end{center}\vspace{0.5em}}
-\preauthor{\begin{center}\large}
-\postauthor{\end{center}}
-\predate{\begin{center}\large}
-\postdate{\end{center}\vspace{1em}}
-
-% Redefine abstract environment
-\renewenvironment{abstract}{%
-  \begin{center}%
-  \textbf{Abstract}%
-  \end{center}%
-  \par\vspace{0.5em}%
-  \small%
-}{%
-  \par\vspace{1em}\noindent\rule{\linewidth}{0.4pt}%
-}
