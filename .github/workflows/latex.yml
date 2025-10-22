@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: xu-cheng/texlive-action@v2
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v3
         with:
-          scheme: small
-          run: |
-            tlmgr install biber biblatex csquotes geometry microtype hyperref cleveref siunitx booktabs graphics caption latexmk acmart libertine inconsolata newtx xkeyval xstring environ totpages refcount comment fancyhdr manyfoot balance cmap preprint etoolbox
-            make pdf
+          root_file: main.tex
+          working_directory: paper/src
+          args: -pdf -interaction=nonstopmode -file-line-error -outdir=../build
       - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:
