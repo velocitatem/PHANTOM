@@ -2,7 +2,11 @@ name: Build PDF
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'paper/**'
   pull_request:
+    paths:
+      - 'paper/**'
 jobs:
   build:
     runs-on: ubuntu-latest
