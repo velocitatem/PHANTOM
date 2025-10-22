@@ -1,14 +1,14 @@
 LATEXMK   := latexmk
-SRCDIR    := src
+SRCDIR    := paper/src
 BUILDDIR  := build
 TEX       := main.tex
 JOBNAME   := main
-PDF       := $(BUILDDIR)/$(JOBNAME).pdf
+PDF       := paper/$(BUILDDIR)/$(JOBNAME).pdf
 
 all: pdf
 
 $(BUILDDIR):
-	mkdir -p $(BUILDDIR)
+	mkdir -p paper/$(BUILDDIR)
 
 pdf: $(BUILDDIR)
 	@cd $(SRCDIR) && \
@@ -26,7 +26,7 @@ watch: $(BUILDDIR)
 clean:
 	@cd $(SRCDIR) && \
 	$(LATEXMK) -C -jobname=$(JOBNAME) -outdir=../$(BUILDDIR) || true
-	rm -rf $(BUILDDIR)/*
+	rm -rf paper/$(BUILDDIR)/*
 
 
 .PHONY: all pdf clean watch
