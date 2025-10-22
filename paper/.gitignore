@@ -1,0 +1,15 @@
+# .gitignore
+build/
+*.synctex.gz
+*.aux
+*.log
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+*.fdb_latexmk
+*.fls
+*.out
+*.toc
+*.lof
+*.lot
