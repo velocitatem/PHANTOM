@@ -13,9 +13,11 @@ jobs:
           scheme: small
           run: |
             tlmgr install biber biblatex csquotes geometry microtype hyperref cleveref siunitx booktabs graphics caption latexmk
-            cd paper && make pdf
+            make pdf
+        working-directory: paper
       - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:
           name: thesis-pdf
-          path: paper/build/main.pdf
+          path: build/main.pdf
+        working-directory: paper
