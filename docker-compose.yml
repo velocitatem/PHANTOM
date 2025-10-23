@@ -17,19 +17,33 @@ services:
 
   kafka:
     container_name: "PHANTOM-kafka"
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.5.0
     depends_on:
       - zookeeper
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     ports:
       - "${KAFKA_PORT:-9092}:9092"
     volumes:
       - phantom_kafka_data:/var/lib/kafka/data
+
+  redpanda-console:
+    container_name: "PHANTOM-redpanda-console"
+    image: docker.redpanda.com/redpandadata/console:latest
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKERS: kafka:29092
+    ports:
+      - "${REDPANDA_CONSOLE_PORT:-8080}:8080"
+    restart: unless-stopped
 
 volumes:
   phantom_kafka_data:
