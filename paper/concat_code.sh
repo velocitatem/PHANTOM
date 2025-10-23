@@ -1,8 +1,10 @@
 #!/bin/bash
 # Script to concatenate all code from source directories for LaTeX inclusion
 
-OUTPUT_FILE="paper/build/concatenated_code.tex"
-PROJECT_ROOT="/home/velocitatem/Documents/Projects/PHANTOM"
+# Detect project root (parent of paper directory)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+OUTPUT_FILE="$PROJECT_ROOT/paper/build/concatenated_code.tex"
 
 # Create output directory if it doesn't exist
 mkdir -p "$(dirname "$OUTPUT_FILE")"
