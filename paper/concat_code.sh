@@ -15,26 +15,9 @@ add_file() {
     local filepath="$1"
     local relpath="${filepath#$PROJECT_ROOT/}"
 
-    # Get file extension
-    local ext="${filepath##*.}"
-
-    # Map extensions to listings language
-    case "$ext" in
-        py) lang="Python" ;;
-        js|jsx|ts|tsx) lang="JavaScript" ;;
-        sh) lang="bash" ;;
-        yml|yaml) lang="Python" ;;
-        Dockerfile) lang="bash" ;;
-        *) lang="" ;;
-    esac
-
-    # Add section header and code listing
+    # Add section header and code listing (no language-specific highlighting)
     echo "\\subsection{${relpath}}" >> "$OUTPUT_FILE"
-    if [ -n "$lang" ]; then
-        echo "\\begin{lstlisting}[language=${lang},caption={${relpath}}]" >> "$OUTPUT_FILE"
-    else
-        echo "\\begin{lstlisting}[caption={${relpath}}]" >> "$OUTPUT_FILE"
-    fi
+    echo "\\begin{lstlisting}[caption={${relpath}}]" >> "$OUTPUT_FILE"
     cat "$filepath" >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"
     echo "\\end{lstlisting}" >> "$OUTPUT_FILE"
