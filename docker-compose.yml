@@ -1,4 +1,12 @@
 services:
+  redis:
+    container_name: "PHANTOM-redis"
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6378}:6379"
+    volumes:
+      - phantom_redis_data:/data
+    restart: unless-stopped
   zookeeper:
     container_name: "PHANTOM-zookeeper"
     image: confluentinc/cp-zookeeper:latest
@@ -25,3 +33,4 @@ services:
 
 volumes:
   phantom_kafka_data:
+  phantom_redis_data:
