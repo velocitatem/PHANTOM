@@ -5,6 +5,22 @@
 \usepackage{subcaption}
 \usepackage{siunitx}
 
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    showstringspaces=false,
+    captionpos=b
+}
+
 % Use biblatex instead of natbib (acmart default)
 \usepackage[backend=bibtex,style=numeric]{biblatex}
 \addbibresource{bib/references.bib}

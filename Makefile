@@ -11,6 +11,8 @@ $(BUILDDIR):
 	mkdir -p paper/$(BUILDDIR)
 
 pdf: $(BUILDDIR)
+	@echo "Concatenating source code..."
+	@bash paper/concat_code.sh
 	@cd $(SRCDIR) && \
 	$(LATEXMK) -pdf -jobname=$(JOBNAME) \
 		-interaction=nonstopmode -file-line-error \
