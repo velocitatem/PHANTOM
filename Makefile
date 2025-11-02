@@ -5,7 +5,12 @@ TEX       := main.tex
 JOBNAME   := main
 PDF       := paper/$(BUILDDIR)/$(JOBNAME).pdf
 
+.DEFAULT_GOAL := help
+
 all: pdf
+
+run.webapp:
+	@cd web && npm install && npm run dev
 
 $(BUILDDIR):
 	mkdir -p paper/$(BUILDDIR)
@@ -31,4 +36,4 @@ clean:
 	rm -rf paper/$(BUILDDIR)/*
 
 
-.PHONY: all pdf clean watch
+.PHONY: all pdf clean watch run.webapp
