@@ -4,3 +4,4 @@ pandas
 jupyter
 ipykernel
 matplotlib
+graphviz
