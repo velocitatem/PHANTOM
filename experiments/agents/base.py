@@ -1,27 +1,19 @@
-import asyncio
+from abc import ABC, abstractmethod
+from typing import Optional
 
-class Agent:
-    def __init__(self,
-                 goal : str = "Get Information on All Prices",
-                 environment_url : str = "https://www.example.com",
-                 timeout : int = 60 * 5):
+class Agent(ABC):
+    """Base interface for browser automation agents"""
+
+    def __init__(self, goal: str, url: str = "http://localhost:3000", timeout: int = 300):
         self.goal = goal
-        self.environment_url = environment_url
+        self.url = url
         self.timeout = timeout
-        self.result = None
-        # TODO: implement agent initialization
+        self.result: Optional[str] = None
+
+    @abstractmethod
+    async def act(self) -> str:
+        """Execute goal and return result text"""
         pass
-    async def act(self):
-        # set the self.result to whatever text result the agents returns
-        pass # return await _async_method()
 
-    def final_result(self) -> str|None:
+    def final_result(self) -> Optional[str]:
         return self.result
-
-
-# asyncio.run(Agent(...).act())
-if __name__ == "__main__":
-    print("Testing Agent...")
-    agent = Agent(goal="Find the best price for a laptop", environment_url="https://www.example.com")
-    asyncio.run(agent.act())
-    print(f"Agent Result: {agent.final_result()}")

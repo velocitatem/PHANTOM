@@ -5,3 +5,4 @@ jupyter
 ipykernel
 matplotlib
 graphviz
+browser-use
