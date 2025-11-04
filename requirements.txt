@@ -1,0 +1,7 @@
+kafka-python
+dotenv
+pandas
+jupyter
+ipykernel
+matplotlib
+graphviz
