@@ -4,6 +4,10 @@ BUILDDIR  := build
 TEX       := main.tex
 JOBNAME   := main
 PDF       := paper/$(BUILDDIR)/$(JOBNAME).pdf
+VENV      := .venv
+PYTHON    := $(VENV)/bin/python
+PIP       := $(VENV)/bin/pip
+PYTEST    := $(VENV)/bin/pytest
 
 .DEFAULT_GOAL := help
 
@@ -35,5 +39,14 @@ clean:
 	$(LATEXMK) -C -jobname=$(JOBNAME) -outdir=../$(BUILDDIR) || true
 	rm -rf paper/$(BUILDDIR)/*
 
+$(VENV):
+	python3 -m venv $(VENV)
+	$(PIP) install --upgrade pip
 
-.PHONY: all pdf clean watch run.webapp
+install: $(VENV)
+	$(PIP) install -r requirements.txt
+
+test: $(VENV)
+	$(PYTEST) -v
+
+.PHONY: all pdf clean watch run.webapp install test

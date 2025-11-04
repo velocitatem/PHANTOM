@@ -1,6 +1,7 @@
 import pytest
 import asyncio
 from experiments.agents.agent import get_agent, AgentTypes
+import os
 
 
 def test_agent_init():
@@ -16,8 +17,10 @@ def test_invalid_agent():
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif("OPENAI_API_KEY" not in os.environ, reason="OPENAI_API_KEY not set")
 async def test_agent_execution():
     agent = get_agent(AgentTypes.GENERIC_BROWSER_USE_AGENT, goal="get page title", url="https://example.com", timeout=60)
+
     result = await agent.act()
     assert result
     assert agent.final_result()
