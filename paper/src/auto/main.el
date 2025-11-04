@@ -6,11 +6,14 @@
    (setq TeX-command-extra-options
          "-file-line-error -interaction=nonstopmode")
    (TeX-add-to-alist 'LaTeX-provided-class-options
-                     '(("report" "12pt") ("article" "12pt") ("acmart" "sigconf" "nonacm")))
+                     '(("report" "12pt") ("article" "12pt") ("acmart" "sigconf" "nonacm" "natbib=false")))
    (TeX-run-style-hooks
     "latex2e"
     "preamble"
     "chapters/01-intro"
+    "chapters/02-literature-review"
+    "chapters/03-methodology"
+    "../build/concatenated_code"
     "acmart"
     "acmart10")
    (TeX-add-symbols

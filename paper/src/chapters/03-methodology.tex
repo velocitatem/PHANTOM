@@ -1,0 +1,51 @@
+\section{Methodology}
+
+
+\subsection{Problem Formalization}
+
+Mathematical formalization of agent-induced pricing distortions. Formal definition of potential loss mechanisms $\alpha D$
+
+\subsection{Cost of Information Framework}
+
+Mathematical demonstration and validation of the COI and citation backed evidence, and framework overview + show harm to user via other cost distortions. Maybe split into 3.2.1 (COI Theory) and 3.2.2 (Framework Design)
+
+\subsection{System Architecture}
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  node distance=1.5cm and 2.5cm,
+  box/.style={rectangle, draw, thick, minimum height=1cm, minimum width=3cm, align=center, fill=blue!10},
+  kafka/.style={rectangle, draw=orange, thick, minimum height=1cm, minimum width=3cm, align=center, fill=orange!15},
+  arrow/.style={thick,->,>=Stealth}
+]
+
+% Nodes
+\node[box] (webapp) {Web Application \\ (Producer \& Consumer)};
+\node[kafka, below=of webapp] (kafka) {Apache Kafka \\ Cluster};
+\node[box, below=of kafka] (backend) {Backend Services / Microservices \\ (Producers and Consumers)};
+
+% Connections
+\draw[arrow] (webapp) to[out=210,in=150] node[above]{Publish} (kafka);
+\draw[arrow] (kafka) to[out=50,in=330] node[below]{Consume} (webapp);
+\draw[arrow] (backend) -- node[above]{Publish/Consume} (kafka);
+
+% Optional: Kafka internal components
+%\node[below=0.7cm of kafka, align=center] (topics) {Topics \\ Partitions};
+
+% Optional background
+\begin{scope}[on background layer]
+  \node[draw, rounded corners, fill=orange!5, fit=(kafka) (topics), inner sep=0.3cm] {};
+\end{scope}
+\end{tikzpicture}
+\caption{Technical Diagram}
+\end{figure}
+
+High level overview of how it works
+\subsection{Experimental Design}
+Study methodology and approach. Data acquisition strategy. Defined objectives and success criteria. Observable metrics and KPIs
+
+\subsection{Dynamic Pricing Algorithm Analysis}
+Deep dive into how the algorithm works, different kinds and justification for chosen appraoches + agent impact modeling and quantification.
+\subsection{Reinforcement Learning Formulation}
+How do we define the state space, action space and reward function breakdown and algorithm benchmarking.
+POSSIBLY: Expand into full subsections: 3.6.1 (State-Action Space), 3.6.2 (Reward Design), 3.6.3 (Benchmarking)
