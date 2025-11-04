@@ -16,10 +16,11 @@ mkdir -p "$(dirname "$OUTPUT_FILE")"
 add_file() {
     local filepath="$1"
     local relpath="${filepath#$PROJECT_ROOT/}"
+    local escaped_path="${relpath//_/\\_}"
 
     # Add section header and code listing (no language-specific highlighting)
-    echo "\\subsection{${relpath}}" >> "$OUTPUT_FILE"
-    echo "\\begin{lstlisting}[caption={${relpath}}]" >> "$OUTPUT_FILE"
+    echo "\\subsection{${escaped_path}}" >> "$OUTPUT_FILE"
+    echo "\\begin{lstlisting}[caption={${escaped_path}}]" >> "$OUTPUT_FILE"
     cat "$filepath" >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"
     echo "\\end{lstlisting}" >> "$OUTPUT_FILE"
