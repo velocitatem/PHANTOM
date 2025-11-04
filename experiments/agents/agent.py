@@ -1,5 +1,4 @@
-from os import environ
-from base import Agent as BaseAgent
+from experiments.agents.base import Agent as BaseAgent
 from browser_use import Browser, Agent, ChatOpenAI
 from enum import Enum
 
@@ -28,6 +27,7 @@ class GenericBrowserUseAgent(BaseAgent):
                            browser=self.browser)
     async def act(self) -> str:
         self.result = await self.agent.run()
+        # https://github.com/browser-use/browser-use/blob/main/browser_use/agent/views.py#L301
         return self.result.final_result()
 
 def get_agent(agent_type: AgentTypes,  **kwargs) -> Agent:

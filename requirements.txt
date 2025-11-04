@@ -6,3 +6,5 @@ ipykernel
 matplotlib
 graphviz
 browser-use
+pytest
+pytest-asyncio
