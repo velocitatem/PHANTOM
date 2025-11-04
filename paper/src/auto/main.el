@@ -22,4 +22,3 @@
    (TeX-add-symbols
     '("footnotetextcopyrightpermission" 1)))
  :latex)
-
