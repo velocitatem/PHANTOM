@@ -26,3 +26,18 @@ jobs:
         with:
           name: thesis-pdf
           path: paper/build/main.pdf
+
+      - name: Deploy PDF to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          # Copy PDF to docs directory for GitHub Pages
+          mkdir -p docs/static/pdfs
+          cp paper/build/main.pdf docs/static/pdfs/thesis.pdf
+
+          # Configure git
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # Commit and push if there are changes
+          git add docs/static/pdfs/thesis.pdf
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update thesis PDF [skip ci]" && git push)
