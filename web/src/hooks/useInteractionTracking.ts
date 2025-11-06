@@ -1,17 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import '@/lib/experiments' // ensure experiments lib is loaded
 
-const genSessionId = () => {
-    if (typeof window === 'undefined') return '';
-    let sid = sessionStorage.getItem('phantom_session_id');
-    if (!sid) {
-        sid = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        sessionStorage.setItem('phantom_session_id', sid);
-        // TODO: when creating new id send to exepriemtn tracking db
-        // match between sesion-id and experiment-id for this session
-        // so that we can identify all interactions aligning with a specific experiment goal.
+const fetchSessionId = async (): Promise<string> => {
+    try {
+        const res = await fetch('/api/session');
+        const data = await res.json();
+        return data.sessionId || '';
+    } catch (err) {
+        console.error('failed to fetch session:', err);
+        return '';
     }
-    return sid;
 };
 
 const track = async (ev: {
@@ -34,11 +32,17 @@ const track = async (ev: {
 
 export const useInteractionTracking = () => {
     const sidRef = useRef<string>('');
+    const [ready, setReady] = useState(false);
 
     useEffect(() => {
-        sidRef.current = genSessionId();
+        // fetch session id from httpOnly cookie via API
+        fetchSessionId().then((sid) => {
+            sidRef.current = sid;
+            setReady(true);
+        });
 
         const handleClick = (e: MouseEvent) => {
+            if (!sidRef.current) return;
             const tgt = e.target as HTMLElement;
             track({
                 sessionId: sidRef.current,
@@ -54,6 +58,7 @@ export const useInteractionTracking = () => {
         };
 
         const handleScroll = () => {
+            if (!sidRef.current) return;
             track({
                 sessionId: sidRef.current,
                 eventType: 'scroll',
@@ -65,6 +70,7 @@ export const useInteractionTracking = () => {
         };
 
         const handlePageView = () => {
+            if (!sidRef.current) return;
             track({
                 sessionId: sidRef.current,
                 eventType: 'pageview',
@@ -85,6 +91,7 @@ export const useInteractionTracking = () => {
             interactionType: DefinedInteractions,
             metadata?: Record<string, any>
         ) => {
+            if (!sidRef.current) return;
             track({
                 sessionId: sidRef.current,
                 eventType: interactionType,
@@ -95,23 +102,24 @@ export const useInteractionTracking = () => {
             });
         };
 
+        const definedInteractionListener = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            handleDefinedInteraction(customEvent.detail.interactionType, customEvent.detail.metadata);
+        };
+
+        // wait for session to be ready before tracking
+        if (!ready) return;
 
         handlePageView();
         document.addEventListener('click', handleClick);
-        document.addEventListener('definedInteraction', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            handleDefinedInteraction(customEvent.detail.interactionType, customEvent.detail.metadata);
-        });
+        document.addEventListener('definedInteraction', definedInteractionListener);
         // TOO NOISY: enable if needed but tbh not worth it
         //window.addEventListener('scroll', handleScroll, { passive: true });
 
         return () => {
             document.removeEventListener('click', handleClick);
-            document.removeEventListener('definedInteraction', (e: Event) => {
-                const customEvent = e as CustomEvent;
-                handleDefinedInteraction(customEvent.detail.interactionType, customEvent.detail.metadata);
-            });
+            document.removeEventListener('definedInteraction', definedInteractionListener);
             //window.removeEventListener('scroll', handleScroll);
         };
-    }, []);
+    }, [ready]);
 };
