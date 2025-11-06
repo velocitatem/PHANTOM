@@ -3,13 +3,13 @@ import { z } from 'zod';
 type Env = z.infer<typeof envSchema>;
 const envSchema = z.object({
     STORE_MODE: z.enum(['hotel', 'airline'], {
-        errorMap: () => ({ message: 'STORE_MODE must be either "hotel" or "airline"' })
+        message: 'STORE_MODE must be either "hotel" or "airline"'
     }),
     NEXT_PUBLIC_API_BASE: z.string().url({
         message: 'NEXT_PUBLIC_API_BASE must be a valid URL (e.g., http://localhost:3000)'
     }),
     NEXT_PUBLIC_APP_ENV: z.enum(['dev', 'prod'], {
-        errorMap: () => ({ message: 'NEXT_PUBLIC_APP_ENV must be either "dev" or "prod"' })
+        message: 'NEXT_PUBLIC_APP_ENV must be either "dev" or "prod"'
     }),
 });
 
@@ -21,7 +21,7 @@ const parseEnv = (): Env => {
         NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV,
     });
     if (!result.success) {
-        const errors = result.error.errors.map((err) => `${err.path.join('.')}: ${err.message}`).join('\n');
+        const errors = result.error.issues.map((err) => `${err.path.join('.')}: ${err.message}`).join('\n');
         throw new Error(`Environment validation failed:\n${errors}`);
     }
     return result.data;

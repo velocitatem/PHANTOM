@@ -1,5 +1,6 @@
 /* Airline Platform - Sky Blue Theme */
 
+@layer base {
 :root[data-mode="airline"] {
   --accent-primary: #007aff;
   --accent-secondary: #4caf50;
@@ -7,19 +8,31 @@
   --accent-primary-hover: #0051d5;
   --accent-primary-light: #e6f2ff;
   --text-accent: #007aff;
+  --hero-bg: linear-gradient(to bottom, white, #e6f2ff);
+}
 }
 
+@layer components {
 [data-mode="airline"] {
   --primary-color: var(--accent-primary);
 }
 
 [data-mode="airline"] .btn-primary {
-  background-color: var(--accent-primary);
-  color: #ffffff;
+  background-color: var(--accent-primary) !important;
+  color: #ffffff !important;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: var(--border-radius);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 [data-mode="airline"] .btn-primary:hover {
   background-color: var(--accent-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
 }
 
 [data-mode="airline"] .btn-secondary {
@@ -264,6 +277,7 @@
   border-radius: 6px;
   padding: 12px;
   transition: border-color 0.2s ease;
+  width: 100%;
 }
 
 [data-mode="airline"] .input-field:focus {
@@ -299,4 +313,9 @@
 
 [data-mode="airline"] .checkbox-label:hover {
   color: var(--accent-primary);
+}
+
+[data-mode="airline"] .hero-section {
+  background: var(--hero-bg);
+}
 }
