@@ -1,33 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
 import '@/lib/experiments' // ensure experiments lib is loaded
+import type { EventName } from '@/lib/events';
 
 const fetchSessionId = async (): Promise<string> => {
-    try {
-        const res = await fetch('/api/session');
-        const data = await res.json();
-        return data.sessionId || '';
-    } catch (err) {
-        console.error('failed to fetch session:', err);
-        return '';
-    }
+  try {
+    const res = await fetch('/api/session');
+    const data = await res.json();
+    return data.sessionId || '';
+  } catch (err) {
+    console.error('failed to fetch session:', err);
+    return '';
+  }
 };
 
 const track = async (ev: {
-    sessionId: string;
-    eventType: string;
-    targetEl?: string;
-    targetUrl?: string;
-    metadata?: Record<string, any>;
+  sessionId: string;
+  eventName: EventName;
+  page: string;
+  productId?: string;
+  metadata?: Record<string, unknown>;
 }) => {
-    try {
-        await fetch('/api/track', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(ev),
-        });
-    } catch (err) {
-        console.error('track failed:', err);
-    }
+  try {
+    await fetch('/api/ingest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ev),
+    });
+  } catch (err) {
+    console.error('track failed:', err);
+  }
 };
 
 export const useInteractionTracking = () => {
@@ -44,67 +45,49 @@ export const useInteractionTracking = () => {
         const handleClick = (e: MouseEvent) => {
             if (!sidRef.current) return;
             const tgt = e.target as HTMLElement;
+            const page = window.location.pathname;
             track({
                 sessionId: sidRef.current,
-                eventType: 'click',
-                targetEl: tgt.tagName,
-                targetUrl: tgt instanceof HTMLAnchorElement ? tgt.href : undefined,
+                eventName: 'click',
+                page,
                 metadata: {
                     x: e.clientX,
                     y: e.clientY,
-                    path: window.location.pathname,
-                },
-            });
-        };
-
-        const handleScroll = () => {
-            if (!sidRef.current) return;
-            track({
-                sessionId: sidRef.current,
-                eventType: 'scroll',
-                metadata: {
-                    scrollY: window.scrollY,
-                    path: window.location.pathname,
+                    targetEl: tgt.tagName,
+                    targetUrl: tgt instanceof HTMLAnchorElement ? tgt.href : undefined,
                 },
             });
         };
 
         const handlePageView = () => {
             if (!sidRef.current) return;
+            const page = window.location.pathname;
             track({
                 sessionId: sidRef.current,
-                eventType: 'pageview',
+                eventName: 'page_view',
+                page,
                 metadata: {
-                    path: window.location.pathname,
                     referrer: document.referrer,
                 },
             });
         };
 
-        enum DefinedInteractions {
-            ADD_TO_CART = 'add_to_cart',
-            PURCHASE = 'purchase',
-        }
-
-        // called when clicking on "Add to Cart" button or "Purchase" button
-        const handleDefinedInteraction = (
-            interactionType: DefinedInteractions,
-            metadata?: Record<string, any>
-        ) => {
+        // called for canonical events dispatched via custom events
+        const handleDefinedInteraction = (e: Event) => {
             if (!sidRef.current) return;
+            const customEvent = e as CustomEvent<{
+                eventName: EventName;
+                productId?: string;
+                metadata?: Record<string, unknown>;
+            }>;
+            const page = window.location.pathname;
             track({
                 sessionId: sidRef.current,
-                eventType: interactionType,
-                metadata: {
-                    path: window.location.pathname,
-                    ...metadata,
-                },
+                eventName: customEvent.detail.eventName,
+                page,
+                productId: customEvent.detail.productId,
+                metadata: customEvent.detail.metadata,
             });
-        };
-
-        const definedInteractionListener = (e: Event) => {
-            const customEvent = e as CustomEvent;
-            handleDefinedInteraction(customEvent.detail.interactionType, customEvent.detail.metadata);
         };
 
         // wait for session to be ready before tracking
@@ -112,14 +95,11 @@ export const useInteractionTracking = () => {
 
         handlePageView();
         document.addEventListener('click', handleClick);
-        document.addEventListener('definedInteraction', definedInteractionListener);
-        // TOO NOISY: enable if needed but tbh not worth it
-        //window.addEventListener('scroll', handleScroll, { passive: true });
+        document.addEventListener('definedInteraction', handleDefinedInteraction);
 
         return () => {
             document.removeEventListener('click', handleClick);
-            document.removeEventListener('definedInteraction', definedInteractionListener);
-            //window.removeEventListener('scroll', handleScroll);
+            document.removeEventListener('definedInteraction', handleDefinedInteraction);
         };
     }, [ready]);
 };

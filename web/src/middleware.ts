@@ -4,9 +4,10 @@ export function middleware(req: NextRequest) {
     const mode = process.env.STORE_MODE;
     const { pathname } = req.nextUrl;
 
-    // skip rewrites for api routes, static files, and next internals
+    // skip rewrites for api routes, admin routes, static files, and next internals
     if (
         pathname.startsWith('/api') ||
+        pathname.startsWith('/admin') ||
         pathname.startsWith('/_next') ||
         pathname.startsWith('/static') ||
         pathname.includes('.')
