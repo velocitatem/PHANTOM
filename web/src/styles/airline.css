@@ -1,7 +1,7 @@
 /* Airline Platform - Sky Blue Theme */
 
 @layer base {
-:root[data-mode="airline"] {
+[data-mode="airline"] {
   --accent-primary: #007aff;
   --accent-secondary: #4caf50;
   --accent-warning: #ff3b30;

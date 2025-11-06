@@ -1,7 +1,7 @@
 /* Hotel Platform - Action Blue Theme */
 
 @layer base {
-:root[data-mode="hotel"] {
+[data-mode="hotel"] {
   --accent-primary: #007aff;
   --accent-secondary: #4caf50;
   --accent-warning: #d9534f;
