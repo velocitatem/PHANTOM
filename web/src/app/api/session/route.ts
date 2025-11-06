@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { getSession, createSession } from '@/lib/sessionStore';
 
 const COOKIE_NAME = 'phantom_session_id';
 const isProd = process.env.NODE_ENV === 'production';
@@ -10,13 +11,18 @@ export async function GET(req: NextRequest) {
         const existingSession = req.cookies.get(COOKIE_NAME)?.value;
 
         if (existingSession) {
-            return NextResponse.json({ sessionId: existingSession });
+            const sessionData = getSession(existingSession);
+            return NextResponse.json({
+                sessionId: existingSession,
+                experimentId: sessionData?.experimentId,
+            });
         }
 
         // mint new session id
         const sessionId = randomUUID();
+        createSession(sessionId);
 
-        const res = NextResponse.json({ sessionId });
+        const res = NextResponse.json({ sessionId, experimentId: undefined });
 
         // set httpOnly cookie with security flags
         res.cookies.set({
