@@ -51,6 +51,7 @@ export const eventBaseSchema = z.object({
   page: z.string().min(1),
   eventName: z.enum([
     'page_view',
+    'click',
     'product_view',
     'product_hover',
     'search',
@@ -63,7 +64,7 @@ export const eventBaseSchema = z.object({
     'session_start',
   ]),
   productId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   userAgent: z.string().optional(),
 });
 
