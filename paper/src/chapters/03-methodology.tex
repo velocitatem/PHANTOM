@@ -5,6 +5,11 @@
 
 Mathematical formalization of agent-induced pricing distortions. Formal definition of potential loss mechanisms $\alpha D$
 
+We consider a business across time during which we have an evolving vector $p_t \in \Re^N$ where $N$ is the number of products in our catalogue. our price vector is directly dependent on a demand function $q_t$ which we define as a linear method of a price elasticity matrix $B_t$. This is the same setup that Microsoft created in their research.
+
+We gether interaction data from users interacting with a sample platform simulating a hotel/airline which generates interaction distributions $I_t = \{(p_t, q_t^\text{obs}, \pi_t)\}_{t=1}^T$
+
+
 \subsection{Cost of Information Framework}
 
 Mathematical demonstration and validation of the COI and citation backed evidence, and framework overview + show harm to user via other cost distortions. Maybe split into 3.2.1 (COI Theory) and 3.2.2 (Framework Design)
@@ -34,7 +39,7 @@ Mathematical demonstration and validation of the COI and citation backed evidenc
 
 % Optional background
 \begin{scope}[on background layer]
-  \node[draw, rounded corners, fill=orange!5, fit=(kafka) (topics), inner sep=0.3cm] {};
+  \node[draw, rounded corners, fill=orange!5, fit=(kafka), inner sep=0.3cm] {};
 \end{scope}
 \end{tikzpicture}
 \caption{Technical Diagram}
