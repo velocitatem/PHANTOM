@@ -54,3 +54,15 @@ Deep dive into how the algorithm works, different kinds and justification for ch
 \subsection{Reinforcement Learning Formulation}
 How do we define the state space, action space and reward function breakdown and algorithm benchmarking.
 POSSIBLY: Expand into full subsections: 3.6.1 (State-Action Space), 3.6.2 (Reward Design), 3.6.3 (Benchmarking)
+
+
+\begin{algorithm}[t]
+\DontPrintSemicolon
+\KwIn{stepsize $\eta$, smoothing $\delta$, rank $d$}
+\For{$t=1$ \KwTo $T$}{
+  Sample $u_t$ on unit sphere; set $x_t^\prime=x_t+\delta u_t$\;
+  Set $p_t \gets U x_t^\prime$ and observe $q_t, R_t(p_t)$\;
+  $x_{t+1} \gets \Pi\_{\mathcal{X}}(x_t-\eta R_t(p_t) u_t)$\;
+}
+\caption{Online Pricing Optimization (template)}
+\end{algorithm}
