@@ -1,0 +1,68 @@
+\section{Methodology}
+
+
+\subsection{Problem Formalization}
+
+Mathematical formalization of agent-induced pricing distortions. Formal definition of potential loss mechanisms $\alpha D$
+
+We consider a business across time during which we have an evolving vector $p_t \in \Re^N$ where $N$ is the number of products in our catalogue. our price vector is directly dependent on a demand function $q_t$ which we define as a linear method of a price elasticity matrix $B_t$. This is the same setup that Microsoft created in their research.
+
+We gether interaction data from users interacting with a sample platform simulating a hotel/airline which generates interaction distributions $I_t = \{(p_t, q_t^\text{obs}, \pi_t)\}_{t=1}^T$
+
+
+\subsection{Cost of Information Framework}
+
+Mathematical demonstration and validation of the COI and citation backed evidence, and framework overview + show harm to user via other cost distortions. Maybe split into 3.2.1 (COI Theory) and 3.2.2 (Framework Design)
+
+\subsection{System Architecture}
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  node distance=1.5cm and 2.5cm,
+  box/.style={rectangle, draw, thick, minimum height=1cm, minimum width=3cm, align=center, fill=blue!10},
+  kafka/.style={rectangle, draw=orange, thick, minimum height=1cm, minimum width=3cm, align=center, fill=orange!15},
+  arrow/.style={thick,->,>=Stealth}
+]
+
+% Nodes
+\node[box] (webapp) {Web Application \\ (Producer \& Consumer)};
+\node[kafka, below=of webapp] (kafka) {Apache Kafka \\ Cluster};
+\node[box, below=of kafka] (backend) {Backend Services / Microservices \\ (Producers and Consumers)};
+
+% Connections
+\draw[arrow] (webapp) to[out=210,in=150] node[above]{Publish} (kafka);
+\draw[arrow] (kafka) to[out=50,in=330] node[below]{Consume} (webapp);
+\draw[arrow] (backend) -- node[above]{Publish/Consume} (kafka);
+
+% Optional: Kafka internal components
+%\node[below=0.7cm of kafka, align=center] (topics) {Topics \\ Partitions};
+
+% Optional background
+\begin{scope}[on background layer]
+  \node[draw, rounded corners, fill=orange!5, fit=(kafka), inner sep=0.3cm] {};
+\end{scope}
+\end{tikzpicture}
+\caption{Technical Diagram}
+\end{figure}
+
+High level overview of how it works
+\subsection{Experimental Design}
+Study methodology and approach. Data acquisition strategy. Defined objectives and success criteria. Observable metrics and KPIs
+
+\subsection{Dynamic Pricing Algorithm Analysis}
+Deep dive into how the algorithm works, different kinds and justification for chosen appraoches + agent impact modeling and quantification.
+\subsection{Reinforcement Learning Formulation}
+How do we define the state space, action space and reward function breakdown and algorithm benchmarking.
+POSSIBLY: Expand into full subsections: 3.6.1 (State-Action Space), 3.6.2 (Reward Design), 3.6.3 (Benchmarking)
+
+
+\begin{algorithm}[t]
+\DontPrintSemicolon
+\KwIn{stepsize $\eta$, smoothing $\delta$, rank $d$}
+\For{$t=1$ \KwTo $T$}{
+  Sample $u_t$ on unit sphere; set $x_t^\prime=x_t+\delta u_t$\;
+  Set $p_t \gets U x_t^\prime$ and observe $q_t, R_t(p_t)$\;
+  $x_{t+1} \gets \Pi\_{\mathcal{X}}(x_t-\eta R_t(p_t) u_t)$\;
+}
+\caption{Online Pricing Optimization (template)}
+\end{algorithm}
