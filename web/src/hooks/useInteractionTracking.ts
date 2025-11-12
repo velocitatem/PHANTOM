@@ -42,23 +42,6 @@ export const useInteractionTracking = () => {
             setReady(true);
         });
 
-        const handleClick = (e: MouseEvent) => {
-            if (!sidRef.current) return;
-            const tgt = e.target as HTMLElement;
-            const page = window.location.pathname;
-            track({
-                sessionId: sidRef.current,
-                eventName: 'click',
-                page,
-                metadata: {
-                    x: e.clientX,
-                    y: e.clientY,
-                    targetEl: tgt.tagName,
-                    targetUrl: tgt instanceof HTMLAnchorElement ? tgt.href : undefined,
-                },
-            });
-        };
-
         const handlePageView = () => {
             if (!sidRef.current) return;
             const page = window.location.pathname;
@@ -94,11 +77,9 @@ export const useInteractionTracking = () => {
         if (!ready) return;
 
         handlePageView();
-        document.addEventListener('click', handleClick);
         document.addEventListener('definedInteraction', handleDefinedInteraction);
 
         return () => {
-            document.removeEventListener('click', handleClick);
             document.removeEventListener('definedInteraction', handleDefinedInteraction);
         };
     }, [ready]);
