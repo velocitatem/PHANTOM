@@ -1,7 +1,9 @@
 services:
   redis:
     container_name: "PHANTOM-redis"
-    image: redis:7-alpine
+    build:
+      context: ./docker
+      dockerfile: Redis.dockerfile
     ports:
       - "${REDIS_PORT:-6378}:6379"
     volumes:
@@ -9,7 +11,9 @@ services:
     restart: unless-stopped
   zookeeper:
     container_name: "PHANTOM-zookeeper"
-    image: confluentinc/cp-zookeeper:latest
+    build:
+      context: ./docker
+      dockerfile: Zookeeper.dockerfile
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
     ports:
@@ -17,7 +21,9 @@ services:
 
   kafka:
     container_name: "PHANTOM-kafka"
-    image: confluentinc/cp-kafka:7.5.0
+    build:
+      context: ./docker
+      dockerfile: Kafka.dockerfile
     depends_on:
       - zookeeper
     environment:
@@ -36,7 +42,9 @@ services:
 
   redpanda-console:
     container_name: "PHANTOM-redpanda-console"
-    image: docker.redpanda.com/redpandadata/console:latest
+    build:
+      context: ./docker
+      dockerfile: RedpandaConsole.dockerfile
     depends_on:
       - kafka
     environment:
