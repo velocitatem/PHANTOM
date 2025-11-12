@@ -1,4 +1,4 @@
 FROM docker.redpanda.com/redpandadata/console:latest
 
-# Redpanda Console is used as-is from the official image
-# No additional configuration needed
+# Expose Redpanda Console web UI port
+EXPOSE 8080

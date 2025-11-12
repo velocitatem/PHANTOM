@@ -1,4 +1,4 @@
 FROM confluentinc/cp-zookeeper:latest
 
-# Zookeeper is used as-is from the Confluent official image
-# No additional configuration needed
+# Expose Zookeeper client port
+EXPOSE 2181
