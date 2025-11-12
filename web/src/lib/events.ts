@@ -17,7 +17,7 @@ export type EventName =
   | 'filter_for_amenities'
   | 'filter_for_price'
   | 'sort_change'
-  // dwell signals (3s threshold)
+  // dwell signals (Ns threshold)
   | 'hover_over_title'
   | 'hover_over_paragraph'
   | 'hover_over_link'

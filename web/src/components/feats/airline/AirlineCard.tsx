@@ -2,6 +2,7 @@
 
 import type { EventName } from '@/lib/events';
 import { useHoverTracking } from '@/hooks/useHoverTracking';
+import PriceDisplay from '@/components/ui/PriceDisplay';
 
 const dispatchInteraction = (eventName: EventName, productId?: string, metadata?: Record<string, unknown>) => {
     const e = new CustomEvent('definedInteraction', {
@@ -25,10 +26,6 @@ interface Flight {
     basePrice: number;
 }
 
-const PriceDisplay = ({ price }: { price: number }) => (
-    <div className="fare-price">${price}</div>
-);
-
 export default function AirlineCard({ flight }: { flight: Flight }) {
     const durationRef = useHoverTracking({
         eventName: 'hover_over_title',
@@ -39,7 +36,7 @@ export default function AirlineCard({ flight }: { flight: Flight }) {
     const priceRef = useHoverTracking({
         eventName: 'hover_over_paragraph',
         productId: flight.id,
-        metadata: { elementText: `$${flight.basePrice}` },
+        metadata: { elementText: 'price' },
     });
 
     const handleCardClick = () => {
@@ -79,7 +76,10 @@ export default function AirlineCard({ flight }: { flight: Flight }) {
                     <div className="badge-value text-xs mb-2">Refundable</div>
                 )}
                 <div ref={priceRef}>
-                    <PriceDisplay price={flight.basePrice} />
+                    <PriceDisplay
+                        productId={flight.id}
+                        className="fare-price"
+                    />
                 </div>
             </div>
         </div>

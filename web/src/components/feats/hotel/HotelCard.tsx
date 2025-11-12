@@ -2,6 +2,7 @@
 
 import type { EventName } from '@/lib/events';
 import { useHoverTracking } from '@/hooks/useHoverTracking';
+import PriceDisplay from '@/components/ui/PriceDisplay';
 
 const dispatchInteraction = (eventName: EventName, productId?: string, metadata?: Record<string, unknown>) => {
     const e = new CustomEvent('definedInteraction', {
@@ -21,14 +22,6 @@ interface Hotel {
     pricePerNight: number;
     nights: number;
 }
-
-const PriceDisplay = ({ price, perNight }: { price: number; perNight: boolean }) => (
-    <div className="price-wrapper">
-        <div className="price-label">{perNight ? 'Per night' : 'Total'}</div>
-        <div className="price-amount">${price}</div>
-        {perNight && <div className="price-unit">/night</div>}
-    </div>
-);
 
 const AmenityIcon = ({ name }: { name: string }) => {
     const iconMap: Record<string, string> = {
@@ -52,7 +45,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
     const priceRef = useHoverTracking({
         eventName: 'hover_over_paragraph',
         productId: hotel.id,
-        metadata: { elementText: `$${hotel.pricePerNight}` },
+        metadata: { elementText: 'price' },
     });
 
     const handleCardClick = () => {
@@ -90,10 +83,14 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
 
             <div className="hotel-pricing">
                 <div ref={priceRef}>
-                    <PriceDisplay price={hotel.pricePerNight} perNight />
+                    <PriceDisplay
+                        productId={hotel.id}
+                        className="price-wrapper"
+                        perNight
+                    />
                 </div>
                 <div className="text-xs text-[var(--text-secondary)] mt-1">
-                    ${hotel.pricePerNight * hotel.nights} total for {hotel.nights} night{hotel.nights > 1 ? 's' : ''}
+                    Total for {hotel.nights} night{hotel.nights > 1 ? 's' : ''}
                 </div>
             </div>
         </div>
