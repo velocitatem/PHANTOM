@@ -22,16 +22,18 @@ def get_producer() -> KafkaProducer:
         host = os.getenv('KAFKA_HOST', 'localhost')
         port = os.getenv('KAFKA_PORT', '9092')
         broker = f'{host}:{port}' if port else host
+        print(f"[KAFKA_INIT] Connecting to broker: {broker}")
         _producer = KafkaProducer(
             bootstrap_servers=[broker],
             value_serializer=lambda v: json.dumps(v).encode('utf-8'),
             key_serializer=lambda k: k.encode('utf-8') if k else None,
-            acks=1,  # wait for leader ack only
+            acks=1,
             retries=3,
             max_in_flight_requests_per_connection=5,
             request_timeout_ms=30000,
             api_version_auto_timeout_ms=10000,
         )
+        print(f"[KAFKA_INIT] Producer created successfully")
     return _producer
 
 class EventPayload(BaseModel):
