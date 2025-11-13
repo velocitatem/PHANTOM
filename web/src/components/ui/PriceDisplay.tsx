@@ -69,6 +69,12 @@ export default function PriceDisplay({
 
                 const { sessionId, experimentId } = sessionRef.current;
 
+                if (!sessionId) {
+                    setError('Invalid session');
+                    setLoading(false);
+                    return;
+                }
+
                 const params = new URLSearchParams({
                     productId,
                     sessionId,
@@ -122,7 +128,7 @@ export default function PriceDisplay({
             </div>
             {isStale && (
                 <span className="price-stale text-xs text-yellow-600" title={`Cached at ${data.cachedAt}`}>
-                    prices maybe out outdated
+                    prices may be outdated
                 </span>
             )}
         </div>
