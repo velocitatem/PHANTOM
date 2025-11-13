@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendEvent } from '@/lib/kafka';
 import type { EventBase } from '@/lib/events';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +17,15 @@ export async function POST(req: NextRequest) {
       ts: body.ts || new Date().toISOString(),
     };
 
-    await sendEvent(event);
+    const res = await fetch(`${BACKEND_URL}/api/kafka/ingest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(event),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Backend returned ${res.status}`);
+    }
 
     if (process.env.NEXT_PUBLIC_APP_ENV === 'dev') {
       console.log('[ingest]', event);
