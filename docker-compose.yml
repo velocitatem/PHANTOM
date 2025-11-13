@@ -1,4 +1,18 @@
 services:
+  backend:
+    container_name: "PHANTOM-backend"
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=29092
+    depends_on:
+      - kafka
+    restart: unless-stopped
+
   redis:
     container_name: "PHANTOM-redis"
     build:
@@ -9,6 +23,7 @@ services:
     volumes:
       - phantom_redis_data:/data
     restart: unless-stopped
+
   zookeeper:
     container_name: "PHANTOM-zookeeper"
     build:

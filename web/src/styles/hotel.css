@@ -1,6 +1,7 @@
 /* Hotel Platform - Action Blue Theme */
 
-:root[data-mode="hotel"] {
+@layer base {
+[data-mode="hotel"] {
   --accent-primary: #007aff;
   --accent-secondary: #4caf50;
   --accent-warning: #d9534f;
@@ -8,8 +9,11 @@
   --accent-primary-light: #e6f2ff;
   --text-accent: #007aff;
   --bg-tertiary: #f5f5f7;
+  --hero-bg: linear-gradient(to bottom, white, #f5f5f5);
+}
 }
 
+@layer components {
 [data-mode="hotel"] {
   --primary-color: var(--accent-primary);
 }
@@ -17,10 +21,19 @@
 [data-mode="hotel"] .btn-primary {
   background-color: var(--accent-primary);
   color: #ffffff;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: var(--border-radius);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 [data-mode="hotel"] .btn-primary:hover {
   background-color: var(--accent-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
 }
 
 [data-mode="hotel"] .btn-secondary {
@@ -397,4 +410,9 @@
 [data-mode="hotel"] .tab-item.active {
   color: var(--accent-primary);
   border-bottom-color: var(--accent-primary);
+}
+
+[data-mode="hotel"] .hero-section {
+  background: var(--hero-bg);
+}
 }
