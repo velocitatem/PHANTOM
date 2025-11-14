@@ -34,19 +34,59 @@ The primary objective of this thesis is to develop and validate pricing heuristi
 
 \maketitle
 
-\input{chapters/01-intro}
-\input{chapters/02-literature-review}
-\input{chapters/03-methodology}
-\input{chapters/04-results}
-\input{chapters/05-discussion}
-\input{chapters/06-conclusion}
+\section{Preliminary literature review}
 
+From very relevant news, the legal conflicts of agentic access to platforms have clearly indicated a need for prevention of secondary negative effects on ``legacy'' systems which power modern pricing systems \cite{Ghaffary}. Dynamic pricing algorithms rely on directly translating demand features $q$ to $\hat{p}$ new price assignments across a catalogue of products. This demand estimation does often take into account a small degree of error and noise from the data. However, adversarially introduced interactions, which are non-conducive to pricing optimization nor are a fully accurate representation of the driving human demand, have not been considered as part of the systems. Research such as \cite{Mueller2019} introduces very clear methodology for pricing algorithms backed by demand estimation for online pricing optimization which can be followed for proposing adjustments and improvements as highlighted in \ref{research}. Another often encountered demand distortion occurs through censored demand environments \cite{Amjad2017}.
+
+Other efforts such as \cite{Calvano2018} explore ways of modeling the interactions between multiple pricing algorithms or agents which in an effort to maximize their reward drive the market to supra-competitive pricing which leaves the boundaries of the market equilibrium, creating a harmful effect on the customers by this process of algorithmic collusion. This harm can be directly translated to our setting where through interactions between two learners there is a potential of market destabilization.
+
+
+\section{Research question or objective} \label{research}
+
+\begin{quote}
+How do agent-generated interactions contaminate demand functions in dynamic pricing algorithms, and how significantly does this contamination affect key performance indicators ($\Delta$)?
+\end{quote}
+The objectives are to gather data on how humans ($H$) and agents ($A$) interact with commerce platforms, and to identify the most reliable methodology for true demand estimation to fuel the dynamic pricing algorithm. This discrimination task can be accomplished through three distinct approaches:
+
+\begin{enumerate}
+\item \textbf{Explicit filtering approach:} Decompose pipeline components and employ an estimator $P(A|s)$ (where $s$ represents session interaction data) to explicitly filter agent-generated interactions from the processing stream.
+
+\item \textbf{Learned transformation approach:} Utilize a learned transformation on the product demand feature $B$, where $B = B_H + B_A$, with the goal of deriving a more representative demand feature $B_\text{clean} = B_H + W_\epsilon B_A$ that appropriately weights agent contributions.
+
+\item \textbf{Reinforcement learning approach:} Frame the problem as a reinforcement learning task where interactions are modeled as environmental components, guiding the algorithm to learn an appropriate pricing policy that implicitly accounts for genuine human demand ($B_H$).
+\end{enumerate}
+
+
+\section{Execution plan with approximate calendar}
+
+
+This is a tentative execution plan for this research, keeping in mind a more agile approach rather than a waterfall-like set of goals and targets:
+
+\begin{description}
+\item[November 2024:] Complete platform deployment for data collection and observations (70\% complete). Implement user authentication system with magic link invites to enable participant enrollment.
+
+\item[December 2024:] Gather initial interaction data and explore the separability of distributions between human and agentic interaction patterns. Begin testing online algorithms for session-based pricing optimizations.
+
+\item[January 2025:] Conduct controlled experiments comparing human versus agent execution of identical tasks. Establish behavioral signature models and quantify contamination impact ($\Delta$). Develop and validate the explicit filtering approach using $P(A|s)$ estimator.
+
+\item[February 2025:] Design and train the learned transformation model for demand feature adjustment ($B_\text{clean}$). Implement reinforcement learning framework and train pricing policy that implicitly accounts for genuine human demand.
+
+\item[March 2025:] Conduct comparative evaluation across all three proposed approaches. Finalize experimental results and perform statistical analysis of revenue recovery and KPI improvements.
+
+\item[April 2025:] Internal review, revisions, and thesis documentation finalization. Prepare for final submission.
+\end{description}
+
+\section{Desired measurable outcome or answer}
+
+The first step is measuring how well we can separate human from agent session data. We can start with standard accuracy metrics as a baseline.
+What really matters for the larger picture is the economic impact of accurate demand estimation. We measure this through revenue leakage and revenue recovery. For benchmarking, we need to compare scenarios under default pricing policies versus adjusted ones - this gives us lower and upper bounds for our performance.
+Since we're also concerned with human-centric outcomes, we need to collect user friction ratings that compare more radical solutions (like CAPTCHAs) against minimal or no defenses.
 
 \printbibliography
 
-\clearpage
-\onecolumn
-\appendix
-\input{../build/concatenated_code}
+% \clearpage
+% \onecolumn
+% \appendix
+% \input{../build/concatenated_code}
 
 \end{document}
