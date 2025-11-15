@@ -1,4 +1,4 @@
-from base import Agent as BaseAgent
+from .base import Agent as BaseAgent
 from browser_use import Browser, Agent, ChatOpenAI
 from enum import Enum
 
