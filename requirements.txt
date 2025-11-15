@@ -9,3 +9,4 @@ browser-use
 pytest
 pytest-asyncio
 uv
+scikit-learn
