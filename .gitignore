@@ -3,3 +3,6 @@
 **/__pycache__
 **/.ipynb_checkpoints/
 **/.virtual_documents/
+**/session_*.svg
+**/*graph.svg
+paper/src/bib/auto
