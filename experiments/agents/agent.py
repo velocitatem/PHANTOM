@@ -38,7 +38,7 @@ def get_agent(agent_type: AgentTypes,  **kwargs) -> Agent:
 
 if __name__ == "__main__":
     import asyncio
-    JTBD= "Name of the company of this website"
-    agent = get_agent(AgentTypes.GENERIC_BROWSER_USE_AGENT, goal=JTBD, url="https://ie.edu", timeout=300)
+    JTBD= "Name all the products on this site and try to find out more about each product by clicking into them (they might not open)"
+    agent = get_agent(AgentTypes.GENERIC_BROWSER_USE_AGENT, goal=JTBD, url="http://localhost:3000/products", timeout=300)
     R=asyncio.run(agent.act())
     print(R)
