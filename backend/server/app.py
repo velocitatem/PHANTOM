@@ -7,7 +7,7 @@ import uvicorn
 import os
 import json
 from datetime import datetime
-from kafka import KafkaProducer, KafkaAdminClient
+from kafka import KafkaProducer, KafkaAdminClient, KafkaConsumer
 from kafka.admin import NewTopic
 from kafka.errors import TopicAlreadyExistsError
 from dotenv import load_dotenv
@@ -22,7 +22,7 @@ def get_producer() -> KafkaProducer:
     global _producer
     if _producer is None:
         host = os.getenv('KAFKA_HOST', 'localhost')
-        port = os.getenv('KAFKA_PORT', '29092')  # use internal broker port
+        port = os.getenv('KAFKA_PORT', '9092')
         broker = f'{host}:{port}' if port else host
         print(f"[KAFKA_INIT] Connecting to broker: {broker}")
         _producer = KafkaProducer(
@@ -61,7 +61,7 @@ app.add_middleware(
 async def startup_event():
     """create kafka topics on startup"""
     host = os.getenv('KAFKA_HOST', 'localhost')
-    port = os.getenv('KAFKA_PORT', '29092')
+    port = os.getenv('KAFKA_PORT', '9092')
     broker = f'{host}:{port}'
 
     try:
@@ -125,10 +125,62 @@ async def ingest_logs(event: EventPayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/kafka/dump")
-def dump_logs():
-    # TODO: implement a dump of logs of time period t_start to t_end (params of get)
-    # OR: allow for params of last_n logs as a param - creating two modes of the dumping
-    pass
+def dump_logs(
+    last_n: Optional[int] = None,
+    t_start: Optional[str] = None,
+    t_end: Optional[str] = None
+):
+    """dump all messages from user-interactions topic
+
+    params:
+        last_n: return only last n messages (default: all)
+        t_start: filter by start timestamp iso format (future use)
+        t_end: filter by end timestamp iso format (future use)
+    """
+    host = os.getenv('KAFKA_HOST', 'localhost')
+    port = os.getenv('KAFKA_PORT', '9092')
+    broker = f'{host}:{port}'
+
+    try:
+        consumer = KafkaConsumer(
+            'user-interactions',
+            bootstrap_servers=[broker],
+            auto_offset_reset='earliest',
+            enable_auto_commit=False,
+            value_deserializer=lambda x: json.loads(x.decode('utf-8')),
+            consumer_timeout_ms=5000
+        )
+
+        events = []
+        for msg in consumer:
+            events.append(msg.value)
+
+        consumer.close()
+
+        # apply filters
+        if t_start or t_end:
+            # filter by timestamp range if provided
+            filtered = []
+            for e in events:
+                ts = e.get('ts')
+                if ts:
+                    if t_start and ts < t_start:
+                        continue
+                    if t_end and ts > t_end:
+                        continue
+                filtered.append(e)
+            events = filtered
+
+        if last_n and last_n > 0:
+            events = events[-last_n:]
+
+        return {"success": True, "count": len(events), "data": events}
+
+    except Exception as e:
+        import traceback
+        print(f"[DUMP_ERROR] {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 

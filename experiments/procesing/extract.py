@@ -1,51 +1,28 @@
-from kafka import KafkaConsumer
 import pandas as pd
 import json
 import numpy as np
 import os
+import requests
 from dotenv import load_dotenv
 from sklearn.base import BaseEstimator, TransformerMixin
-# import matplotlib.pyplot as plt
-# from IPython.display import display, SVG, Image
 load_dotenv()
 
-
-KAFKA_HOST=os.getenv("KAFKA_HOST", "localhost")
-KAFKA_PORT=os.getenv("KAFKA_PORT", 9092)
-TOPIC = os.getenv("KAFKA_TOPIC", "user-interactions")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:5000")
 N_PRICE_BUCKETS = 5
 
 def get_data_from_kafka() -> pd.DataFrame:
-    consumer = KafkaConsumer(
-        TOPIC,
-        enable_auto_commit=True,
-        value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-        auto_offset_reset='earliest',
-        bootstrap_servers=[f"{KAFKA_HOST}:{KAFKA_PORT}"]
-    )
-    messages=consumer.poll(timeout_ms=1000,max_records=10000)
-    df = []
-    for m in messages.values():
-        for i in m:
-            df.append(i.value)
-    df = pd.DataFrame(df)
-    """
- 0   sessionId             73 non-null     object
- 1   eventName             73 non-null     object
- 2   page                  73 non-null     object
- 3   productId             67 non-null     object
- 4   storeMode             73 non-null     object
- 5   userAgent             73 non-null     object
- 6   ts                    73 non-null     object
- 7   metadata_referrer     6 non-null      object
- 8   metadata_roomType     45 non-null     object
- 9   metadata_price        45 non-null     float64
- 10  metadata_nights       45 non-null     float64
- 11  metadata_elementText  22 non-null     object
- 12  metadata_dwellTime    22 non-null     float64
-    """
+    """fetch all events from backend dump endpoint"""
+    resp = requests.get(f"{BACKEND_URL}/api/kafka/dump")
+    resp.raise_for_status()
+    data = resp.json()
+
+    if not data.get('success') or not data.get('data'):
+        return pd.DataFrame()
+
+    df = pd.DataFrame(data['data'])
     # explode metadata col json
-    df = df.join(pd.json_normalize(df.pop("metadata"), sep=".").add_prefix("metadata_"))
+    if 'metadata' in df.columns:
+        df = df.join(pd.json_normalize(df.pop("metadata"), sep=".").add_prefix("metadata_"))
     df = df.dropna(subset=['eventName'])
     return df
 
@@ -58,11 +35,22 @@ def join_with_experiments(df: pd.DataFrame) -> pd.DataFrame:
 def augment_event_titles(df: pd.DataFrame) -> pd.DataFrame:
     # from taking standard view_item_page in eventName to view_item_page_{metadata_schema}
     # we want metadata schema to create product specific event names
-    price_buckets = pd.qcut(
-        df["metadata_price"],
-        q=N_PRICE_BUCKETS,
-        labels=[f"PB_{i+1}" for i in range(N_PRICE_BUCKETS)]
-    )
+
+    # only create price buckets if we have enough unique prices
+    if df["metadata_price"].notnull().sum() > 0:
+        try:
+            price_buckets = pd.qcut(
+                df["metadata_price"],
+                q=N_PRICE_BUCKETS,
+                labels=[f"PB_{i+1}" for i in range(N_PRICE_BUCKETS)],
+                duplicates='drop'  # handle duplicate bin edges
+            )
+        except ValueError:
+            # fallback: if still not enough unique values, use cut with fixed ranges or just use raw price
+            price_buckets = df["metadata_price"].apply(lambda x: f"P_{int(x)}" if pd.notnull(x) else "")
+    else:
+        price_buckets = pd.Series([""] * len(df), index=df.index)
+
     # metadata_schema: _product_id@price_bucket_{i} only if we have product metadata otherswise keep original event name
     # TODO: make this adaptive, if we have hover_over_title we append the title, if its view_page we say which page
     df["metadata_schema"] = np.where(
