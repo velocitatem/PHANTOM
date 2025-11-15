@@ -5,3 +5,8 @@ jupyter
 ipykernel
 matplotlib
 graphviz
+browser-use
+pytest
+pytest-asyncio
+uv
+scikit-learn

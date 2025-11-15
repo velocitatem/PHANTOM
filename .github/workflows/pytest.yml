@@ -1,0 +1,30 @@
+name: Run Tests
+on:
+  push:
+    paths:
+      - 'experiments/**'
+      - 'backend/**'
+      - 'requirements.txt'
+      - '.github/workflows/pytest.yml'
+  pull_request:
+    paths:
+      - 'experiments/**'
+      - 'backend/**'
+      - 'requirements.txt'
+      - '.github/workflows/pytest.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+      - name: Run tests
+        run: .venv/bin/pytest -v
