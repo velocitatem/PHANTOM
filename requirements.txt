@@ -10,3 +10,4 @@ pytest
 pytest-asyncio
 uv
 scikit-learn
+supabase

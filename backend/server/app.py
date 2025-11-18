@@ -41,6 +41,7 @@ def get_producer() -> KafkaProducer:
 
 class EventPayload(BaseModel):
     sessionId: str
+    experimentId: Optional[str] = None
     eventName: str
     page: str
     productId: Optional[str] = None

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import '@/lib/experiments' // ensure experiments lib is loaded
+import '@/lib/experiments'
 import type { EventName } from '@/lib/events';
 
 const fetchSessionId = async (): Promise<string> => {
@@ -21,10 +21,14 @@ const track = async (ev: {
   metadata?: Record<string, unknown>;
 }) => {
   try {
+    const experimentId = localStorage.getItem('phantom_experiment_id');
     await fetch('/api/ingest', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(ev),
+      body: JSON.stringify({
+        ...ev,
+        experimentId: experimentId || undefined,
+      }),
     });
   } catch (err) {
     console.error('track failed:', err);
