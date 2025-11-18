@@ -5,10 +5,15 @@ import os
 import requests
 from dotenv import load_dotenv
 from sklearn.base import BaseEstimator, TransformerMixin
+from supabase import create_client, Client
 load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:5000")
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 N_PRICE_BUCKETS = 5
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def get_data_from_kafka() -> pd.DataFrame:
     """fetch all events from backend dump endpoint"""
@@ -28,7 +33,38 @@ def get_data_from_kafka() -> pd.DataFrame:
 
 
 def join_with_experiments(df: pd.DataFrame) -> pd.DataFrame:
-    # TODO: Get experiments db from supabase and join on session_id
+    if df.empty or 'experimentId' not in df.columns:
+        return df
+
+    unique_exp_ids = df['experimentId'].dropna().unique()
+    if len(unique_exp_ids) == 0:
+        return df
+
+    resp = supabase.table('experiments').select(
+        'id, subject_name, xp_human_only, xp_market_mode, xp_task_id, task:tasks(task_name, task_description, task_def_of_done)'
+    ).in_('id', unique_exp_ids.tolist()).execute()
+
+    if not resp.data:
+        return df
+
+    exp_df = pd.DataFrame(resp.data)
+
+    # flatten task nested object if present
+    if 'task' in exp_df.columns and exp_df['task'].notnull().any():
+        task_normalized = pd.json_normalize(exp_df['task'].dropna())
+        task_normalized.index = exp_df[exp_df['task'].notnull()].index
+        exp_df = exp_df.drop(columns=['task']).join(task_normalized, rsuffix='_task')
+
+    # rename experiment columns for clarity
+    exp_df = exp_df.rename(columns={
+        'id': 'experimentId',
+        'subject_name': 'exp_subject',
+        'xp_human_only': 'exp_human_only',
+        'xp_market_mode': 'exp_market_mode',
+        'xp_task_id': 'exp_task_id'
+    })
+
+    df = df.merge(exp_df, on='experimentId', how='left')
     return df
 
 
