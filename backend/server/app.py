@@ -11,12 +11,26 @@ from kafka import KafkaProducer, KafkaAdminClient, KafkaConsumer
 from kafka.admin import NewTopic
 from kafka.errors import TopicAlreadyExistsError
 from dotenv import load_dotenv
+from supabase import create_client, Client
 load_dotenv()
 
 app = FastAPI()
 
 # kafka producer - lazy init
 _producer: Optional[KafkaProducer] = None
+
+# supabase client - lazy init
+_supabase: Optional[Client] = None
+
+def get_supabase() -> Client:
+    global _supabase
+    if _supabase is None:
+        url = os.getenv('NEXT_PUBLIC_SUPABASE_URL')
+        key = os.getenv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+        if not url or not key:
+            raise ValueError("Supabase credentials not configured")
+        _supabase = create_client(url, key)
+    return _supabase
 
 def get_producer() -> KafkaProducer:
     global _producer
@@ -180,6 +194,40 @@ def dump_logs(
     except Exception as e:
         import traceback
         print(f"[DUMP_ERROR] {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/products/{product_type}")
+async def get_products(
+    product_type: str,
+    dateIndex: Optional[int] = None
+):
+    """fetch products from supabase based on type (hotel or airline)
+
+    params:
+        product_type: either 'hotel' or 'airline'
+        dateIndex: optional days offset from today (e.g., 0=today, 1=tomorrow, -1=yesterday)
+    """
+    if product_type not in ['hotel', 'airline']:
+        raise HTTPException(status_code=400, detail="product_type must be 'hotel' or 'airline'")
+
+    try:
+        supabase = get_supabase()
+        table = f'{product_type}_products'
+
+        query = supabase.table(table).select('*')
+
+        # filter by exact date_index if provided
+        if dateIndex is not None:
+            query = query.eq('date_index', dateIndex)
+
+        response = query.execute()
+
+        return {"success": True, "count": len(response.data), "data": response.data}
+
+    except Exception as e:
+        import traceback
+        print(f"[PRODUCTS_ERROR] {e}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 

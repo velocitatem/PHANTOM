@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button, Label, Input, DateInput, Dropdown, DropdownCounter } from '@/components/ui';
+import { dateToDaysFromToday } from '@/lib/hotel-utils';
 
 const LocationIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -11,14 +13,25 @@ const LocationIcon = () => (
 );
 
 export default function HotelHero() {
+  const router = useRouter();
   const [destination, setDestination] = useState('');
   const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState({ adults: 2, rooms: 1 });
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    console.log({ destination, checkIn, checkOut, guests });
+    const params = new URLSearchParams();
+
+    if (checkIn) {
+      const daysOffset = dateToDaysFromToday(checkIn);
+      params.set('dateIndex', daysOffset.toString());
+    }
+
+    if (destination) params.set('destination', destination);
+    params.set('adults', guests.adults.toString());
+    params.set('rooms', guests.rooms.toString());
+
+    router.push(`/hotel/products?${params.toString()}`);
   };
 
   return (
@@ -26,16 +39,16 @@ export default function HotelHero() {
       <div className="w-full max-w-4xl px-4">
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Find your perfect stay
+            Find your perfect room
           </h1>
           <p className="text-lg">
-            Search hotels, compare prices, and book with confidence
+            Search rooms, compare prices, and book with confidence
           </p>
         </div>
 
         <form onSubmit={handleSearch} className="search-form">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="sm:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
               <Label htmlFor="destination">Where to?</Label>
               <Input
                 type="text"
@@ -49,7 +62,7 @@ export default function HotelHero() {
             </div>
 
             <div>
-              <Label htmlFor="checkIn">Check-in</Label>
+              <Label htmlFor="checkIn">Date (1 night stay)</Label>
               <DateInput
                 id="checkIn"
                 value={checkIn}
@@ -59,43 +72,27 @@ export default function HotelHero() {
             </div>
 
             <div>
-              <Label htmlFor="checkOut">Check-out</Label>
-              <DateInput
-                id="checkOut"
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="sm:col-span-2 lg:col-span-4">
-              <Label htmlFor="guests">Guests & Rooms</Label>
-              <Dropdown label={`${guests.adults} ${guests.adults === 1 ? 'adult' : 'adults'}, ${guests.rooms} ${guests.rooms === 1 ? 'room' : 'rooms'}`}>
+              <Label htmlFor="guests">Guests</Label>
+              <Dropdown label={`${guests.adults} ${guests.adults === 1 ? 'adult' : 'adults'}`}>
                 <DropdownCounter
                   label="Adults"
                   value={guests.adults}
                   min={1}
                   onChange={(v) => setGuests({ ...guests, adults: v })}
                 />
-                <DropdownCounter
-                  label="Rooms"
-                  value={guests.rooms}
-                  min={1}
-                  onChange={(v) => setGuests({ ...guests, rooms: v })}
-                />
               </Dropdown>
             </div>
 
-            <div className="sm:col-span-2 lg:col-span-4">
+            <div className="sm:col-span-2 lg:col-span-3">
               <Button type="submit" fullWidth>
-                Search Hotels
+                Search Rooms
               </Button>
             </div>
           </div>
         </form>
 
         <div className="mt-6 text-center text-sm">
-          <p>Over 2 million hotels worldwide · Best price guarantee · Free cancellation on most bookings</p>
+          <p>Over 2 million rooms worldwide · Best price guarantee · Free cancellation on most bookings</p>
         </div>
       </div>
     </div>
