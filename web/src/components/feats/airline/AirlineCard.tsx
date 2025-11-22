@@ -24,19 +24,20 @@ interface Flight {
     fareRule: FareRule;
     refundable: boolean;
     basePrice: number;
+    dateIndex?: number;
 }
 
 export default function AirlineCard({ flight }: { flight: Flight }) {
     const durationRef = useHoverTracking({
         eventName: 'hover_over_title',
         productId: flight.id,
-        metadata: { elementText: flight.duration },
+        metadata: { elementText: flight.duration, dateIndex: flight.dateIndex },
     });
 
     const priceRef = useHoverTracking({
         eventName: 'hover_over_paragraph',
         productId: flight.id,
-        metadata: { elementText: 'price' },
+        metadata: { elementText: 'price', dateIndex: flight.dateIndex },
     });
 
     const handleCardClick = () => {
@@ -44,6 +45,7 @@ export default function AirlineCard({ flight }: { flight: Flight }) {
             cabinClass: flight.cabinClass,
             fareRule: flight.fareRule,
             price: flight.basePrice,
+            dateIndex: flight.dateIndex,
         });
     };
 

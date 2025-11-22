@@ -19,6 +19,7 @@ export interface Hotel {
   roomType: string;
   checkIn: string;
   checkOut: string;
+  dateIndex: number;
   amenities: string[];
   refundable: boolean;
   pricePerNight: number;
@@ -39,6 +40,7 @@ export const transformProduct = (p: HotelProduct): Hotel => {
     roomType: room_type,
     checkIn: checkIn.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
     checkOut: checkOut.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    dateIndex: date_index,
     amenities: metadata?.amenities || [],
     refundable: metadata?.refundable || false,
     pricePerNight: metadata?.base_price || 100,

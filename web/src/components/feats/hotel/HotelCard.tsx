@@ -39,13 +39,13 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
     const titleRef = useHoverTracking({
         eventName: 'hover_over_title',
         productId: hotel.id,
-        metadata: { elementText: hotel.name },
+        metadata: { elementText: hotel.name, dateIndex: hotel.dateIndex },
     });
 
     const priceRef = useHoverTracking({
         eventName: 'hover_over_paragraph',
         productId: hotel.id,
-        metadata: { elementText: 'price' },
+        metadata: { elementText: 'price', dateIndex: hotel.dateIndex },
     });
 
     const handleCardClick = () => {
@@ -53,6 +53,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
             roomType: hotel.roomType,
             price: hotel.pricePerNight,
             nights: hotel.nights,
+            dateIndex: hotel.dateIndex,
         });
     };
 
