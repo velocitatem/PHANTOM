@@ -1,6 +1,7 @@
 'use client';
 
 import type { EventName } from '@/lib/events';
+import type { Hotel } from '@/lib/hotel-utils';
 import { useHoverTracking } from '@/hooks/useHoverTracking';
 import PriceDisplay from '@/components/ui/PriceDisplay';
 
@@ -10,18 +11,6 @@ const dispatchInteraction = (eventName: EventName, productId?: string, metadata?
     });
     document.dispatchEvent(e);
 };
-
-interface Hotel {
-    id: string;
-    name: string;
-    roomType: string;
-    checkIn: string;
-    checkOut: string;
-    amenities: string[];
-    refundable: boolean;
-    pricePerNight: number;
-    nights: number;
-}
 
 const AmenityIcon = ({ name }: { name: string }) => {
     const iconMap: Record<string, string> = {
