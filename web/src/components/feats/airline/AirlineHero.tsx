@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button, Label, Input, DateInput, RadioGroup, Dropdown, DropdownCounter } from '@/components/ui';
+import { dateToDaysFromToday } from '@/lib/airline-utils';
 
 type TripType = 'roundtrip' | 'oneway' | 'multicity';
 
@@ -19,6 +21,7 @@ const LocationIcon = () => (
 );
 
 export default function AirlineHero() {
+  const router = useRouter();
   const [tripType, setTripType] = useState<TripType>('roundtrip');
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
@@ -28,7 +31,23 @@ export default function AirlineHero() {
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    console.log({ tripType, origin, destination, departDate, returnDate, passengers });
+    const params = new URLSearchParams();
+
+    if (departDate) {
+      const daysOffset = dateToDaysFromToday(departDate);
+      params.set('dateIndex', daysOffset.toString());
+    }
+
+    if (origin) params.set('origin', origin);
+    if (destination) params.set('destination', destination);
+    if (tripType !== 'roundtrip') params.set('tripType', tripType);
+    if (returnDate && tripType === 'roundtrip') params.set('returnDate', returnDate);
+
+    params.set('adults', passengers.adults.toString());
+    params.set('children', passengers.children.toString());
+    params.set('infants', passengers.infants.toString());
+
+    router.push(`/airline/products?${params.toString()}`);
   };
 
   const totalPax = passengers.adults + passengers.children + passengers.infants;

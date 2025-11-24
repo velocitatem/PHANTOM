@@ -18,8 +18,12 @@ function RoomsList() {
         const url = new URL('/api/products', window.location.origin);
         url.searchParams.set('type', 'hotel');
 
-        const dateIndex = searchParams.get('dateIndex');
-        if (dateIndex) url.searchParams.set('dateIndex', dateIndex);
+        // forward all relevant search params to the API
+        const params = ['dateIndex', 'destination', 'adults', 'rooms'];
+        params.forEach(param => {
+          const val = searchParams.get(param);
+          if (val) url.searchParams.set(param, val);
+        });
 
         const res = await fetch(url.toString());
         if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);

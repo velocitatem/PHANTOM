@@ -1,0 +1,110 @@
+'use client';
+
+import { Navigation } from '@/components/ui';
+import { useCart } from '@/contexts/CartContext';
+import type { EventName } from '@/lib/events';
+
+const dispatchInteraction = (eventName: EventName, productId?: string, metadata?: Record<string, unknown>) => {
+    const e = new CustomEvent('definedInteraction', {
+        detail: { eventName, productId, metadata },
+    });
+    document.dispatchEvent(e);
+};
+
+export default function CartPage() {
+    const { items, removeItem, clearCart, itemCount } = useCart();
+
+    const handleRemove = (id: string, type: string) => {
+        removeItem(id);
+        dispatchInteraction('remove_item', id, { type });
+    };
+    let itemTypes = Array.from(new Set(items.map(item => item.type)))[0] || 'items';
+
+
+    const total = items.reduce((sum, item) => sum + item.price, 0);
+
+    return (
+        <>
+            <Navigation />
+            <main className="max-w-4xl mx-auto px-4 py-8">
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-3xl font-bold">Shopping Cart</h1>
+                    {itemCount > 0 && (
+                        <button
+                            onClick={clearCart}
+                            className="text-sm text-red-600 hover:underline"
+                        >
+                            Clear cart
+                        </button>
+                    )}
+                </div>
+
+                {itemCount === 0 ? (
+                    <div className="text-center py-12">
+                        <p className="text-gray-500 mb-4">Your cart is empty</p>
+                        <a href="/" className="text-blue-600 hover:underline">Browse our selection</a>
+                    </div>
+                ) : (
+                    <>
+                        <div className="space-y-4 mb-8">
+                            {items.map(item => (
+                                <div
+                                    key={item.id}
+                                    className="flex justify-between items-start p-4 border rounded-lg hover:bg-gray-50"
+                                >
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">
+                                                {item.type}
+                                            </span>
+                                            <h3 className="font-semibold">{item.name}</h3>
+                                        </div>
+
+                                        {item.type === 'hotel' && (
+                                            <div className="text-sm text-gray-600">
+                                                <p>{item.metadata.roomType as string}</p>
+                                                <p>{item.metadata.checkIn as string} - {item.metadata.checkOut as string}</p>
+                                                <p>{item.metadata.nights} night{(item.metadata.nights as number) > 1 ? 's' : ''}</p>
+                                            </div>
+                                        )}
+
+                                        {item.type === 'airline' && (
+                                            <div className="text-sm text-gray-600">
+                                                <p>{item.metadata.cabinClass as string} Class</p>
+                                                <p>{(item.metadata.departure as any).airport} → {(item.metadata.arrival as any).airport}</p>
+                                                <p>Duration: {item.metadata.duration as string}</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="text-right ml-4">
+                                        <p className="text-xl font-bold mb-2">${item.price}</p>
+                                        <button
+                                            onClick={() => handleRemove(item.id, item.type)}
+                                            className="text-sm text-red-600 hover:underline"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="border-t pt-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="text-xl font-semibold">Total</span>
+                                <span className="text-3xl font-bold">${total.toFixed(2)}</span>
+                            </div>
+                            <button
+                                onClick={() => dispatchInteraction('checkout_start', undefined, { total, itemCount })}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Proceed to Checkout
+                            </button>
+                        </div>
+                    </>
+                )}
+            </main>
+        </>
+    );
+}

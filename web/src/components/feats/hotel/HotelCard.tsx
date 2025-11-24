@@ -44,6 +44,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
             nights: hotel.nights,
             dateIndex: hotel.dateIndex,
         });
+        window.location.href = `/hotel/products/${hotel.id}`;
     };
 
     return (

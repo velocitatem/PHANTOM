@@ -13,11 +13,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    const url = new URL(`${backendUrl}/api/products/${type}`);
+    const url = new URL(`${backendUrl}/api/products/type/${type}`);
 
-    // forward date index offset to backend
-    const dateIndex = searchParams.get('dateIndex');
-    if (dateIndex) url.searchParams.set('dateIndex', dateIndex);
+    // forward all query params to backend (excluding 'type')
+    searchParams.forEach((value, key) => {
+      if (key !== 'type') {
+        url.searchParams.set(key, value);
+      }
+    });
 
     const res = await fetch(url.toString());
 

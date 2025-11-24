@@ -32,6 +32,7 @@ export default function AirlineCard({ flight }: { flight: Flight }) {
             price: flight.basePrice,
             dateIndex: flight.dateIndex,
         });
+        window.location.href = `/airline/products/${flight.id}`;
     };
 
     return (
