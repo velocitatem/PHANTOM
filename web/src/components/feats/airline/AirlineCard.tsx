@@ -1,6 +1,7 @@
 'use client';
 
 import type { EventName } from '@/lib/events';
+import type { Flight } from '@/lib/airline-utils';
 import { useHoverTracking } from '@/hooks/useHoverTracking';
 import PriceDisplay from '@/components/ui/PriceDisplay';
 
@@ -10,22 +11,6 @@ const dispatchInteraction = (eventName: EventName, productId?: string, metadata?
     });
     document.dispatchEvent(e);
 };
-
-type CabinClass = 'economy' | 'premium' | 'business' | 'first';
-type FareRule = 'flexible' | 'standard' | 'basic';
-
-interface Flight {
-    id: string;
-    departure: { time: string; airport: string };
-    arrival: { time: string; airport: string };
-    duration: string;
-    stops: number;
-    cabinClass: CabinClass;
-    fareRule: FareRule;
-    refundable: boolean;
-    basePrice: number;
-    dateIndex?: number;
-}
 
 export default function AirlineCard({ flight }: { flight: Flight }) {
     const durationRef = useHoverTracking({
