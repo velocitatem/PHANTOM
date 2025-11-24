@@ -10,73 +10,65 @@ interface AirlineDetailsProps {
 
 export default function AirlineDetails({ product, onAddToCart, addedToCart }: AirlineDetailsProps) {
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-100 h-64 flex items-center justify-center rounded-lg">
-        <span className="text-gray-400">Flight Image</span>
+    <div className="w-full flex flex-col lg:flex-row gap-12 py-8">
+      {/* Image Section */}
+      <div className="w-full lg:w-1/3 bg-gray-100 rounded-lg aspect-square flex items-center justify-center shrink-0">
+        <span className="text-gray-400 text-lg font-medium">Flight Image</span>
       </div>
 
-      <div>
-        <h1 className="text-3xl font-bold mb-2">{product.flightType}</h1>
-        <p className="text-lg text-gray-600">{product.cabinClass} Class</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-6">
-        <div>
-          <h3 className="font-semibold mb-2">Departure</h3>
-          <p className="text-xl font-bold">{product.departure.time}</p>
-          <p className="text-gray-600">{product.departure.airport}</p>
-        </div>
-        <div>
-          <h3 className="font-semibold mb-2">Arrival</h3>
-          <p className="text-xl font-bold">{product.arrival.time}</p>
-          <p className="text-gray-600">{product.arrival.airport}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 py-4 border-y">
-        <div>
-          <p className="text-sm text-gray-600">Duration</p>
-          <p className="font-semibold">{product.duration}</p>
-        </div>
-        <div>
-          <p className="text-sm text-gray-600">Stops</p>
-          <p className="font-semibold">
-            {product.stops === 0 ? 'Nonstop' : `${product.stops} stop${product.stops > 1 ? 's' : ''}`}
-          </p>
-        </div>
-        <div>
-          <p className="text-sm text-gray-600">Availability</p>
-          <p className="font-semibold">{product.availability} seats</p>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-semibold mb-2">Fare Details</h3>
-        <p className="text-sm text-gray-600 mb-1">{product.fareRule}</p>
-        {product.refundable && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
-            <p className="text-green-800 text-sm font-medium">Refundable fare</p>
-          </div>
-        )}
-      </div>
-
-      <div className="border-t pt-4">
-        <div className="flex justify-between items-center">
+      {/* Details Section */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex justify-between items-start border-b pb-6 mb-6">
           <div>
-            <p className="text-sm text-gray-600">Total price</p>
-            <p className="text-3xl font-bold">${product.basePrice}</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">{product.flightType}</h1>
+            <p className="text-lg text-gray-500">{product.cabinClass} Class</p>
+          </div>
+          <div className="text-right">
+            <p className="text-4xl font-bold text-gray-900">${product.basePrice}</p>
+            {product.refundable && (
+              <span className="inline-block mt-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                Refundable
+              </span>
+            )}
           </div>
         </div>
-      </div>
 
-      <div className="flex gap-4">
-        <button
-          onClick={onAddToCart}
-          disabled={addedToCart}
-          className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-green-600 text-white rounded-lg font-medium transition-colors"
-        >
-          {addedToCart ? 'Added to Cart!' : 'Add to Cart'}
-        </button>
+        <div className="flex items-center justify-between mb-10">
+          <div className="text-center min-w-[100px]">
+            <p className="text-3xl font-bold text-gray-900">{product.departure.time}</p>
+            <p className="text-sm text-gray-500 font-medium mt-1">{product.departure.airport}</p>
+          </div>
+
+          <div className="flex-1 px-8 flex flex-col items-center">
+            <p className="text-sm text-gray-500 mb-2">{product.duration}</p>
+            <div className="w-full h-0.5 bg-gray-200 relative flex items-center justify-center">
+              <div className="absolute w-3 h-3 bg-gray-400 rounded-full"></div>
+            </div>
+            <p className="text-sm text-gray-500 mt-2">
+              {product.stops === 0 ? 'Nonstop' : `${product.stops} stop${product.stops > 1 ? 's' : ''}`}
+            </p>
+          </div>
+
+          <div className="text-center min-w-[100px]">
+            <p className="text-3xl font-bold text-gray-900">{product.arrival.time}</p>
+            <p className="text-sm text-gray-500 font-medium mt-1">{product.arrival.airport}</p>
+          </div>
+        </div>
+
+        <div className="mt-auto flex items-center justify-between pt-6 border-t">
+          <div className="text-gray-600">
+            <span className="font-bold text-gray-900">{product.availability}</span> seats remaining
+            <span className="mx-2">•</span>
+            {product.fareRule}
+          </div>
+          <button
+            onClick={onAddToCart}
+            disabled={addedToCart}
+            className="px-8 py-4 bg-black hover:bg-gray-800 disabled:bg-green-600 text-white rounded-lg text-lg font-medium transition-all min-w-[200px]"
+          >
+            {addedToCart ? 'In Cart' : 'Add to Cart'}
+          </button>
+        </div>
       </div>
     </div>
   );
