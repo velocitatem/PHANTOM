@@ -62,17 +62,17 @@ export default function CartPage() {
 
                                         {item.type === 'hotel' && (
                                             <div className="text-sm text-gray-600">
-                                                <p>{item.metadata.roomType as string}</p>
-                                                <p>{item.metadata.checkIn as string} - {item.metadata.checkOut as string}</p>
-                                                <p>{item.metadata.nights} night{(item.metadata.nights as number) > 1 ? 's' : ''}</p>
+                                                <p>{String(item.metadata.roomType)}</p>
+                                                <p>{String(item.metadata.checkIn)} - {String(item.metadata.checkOut)}</p>
+                                                <p>{String(item.metadata.nights)} night{Number(item.metadata.nights) > 1 ? 's' : ''}</p>
                                             </div>
                                         )}
 
                                         {item.type === 'airline' && (
                                             <div className="text-sm text-gray-600">
-                                                <p>{item.metadata.cabinClass as string} Class</p>
-                                                <p>{(item.metadata.departure as any).airport} → {(item.metadata.arrival as any).airport}</p>
-                                                <p>Duration: {item.metadata.duration as string}</p>
+                                                <p>{String(item.metadata.cabinClass)} Class</p>
+                                                <p>{String((item.metadata.departure as any)?.airport)} → {String((item.metadata.arrival as any)?.airport)}</p>
+                                                <p>Duration: {String(item.metadata.duration)}</p>
                                             </div>
                                         )}
                                     </div>
