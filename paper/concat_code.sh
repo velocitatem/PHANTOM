@@ -21,7 +21,10 @@ add_file() {
     # Add section header and code listing (no language-specific highlighting)
     echo "\\subsection{${escaped_path}}" >> "$OUTPUT_FILE"
     echo "\\begin{lstlisting}[caption={${escaped_path}}]" >> "$OUTPUT_FILE"
-    cat "$filepath" >> "$OUTPUT_FILE"
+    # Convert to ASCII: transliterate what's possible, drop the rest
+    # LC_ALL=C forces ASCII locale for consistent behavior across environments
+    LC_ALL=C iconv -f UTF-8 -t ASCII//TRANSLIT//IGNORE "$filepath" 2>/dev/null >> "$OUTPUT_FILE" || \
+        LC_ALL=C tr -cd '\11\12\15\40-\176' < "$filepath" >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"
     echo "\\end{lstlisting}" >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"

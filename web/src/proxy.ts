@@ -11,6 +11,7 @@ export function proxy(req: NextRequest) {
         pathname.startsWith('/_next') ||
         pathname.startsWith('/static') ||
         pathname.startsWith('/start-task') ||
+        pathname.startsWith('/cart') ||
         pathname.includes('.')
         // TODO: add robots.txt and sitemap.xml if needed here
     ) {

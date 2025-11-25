@@ -1,6 +1,7 @@
 'use client';
 
 import type { EventName } from '@/lib/events';
+import type { Hotel } from '@/lib/hotel-utils';
 import { useHoverTracking } from '@/hooks/useHoverTracking';
 import PriceDisplay from '@/components/ui/PriceDisplay';
 
@@ -10,18 +11,6 @@ const dispatchInteraction = (eventName: EventName, productId?: string, metadata?
     });
     document.dispatchEvent(e);
 };
-
-interface Hotel {
-    id: string;
-    name: string;
-    roomType: string;
-    checkIn: string;
-    checkOut: string;
-    amenities: string[];
-    refundable: boolean;
-    pricePerNight: number;
-    nights: number;
-}
 
 const AmenityIcon = ({ name }: { name: string }) => {
     const iconMap: Record<string, string> = {
@@ -39,13 +28,13 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
     const titleRef = useHoverTracking({
         eventName: 'hover_over_title',
         productId: hotel.id,
-        metadata: { elementText: hotel.name },
+        metadata: { elementText: hotel.name, dateIndex: hotel.dateIndex },
     });
 
     const priceRef = useHoverTracking({
         eventName: 'hover_over_paragraph',
         productId: hotel.id,
-        metadata: { elementText: 'price' },
+        metadata: { elementText: 'price', dateIndex: hotel.dateIndex },
     });
 
     const handleCardClick = () => {
@@ -53,7 +42,9 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
             roomType: hotel.roomType,
             price: hotel.pricePerNight,
             nights: hotel.nights,
+            dateIndex: hotel.dateIndex,
         });
+        window.location.href = `/hotel/products/${hotel.id}`;
     };
 
     return (

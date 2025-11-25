@@ -11,12 +11,26 @@ from kafka import KafkaProducer, KafkaAdminClient, KafkaConsumer
 from kafka.admin import NewTopic
 from kafka.errors import TopicAlreadyExistsError
 from dotenv import load_dotenv
+from supabase import create_client, Client
 load_dotenv()
 
 app = FastAPI()
 
 # kafka producer - lazy init
 _producer: Optional[KafkaProducer] = None
+
+# supabase client - lazy init
+_supabase: Optional[Client] = None
+
+def get_supabase() -> Client:
+    global _supabase
+    if _supabase is None:
+        url = os.getenv('NEXT_PUBLIC_SUPABASE_URL')
+        key = os.getenv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+        if not url or not key:
+            raise ValueError("Supabase credentials not configured")
+        _supabase = create_client(url, key)
+    return _supabase
 
 def get_producer() -> KafkaProducer:
     global _producer
@@ -180,6 +194,130 @@ def dump_logs(
     except Exception as e:
         import traceback
         print(f"[DUMP_ERROR] {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/products/{product_id}")
+async def get_product_by_id(product_id: str):
+    """fetch single product by id from either hotel_products or airline_products"""
+    try:
+        supabase = get_supabase()
+
+        # try hotel_products first
+        response = supabase.table('hotel_products').select('*').eq('id', product_id).execute()
+        if response.data and len(response.data) > 0:
+            return {"success": True, "data": response.data[0]}
+
+        # try airline_products
+        response = supabase.table('airline_products').select('*').eq('id', product_id).execute()
+        if response.data and len(response.data) > 0:
+            return {"success": True, "data": response.data[0]}
+
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[PRODUCT_BY_ID_ERROR] {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/products/type/{product_type}")
+async def get_products(
+    product_type: str,
+    dateIndex: Optional[int] = None,
+    origin: Optional[str] = None,
+    destination: Optional[str] = None,
+    tripType: Optional[str] = None,
+    adults: Optional[int] = None,
+    children: Optional[int] = None,
+    infants: Optional[int] = None,
+    rooms: Optional[int] = None
+):
+    """fetch products from supabase based on type (hotel or airline)
+
+    params:
+        product_type: either 'hotel' or 'airline'
+        dateIndex: optional days offset from today (e.g., 0=today, 1=tomorrow, -1=yesterday)
+        origin: (airline) departure airport code
+        destination: (airline/hotel) arrival airport or hotel location
+        tripType: (airline) roundtrip, oneway, multicity
+        adults, children, infants: passenger counts
+        rooms: (hotel) number of rooms
+    """
+    if product_type not in ['hotel', 'airline']:
+        raise HTTPException(status_code=400, detail="product_type must be 'hotel' or 'airline'")
+
+    try:
+        supabase = get_supabase()
+        table = f'{product_type}_products'
+
+        query = supabase.table(table).select('*')
+
+        # filter by exact date_index if provided
+        if dateIndex is not None:
+            query = query.eq('date_index', dateIndex)
+
+        response = query.execute()
+        results = response.data
+
+        # apply in-memory filters based on metadata for airline products
+        if product_type == 'airline' and results:
+            filtered = []
+            for product in results:
+                metadata = product.get('metadata', {})
+
+                # filter by origin airport
+                if origin:
+                    dep = metadata.get('departure', {})
+                    if dep.get('airport') != origin:
+                        continue
+
+                # filter by destination airport
+                if destination:
+                    arr = metadata.get('arrival', {})
+                    if arr.get('airport') != destination:
+                        continue
+
+                # passenger count validation (ensure total capacity)
+                if adults is not None or children is not None or infants is not None:
+                    total_pax = (adults or 0) + (children or 0) + (infants or 0)
+                    avail = product.get('availability', 0)
+                    if avail < total_pax:
+                        continue
+
+                filtered.append(product)
+
+            results = filtered
+
+        # apply in-memory filters for hotel products
+        elif product_type == 'hotel' and results:
+            filtered = []
+            for product in results:
+                metadata = product.get('metadata', {})
+
+                # filter by occupancy capacity
+                if adults is not None:
+                    max_occ = metadata.get('max_occupancy', 2)
+                    if max_occ < adults:
+                        continue
+
+                # filter by room availability
+                if rooms is not None:
+                    avail = product.get('availability', 0)
+                    if avail < rooms:
+                        continue
+
+                filtered.append(product)
+
+            results = filtered
+
+        return {"success": True, "count": len(results), "data": results}
+
+    except Exception as e:
+        import traceback
+        print(f"[PRODUCTS_ERROR] {e}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
