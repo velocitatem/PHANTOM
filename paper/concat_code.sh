@@ -21,7 +21,8 @@ add_file() {
     # Add section header and code listing (no language-specific highlighting)
     echo "\\subsection{${escaped_path}}" >> "$OUTPUT_FILE"
     echo "\\begin{lstlisting}[caption={${escaped_path}}]" >> "$OUTPUT_FILE"
-    cat "$filepath" >> "$OUTPUT_FILE"
+    # Sanitize UTF-8: convert to ASCII with transliteration to avoid invalid UTF-8 bytes
+    iconv -f UTF-8 -t ASCII//TRANSLIT "$filepath" >> "$OUTPUT_FILE" 2>/dev/null || cat "$filepath" >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"
     echo "\\end{lstlisting}" >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"
