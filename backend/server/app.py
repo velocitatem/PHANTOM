@@ -64,6 +64,14 @@ class EventPayload(BaseModel):
     userAgent: Optional[str] = None
     ts: Optional[str] = None
 
+class PriceLogPayload(BaseModel):
+    productId: str
+    price: float
+    sessionId: str
+    experimentId: Optional[str] = None
+    storeMode: str
+    ts: Optional[str] = None
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -87,7 +95,8 @@ async def startup_event():
         )
 
         topics = [
-            NewTopic(name='user-interactions', num_partitions=3, replication_factor=1)
+            NewTopic(name='user-interactions', num_partitions=3, replication_factor=1),
+            NewTopic(name='price-logs', num_partitions=3, replication_factor=1)
         ]
 
         admin.create_topics(new_topics=topics, validate_only=False)
@@ -139,26 +148,52 @@ async def ingest_logs(event: EventPayload):
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/kafka/price-log")
+async def ingest_price_log(price_log: PriceLogPayload):
+    try:
+        if not price_log.ts:
+            price_log.ts = datetime.utcnow().isoformat() + 'Z'
+
+        producer = get_producer()
+        future = producer.send(
+            'price-logs',
+            key=price_log.productId,
+            value=price_log.model_dump()
+        )
+        future.add_errback(lambda e: print(f"[KAFKA_PRICE_LOG_ERROR] {e}"))
+
+        return {"success": True}
+    except Exception as e:
+        import traceback
+        print(f"[PRICE_LOG_ERROR] {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/kafka/dump")
 def dump_logs(
+    topic: str = 'user-interactions',
     last_n: Optional[int] = None,
     t_start: Optional[str] = None,
     t_end: Optional[str] = None
 ):
-    """dump all messages from user-interactions topic
+    """dump all messages from specified kafka topic
 
     params:
+        topic: kafka topic to dump (default: user-interactions)
         last_n: return only last n messages (default: all)
-        t_start: filter by start timestamp iso format (future use)
-        t_end: filter by end timestamp iso format (future use)
+        t_start: filter by start timestamp iso format
+        t_end: filter by end timestamp iso format
     """
+    if topic not in ['user-interactions', 'price-logs']:
+        raise HTTPException(status_code=400, detail="Invalid topic")
+
     host = os.getenv('KAFKA_HOST', 'localhost')
     port = os.getenv('KAFKA_PORT', '9092')
     broker = f'{host}:{port}'
 
     try:
         consumer = KafkaConsumer(
-            'user-interactions',
+            topic,
             bootstrap_servers=[broker],
             auto_offset_reset='earliest',
             enable_auto_commit=False,
@@ -174,7 +209,6 @@ def dump_logs(
 
         # apply filters
         if t_start or t_end:
-            # filter by timestamp range if provided
             filtered = []
             for e in events:
                 ts = e.get('ts')

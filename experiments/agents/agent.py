@@ -1,4 +1,4 @@
-from .base import Agent as BaseAgent
+from base import Agent as BaseAgent
 from browser_use import Browser, Agent, ChatOpenAI
 from enum import Enum
 
@@ -38,7 +38,10 @@ def get_agent(agent_type: AgentTypes,  **kwargs) -> Agent:
 
 if __name__ == "__main__":
     import asyncio
-    JTBD= "Name all the products on this site and try to find out more about each product by clicking into them (they might not open)"
-    agent = get_agent(AgentTypes.GENERIC_BROWSER_USE_AGENT, goal=JTBD, url="http://localhost:3000/products", timeout=300)
+    JTBD= "Find me the cheapest room in Madrid for 2 people in the next two days, review each hotel room in detail and then add it to cart."
+    agent = get_agent(AgentTypes.GENERIC_BROWSER_USE_AGENT,
+                      goal=JTBD,
+                      url="http://localhost:3000/start-task?uuid=d10f5ab3-a7b7-4e97-8d94-ab06f1537c0a",
+                      timeout=300)
     R=asyncio.run(agent.act())
     print(R)
