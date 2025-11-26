@@ -75,6 +75,8 @@ if __name__ == "__main__":
     # compute elasticity via unified pipeline
     window_size = "30s"
     elasticity_results = elasticity_pipeline(interaction_data, pricing_data, window_size=window_size)
+    elasticity_value_array = elasticity_results['elasticity'].values if elasticity_results is not None else np.array([])
+    print(elasticity_value_array)
 
     if elasticity_results is not None and not elasticity_results.empty:
         print(elasticity_results.to_string(index=False))
