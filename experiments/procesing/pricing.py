@@ -92,11 +92,12 @@ if __name__ == "__main__":
 
     # align elasticity with price data by productId, fill missing with 0
     if not price_data.empty and elasticity_df is not None and not elasticity_df.empty:
+        # TODO FIX: we might have duplicate productIds
         price_data_merged = price_data.merge(
             elasticity_df[['productId', 'elasticity']],
             on='productId',
             how='left'
-        ).fillna({'elasticity': 0.0})
+        ).fillna({'elasticity': 0.0}) # is it possible we are spilling some elasticities into other products
 
         prices = price_data_merged['price'].values
         elasticities = price_data_merged['elasticity'].values
