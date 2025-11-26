@@ -52,6 +52,13 @@ class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
         elasticities = []
         for pid, series in product_series.items():
             if len(series) < self.min_observations:
+                # assign 0 elasticity for products with insufficient data
+                elasticities.append({
+                    'productId': pid,
+                    'elasticity': 0.0,
+                    'std_error': 0.0,
+                    'n_obs': len(series)
+                })
                 continue
 
             # apply smoothing if requested
@@ -59,13 +66,12 @@ class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
                 series = self._smooth_series(series, self.smooth_window)
 
             elast = self._compute_elasticity(series)
-            if elast is not None:
-                elasticities.append({
-                    'productId': pid,
-                    'elasticity': elast['value'],
-                    'std_error': elast.get('std_error', np.nan),
-                    'n_obs': len(series)
-                })
+            elasticities.append({
+                'productId': pid,
+                'elasticity': elast['value'],
+                'std_error': elast.get('std_error', 0.0),
+                'n_obs': len(series)
+            })
 
         return pd.DataFrame(elasticities)
 
@@ -127,7 +133,7 @@ class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
     def _compute_elasticity(self, series):
         """Compute elasticity from time series."""
         if len(series) < 2:
-            return None
+            return {'value': 0.0, 'std_error': 0.0}
 
         prices = np.array([s['price'] for s in series])
         quantities = np.array([s['quantity'] for s in series])
@@ -135,7 +141,7 @@ class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
         # filter out zero/negative values
         valid = (prices > 0) & (quantities > 0)
         if valid.sum() < 2:
-            return None
+            return {'value': 0.0, 'std_error': 0.0}
 
         prices = prices[valid]
         quantities = quantities[valid]
@@ -153,23 +159,26 @@ class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
         log(Q) = a + b*log(P), elasticity = b
         """
         if len(prices) < 2:
-            return None
+            return {'value': 0.0, 'std_error': 0.0}
 
         log_p = np.log(prices)
         log_q = np.log(quantities)
 
         # simple linear regression
         if log_p.std() == 0:
-            return None
+            return {'value': 0.0, 'std_error': 0.0}
 
         cov = np.cov(log_p, log_q)[0, 1]
         var = np.var(log_p)
         b = cov / var
 
-        # std error estimate
-        residuals = log_q - (log_q.mean() + b * (log_p - log_p.mean()))
-        mse = (residuals ** 2).sum() / (len(prices) - 2)
-        se_b = np.sqrt(mse / (len(prices) * var))
+        # std error estimate (avoid div by zero)
+        if len(prices) <= 2:
+            se_b = 0.0
+        else:
+            residuals = log_q - (log_q.mean() + b * (log_p - log_p.mean()))
+            mse = (residuals ** 2).sum() / (len(prices) - 2)
+            se_b = np.sqrt(mse / (len(prices) * var))
 
         return {'value': b, 'std_error': se_b}
 
