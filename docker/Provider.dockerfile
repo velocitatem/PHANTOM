@@ -2,26 +2,19 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install system dependencies including graphviz
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    graphviz \
+    libgraphviz-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml /app/
-RUN pip install --no-cache-dir \
-    fastapi \
-    uvicorn \
-    pydantic \
-    numpy \
-    pandas \
-    scikit-learn \
-    redis \
-    supabase \
-    kafka \
-    confluent-kafka
+# Copy and install Python dependencies
+COPY backend/provider/requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-
-# structure will be mounted via volumes:
+# Structure will be mounted via volumes:
 # /app/lib -> lib/
 # /app/procesing -> experiments/procesing/
 # /app/provider -> backend/provider/

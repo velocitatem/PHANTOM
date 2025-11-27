@@ -100,11 +100,14 @@ services:
       - _AIRFLOW_WWW_USER_CREATE=true
       - _AIRFLOW_WWW_USER_USERNAME=admin
       - _AIRFLOW_WWW_USER_PASSWORD=admin
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     volumes:
       - ./experiments/airflow/dags:/opt/airflow/dags
       - ./experiments/airflow/logs:/opt/airflow/logs
       - ./experiments/airflow/plugins:/opt/airflow/plugins
       - ./experiments/procesing:/opt/airflow/procesing
+      - ./lib:/opt/airflow/lib
     command: version
     restart: "no"
 
@@ -116,6 +119,7 @@ services:
     depends_on:
       - postgres
       - airflow-init
+      - redis
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
@@ -128,6 +132,8 @@ services:
       - BACKEND_URL=http://backend:5000
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     ports:
       - "${AIRFLOW_WEBSERVER_PORT:-8085}:8080"
     volumes:
@@ -135,6 +141,7 @@ services:
       - ./experiments/airflow/logs:/opt/airflow/logs
       - ./experiments/airflow/plugins:/opt/airflow/plugins:ro
       - ./experiments/procesing:/opt/airflow/procesing:ro
+      - ./lib:/opt/airflow/lib:ro
     command: webserver
     restart: unless-stopped
     healthcheck:
@@ -152,6 +159,8 @@ services:
     depends_on:
       airflow-webserver:
         condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
@@ -163,11 +172,14 @@ services:
       - BACKEND_URL=http://backend:5000
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     volumes:
       - ./experiments/airflow/dags:/opt/airflow/dags:ro
       - ./experiments/airflow/logs:/opt/airflow/logs
       - ./experiments/airflow/plugins:/opt/airflow/plugins:ro
       - ./experiments/procesing:/opt/airflow/procesing:ro
+      - ./lib:/opt/airflow/lib:ro
     command: scheduler
     restart: unless-stopped
     healthcheck:
@@ -176,6 +188,31 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+
+  pricing-provider:
+    container_name: "PHANTOM-pricing-provider"
+    build:
+      context: .
+      dockerfile: docker/Provider.dockerfile
+    depends_on:
+      - redis
+      - kafka
+    environment:
+      - PROVIDER_PORT=5001
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=29092
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    ports:
+      - "${PROVIDER_PORT:-5001}:5001"
+    volumes:
+      - ./lib:/app/lib:ro
+      - ./experiments/procesing:/app/procesing:ro
+      - ./backend/provider:/app/provider:ro
+    command: python -m uvicorn provider.app:app --host 0.0.0.0 --port 5001
+    restart: unless-stopped
 
 volumes:
   phantom_kafka_data:
