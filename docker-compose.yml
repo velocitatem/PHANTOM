@@ -71,6 +71,113 @@ services:
       - "${REDPANDA_CONSOLE_PORT:-8080}:8080"
     restart: unless-stopped
 
+  postgres:
+    container_name: "PHANTOM-postgres"
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  airflow-init:
+    container_name: "PHANTOM-airflow-init"
+    build:
+      context: .
+      dockerfile: docker/Airflow.dockerfile
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-fb4E5zWb8hh7WKN7tXUkWP0r5nTcN1nKZGh1h0N3x6Q=}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - _AIRFLOW_DB_MIGRATE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin
+    volumes:
+      - ./experiments/airflow/dags:/opt/airflow/dags
+      - ./experiments/airflow/logs:/opt/airflow/logs
+      - ./experiments/airflow/plugins:/opt/airflow/plugins
+      - ./experiments/procesing:/opt/airflow/procesing
+    command: version
+    restart: "no"
+
+  airflow-webserver:
+    container_name: "PHANTOM-airflow-webserver"
+    build:
+      context: .
+      dockerfile: docker/Airflow.dockerfile
+    depends_on:
+      - postgres
+      - airflow-init
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-fb4E5zWb8hh7WKN7tXUkWP0r5nTcN1nKZGh1h0N3x6Q=}
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=true
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=29092
+      - BACKEND_URL=http://backend:5000
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    ports:
+      - "${AIRFLOW_WEBSERVER_PORT:-8085}:8080"
+    volumes:
+      - ./experiments/airflow/dags:/opt/airflow/dags:ro
+      - ./experiments/airflow/logs:/opt/airflow/logs
+      - ./experiments/airflow/plugins:/opt/airflow/plugins:ro
+      - ./experiments/procesing:/opt/airflow/procesing:ro
+    command: webserver
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  airflow-scheduler:
+    container_name: "PHANTOM-airflow-scheduler"
+    build:
+      context: .
+      dockerfile: docker/Airflow.dockerfile
+    depends_on:
+      airflow-webserver:
+        condition: service_healthy
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-fb4E5zWb8hh7WKN7tXUkWP0r5nTcN1nKZGh1h0N3x6Q=}
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=29092
+      - BACKEND_URL=http://backend:5000
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    volumes:
+      - ./experiments/airflow/dags:/opt/airflow/dags:ro
+      - ./experiments/airflow/logs:/opt/airflow/logs
+      - ./experiments/airflow/plugins:/opt/airflow/plugins:ro
+      - ./experiments/procesing:/opt/airflow/procesing:ro
+    command: scheduler
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
 volumes:
   phantom_kafka_data:
   phantom_redis_data:
+  postgres_data:
