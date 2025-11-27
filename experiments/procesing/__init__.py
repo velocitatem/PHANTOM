@@ -5,7 +5,7 @@ from .extract import (
 )
 from .demand import DemandEstimator
 from .mapping import SessionTransitionProbMatrixTransformer, render_graph
-from .pipeline import etl_pipeline, pricing_pipeline
+from .pipeline import pricing_pipeline
 
 __all__ = [
     'KafkaDataFetcher',
@@ -14,6 +14,5 @@ __all__ = [
     'DemandEstimator',
     'SessionTransitionProbMatrixTransformer',
     'render_graph',
-    'etl_pipeline',
     'pricing_pipeline',
 ]
