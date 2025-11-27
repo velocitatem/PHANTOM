@@ -34,7 +34,13 @@ from abc import ABC, abstractmethod
 from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
 import pandas as pd
+import os
+from supabase import create_client, Client
 from pipeline import interaction_pipeline, price_data_pipeline, elasticity_pipeline
+
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def expected_revenue(prices: np.ndarray, demand: np.ndarray) -> float:
     """Returns: expected revenue R_t = P_t^T * Q_t"""
@@ -85,21 +91,47 @@ class SimpleLinearPricingFunction(PricingFunction):
 
 # Example usage:
 if __name__ == "__main__":
+    store_mode = 'hotel'
     interaction_data = interaction_pipeline.fit_transform(None)
     price_data = price_data_pipeline.fit_transform(None)
 
-    elasticity_df = elasticity_pipeline(interaction_data, price_data, window_size="30s")
+    elasticity_df = elasticity_pipeline(interaction_data, price_data, window_size="30s", store_mode=store_mode)
 
-    # align elasticity with price data by productId, fill missing with 0
-    if not price_data.empty and elasticity_df is not None and not elasticity_df.empty:
-        # TODO FIX: we might have duplicate productIds
-        price_data_merged = price_data.merge(
+    # fetch all products with base prices from database
+    products_resp = supabase.table(f'{store_mode}_products').select("id, metadata").execute()
+    products_df = pd.DataFrame(products_resp.data)
+
+    # extract base_price from metadata
+    products_df['base_price'] = products_df['metadata'].apply(lambda m: m.get('base_price', 0) if isinstance(m, dict) else 0)
+    products_df = products_df.rename(columns={'id': 'productId'})[['productId', 'base_price']]
+
+    # override with logged prices where available
+    if not price_data.empty:
+        if 'ts' in price_data.columns and not pd.api.types.is_datetime64_any_dtype(price_data['ts']):
+            price_data['ts'] = pd.to_datetime(price_data['ts'])
+
+        # get latest logged price per product
+        price_logs_agg = price_data.sort_values('ts').groupby('productId', as_index=False).last()
+
+        # merge: start with all products (base prices), override with logged prices
+        products_df = products_df.merge(
+            price_logs_agg[['productId', 'price']],
+            on='productId',
+            how='left'
+        )
+        products_df['final_price'] = products_df['price'].fillna(products_df['base_price'])
+    else:
+        products_df['final_price'] = products_df['base_price']
+
+    # merge with elasticity
+    if elasticity_df is not None and not elasticity_df.empty:
+        price_data_merged = products_df[['productId', 'final_price']].merge(
             elasticity_df[['productId', 'elasticity']],
             on='productId',
             how='left'
-        ).fillna({'elasticity': 0.0}) # is it possible we are spilling some elasticities into other products
+        ).fillna({'elasticity': 0.0})
 
-        prices = price_data_merged['price'].values
+        prices = price_data_merged['final_price'].values
         elasticities = price_data_merged['elasticity'].values
     else:
         prices = np.array([])

@@ -1,6 +1,8 @@
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
+import logging
+log = logging.getLogger(__name__)
 
 from extract import KafkaDataFetcher, ExperimentJoiner, EventTitleAugmenter, chunk_shared_data
 from mapping import SessionTransitionProbMatrixTransformer, render_graph
@@ -26,7 +28,7 @@ def elasticity_pipeline(interactions_df, price_logs_df, window_size='30s', store
     # step 1: chunk interactions into time windows
     chunker = ChunkInteractionsIntoSteps(window_size=window_size, return_metadata=True)
     interaction_chunks = chunker.transform(interactions_df)
-    print(len(interaction_chunks))
+    log.info(f"Chunked interactions into {len(interaction_chunks)} windows of size {window_size}")
 
     if not interaction_chunks:
         return None
@@ -39,15 +41,16 @@ def elasticity_pipeline(interactions_df, price_logs_df, window_size='30s', store
         demand_chunks.append({
             'window_start': chunk['window_start'],
             'window_end': chunk['window_end'],
-            'demand_vector': demand_vector
+            'demand_vector': demand_vector # each has a full list of all products, even if demand is 0
         })
+    # [q_chunk1, q_chunk2, ...]
 
     # step 3: aggregate price logs into windows
     price_chunks = aggregate_price_logs(price_logs_df, window_size=window_size)
 
     # step 4: compute elasticity
     elasticity_estimator = TemporalElasticityEstimator(method='point', min_observations=2)
-    elasticity_df = elasticity_estimator.transform(demand_chunks, price_chunks)
+    elasticity_df = elasticity_estimator.transform(demand_chunks, price_chunks, store_mode=store_mode)
 
     return elasticity_df
 
@@ -62,6 +65,9 @@ interaction_pipeline = Pipeline([
 price_data_pipeline = Pipeline([
     ('kafka_fetch', KafkaDataFetcher(topic='price-logs')),
 ])
+
+# interaction_data + price_data -> elasticity (demand)
+# elasticity -> pricing
 
 pricing_pipeline = Pipeline([
     ('demand_estimation', DemandEstimator()),

@@ -4,9 +4,11 @@ import pandas as pd
 from supabase import create_client, Client
 from typing import Optional, Literal
 import os
+import logging
+log = logging.getLogger(__name__)
 
-SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -97,6 +99,7 @@ class DemandEstimator(BaseEstimator, TransformerMixin):
         products=supabase.table(f'{self.store}_products').select("id, room_type, date_index, metadata, availability").execute()
         products = pd.DataFrame(products.data)
         unique_products = products['id'].unique()
+        log.info(f"Demand estimator found {len(unique_products)} in data")
 
         # filter out rows without productId
         interactions_with_products = interactions.dropna(subset=['productId'])

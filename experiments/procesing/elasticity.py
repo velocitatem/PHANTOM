@@ -2,6 +2,13 @@ import numpy as np
 import pandas as pd
 from typing import List, Dict, Optional
 from sklearn.base import BaseEstimator, TransformerMixin
+from supabase import create_client, Client
+import os
+
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
     """
@@ -31,19 +38,31 @@ class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
 
     def transform(self,
                   demand_chunks: List[Dict],
-                  price_chunks: List[Dict]) -> pd.DataFrame:
+                  price_chunks: List[Dict],
+                  store_mode: str = 'hotel') -> pd.DataFrame:
         """
         Args:
             demand_chunks: list from ChunkInteractionsIntoSteps + DemandEstimator
                            each item: {'window_start', 'window_end', 'demand_vector'}
             price_chunks: list of dicts with {'window_start', 'window_end', 'price_vector'}
+            store_mode: 'hotel' or 'airline' to fetch all products
 
         Returns:
             df with [productId, elasticity, std_error, n_observations]
         """
+        # fetch all products from database
+        all_products = supabase.table(f'{store_mode}_products').select("id").execute()
+        all_product_ids = [p['id'] for p in all_products.data]
+
         aligned = self._align_chunks(demand_chunks, price_chunks)
         if not aligned:
-            return pd.DataFrame(columns=['productId', 'elasticity', 'std_error', 'n_obs'])
+            # return all products with zero elasticity
+            return pd.DataFrame({
+                'productId': all_product_ids,
+                'elasticity': 0.0,
+                'std_error': 0.0,
+                'n_obs': 0
+            })
 
         # build time series per product
         product_series = self._build_product_timeseries(aligned)
@@ -73,7 +92,22 @@ class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
                 'n_obs': len(series)
             })
 
-        return pd.DataFrame(elasticities)
+        result_df = pd.DataFrame(elasticities)
+
+        # fill in missing products with zero elasticity
+        observed_pids = set(result_df['productId'].unique())
+        missing_pids = [pid for pid in all_product_ids if pid not in observed_pids]
+
+        if missing_pids:
+            missing_df = pd.DataFrame({
+                'productId': missing_pids,
+                'elasticity': 0.0,
+                'std_error': 0.0,
+                'n_obs': 0
+            })
+            result_df = pd.concat([result_df, missing_df], ignore_index=True)
+
+        return result_df
 
     def _align_chunks(self, demand_chunks, price_chunks):
         """Align demand and price data by matching time windows."""
@@ -219,7 +253,8 @@ class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
 
 def aggregate_price_logs(price_logs: pd.DataFrame,
                          window_size: str = '1H',
-                         ts_col: str = 'ts') -> List[Dict]:
+                         ts_col: str = 'ts',
+                         store_mode : str = 'hotel') -> List[Dict]:
     """
     Recover price vectors treating prices as persistent state changes.
 
@@ -245,6 +280,9 @@ def aggregate_price_logs(price_logs: pd.DataFrame,
         df[ts_col] = pd.to_datetime(df[ts_col])
 
     df = df.sort_values([ts_col, 'productId'])
+    all_products=supabase.table(f'{store_mode}_products').select("id, room_type, date_index, metadata, availability").execute()
+    all_products = pd.DataFrame(all_products.data)
+    unique_products = all_products['id'].unique()
 
     # generate windows across data range
     min_time, max_time = df[ts_col].min(), df[ts_col].max()
@@ -261,7 +299,8 @@ def aggregate_price_logs(price_logs: pd.DataFrame,
         price_vector = []
 
         # all products with price history by window_end
-        historical_products = df[df[ts_col] < window_end]['productId'].unique()
+        #historical_products = df[df[ts_col] < window_end]['productId'].unique()
+        historical_products = unique_products.tolist()
 
         for pid in historical_products:
             product_data = df[df['productId'] == pid]
