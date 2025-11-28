@@ -57,8 +57,6 @@ class FitPricingFunctionStep(BaseContextStep):
     """
 
     def transform(self, elasticity_df: pd.DataFrame):
-        from pricing import ElasticityBasedPricingFunction
-
         pricing_class = self.context.config.get('pricing_function_class', ElasticityBasedPricingFunction)
         pricing_params = self.context.config.get('pricing_function_params', {})
 

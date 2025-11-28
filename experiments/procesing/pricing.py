@@ -35,6 +35,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
 import pandas as pd
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from supabase import create_client, Client
 
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
