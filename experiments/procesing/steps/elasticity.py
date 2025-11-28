@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import Dict, List
-from .base import BaseContextStep
+from procesing.steps.base import BaseContextStep
 
 class AggregatePriceLogsStep(BaseContextStep):
     """

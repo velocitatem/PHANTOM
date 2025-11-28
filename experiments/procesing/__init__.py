@@ -1,6 +1,6 @@
-from .context import PipelineContext
-from .providers import DataProvider, SupabaseProvider, BackendAPIProvider
-from .steps import (
+from procesing.context import PipelineContext
+from procesing.providers import DataProvider, SupabaseProvider, BackendAPIProvider
+from procesing.steps import (
     BaseContextStep,
     FetchInteractionsStep,
     FetchPriceLogsStep,
@@ -18,7 +18,7 @@ from .steps import (
     FitPricingFunctionStep,
     PredictPricesStep,
 )
-from .pipelines import (
+from procesing.pipelines import (
     interaction_extraction_pipeline,
     price_extraction_pipeline,
     elasticity_computation_pipeline,

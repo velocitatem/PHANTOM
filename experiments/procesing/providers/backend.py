@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import requests
 from typing import List
-from .base import DataProvider
+from procesing.providers.base import DataProvider
 
 class BackendAPIProvider(DataProvider):
     """Concrete backend API implementation"""

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from .base import BaseContextStep
-from ..pricing import ElasticityBasedPricingFunction
+from procesing.steps.base import BaseContextStep
+from procesing.pricing import ElasticityBasedPricingFunction
 
 class StateSpace:
     """State representation for pricing functions"""

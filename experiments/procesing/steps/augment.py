@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from .base import BaseContextStep
+from procesing.steps.base import BaseContextStep
 
 class CreatePriceBucketsStep(BaseContextStep):
     """Create price bucket labels from price data"""

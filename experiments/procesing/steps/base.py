@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from sklearn.base import BaseEstimator, TransformerMixin
-from ..context import PipelineContext
+from procesing.context import PipelineContext
 
 class BaseContextStep(BaseEstimator, TransformerMixin, ABC):
     """

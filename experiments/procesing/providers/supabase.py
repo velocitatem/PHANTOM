@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 from typing import List
 from supabase import create_client, Client
-from .base import DataProvider
+from procesing.providers.base import DataProvider
 
 class SupabaseProvider(DataProvider):
     """Concrete Supabase + backend API implementation"""
