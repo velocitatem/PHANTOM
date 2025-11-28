@@ -1,18 +1,55 @@
-from .extract import (
-    KafkaDataFetcher,
-    ExperimentJoiner,
-    EventTitleAugmenter,
+from .context import PipelineContext
+from .providers import DataProvider, SupabaseProvider, BackendAPIProvider
+from .steps import (
+    BaseContextStep,
+    FetchInteractionsStep,
+    FetchPriceLogsStep,
+    FetchExperimentsStep,
+    JoinExperimentsStep,
+    CreatePriceBucketsStep,
+    AugmentEventNamesStep,
+    ChunkByTimeWindowStep,
+    ComputeDemandStep,
+    ComputeDemandForChunksStep,
+    AggregatePriceLogsStep,
+    ComputeElasticityStep,
+    StateSpace,
+    BuildStateSpaceStep,
+    FitPricingFunctionStep,
+    PredictPricesStep,
 )
-from .demand import DemandEstimator
-from .mapping import SessionTransitionProbMatrixTransformer, render_graph
-from .pipeline import pricing_pipeline
+from .pipelines import (
+    interaction_extraction_pipeline,
+    price_extraction_pipeline,
+    elasticity_computation_pipeline,
+    pricing_pipeline,
+    full_pipeline,
+)
 
 __all__ = [
-    'KafkaDataFetcher',
-    'ExperimentJoiner',
-    'EventTitleAugmenter',
-    'DemandEstimator',
-    'SessionTransitionProbMatrixTransformer',
-    'render_graph',
+    'PipelineContext',
+    'DataProvider',
+    'SupabaseProvider',
+    'BackendAPIProvider',
+    'BaseContextStep',
+    'FetchInteractionsStep',
+    'FetchPriceLogsStep',
+    'FetchExperimentsStep',
+    'JoinExperimentsStep',
+    'CreatePriceBucketsStep',
+    'AugmentEventNamesStep',
+    'ChunkByTimeWindowStep',
+    'ComputeDemandStep',
+    'ComputeDemandForChunksStep',
+    'AggregatePriceLogsStep',
+    'ComputeElasticityStep',
+    'StateSpace',
+    'BuildStateSpaceStep',
+    'FitPricingFunctionStep',
+    'PredictPricesStep',
+    'interaction_extraction_pipeline',
+    'price_extraction_pipeline',
+    'elasticity_computation_pipeline',
     'pricing_pipeline',
+    'full_pipeline',
 ]
