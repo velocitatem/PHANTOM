@@ -26,8 +26,12 @@ class ElasticityBasedPricer(PricingFunction):
             raise ValueError("historical_data must contain 'elasticity' column")
 
         self.elasticity = historical_data['elasticity'].values
-        self.base_prices = historical_data.get('base_price', np.ones(len(historical_data)) * 100).values
-        self.mean_demand = historical_data.get('mean_demand', np.ones(len(historical_data)) * 10).values
+        self.base_prices = (historical_data['base_price'].values
+                           if 'base_price' in historical_data.columns
+                           else np.ones(len(historical_data)) * 100)
+        self.mean_demand = (historical_data['mean_demand'].values
+                           if 'mean_demand' in historical_data.columns
+                           else np.ones(len(historical_data)) * 10)
         return self
 
     def predict(self, state_space) -> np.ndarray:

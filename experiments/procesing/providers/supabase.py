@@ -4,6 +4,7 @@ import requests
 from typing import List
 from supabase import create_client, Client
 from procesing.providers.base import DataProvider
+from dotenv import load_dotenv
 
 class SupabaseProvider(DataProvider):
     """Concrete Supabase + backend API implementation"""
@@ -11,6 +12,7 @@ class SupabaseProvider(DataProvider):
     def __init__(self,
                  supabase_url: str = None,
                  supabase_key: str = None,):
+        load_dotenv()
         self.supabase_url = supabase_url or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
         self.supabase_key = supabase_key or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
