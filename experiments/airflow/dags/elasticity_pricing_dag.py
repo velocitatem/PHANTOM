@@ -8,12 +8,12 @@ import sys
 import pickle
 import io
 
-# add procesing module to path (mounted at /opt/airflow/procesing in container)
-sys.path.insert(0, '/opt/airflow/procesing')
+# add parent dir to path so procesing package can be imported
+sys.path.insert(0, '/opt/airflow')
 
-from context import PipelineContext
-from providers import SupabaseProvider, BackendAPIProvider
-from steps import (
+from procesing.context import PipelineContext
+from procesing.providers import SupabaseProvider, BackendAPIProvider
+from procesing.steps import (
     FetchInteractionsStep,
     FetchPriceLogsStep,
     CreatePriceBucketsStep,
@@ -63,7 +63,7 @@ def fetch_interactions(**kwargs):
     step = FetchInteractionsStep(context)
     df = step.transform(None)
 
-    kwargs['ti'].xcom_push(key='interactions_raw', value=df.to_json())
+    kwargs['ti'].xcom_push(key='interactions_raw', value=pickle.dumps(df))
     logging.info(f"Fetched {len(df)} interaction records")
     return len(df)
 
@@ -73,43 +73,40 @@ def fetch_price_logs(**kwargs):
     step = FetchPriceLogsStep(context)
     df = step.transform(None)
 
-    kwargs['ti'].xcom_push(key='price_logs_raw', value=df.to_json())
+    kwargs['ti'].xcom_push(key='price_logs_raw', value=pickle.dumps(df))
     logging.info(f"Fetched {len(df)} price records")
     return len(df)
 
 def create_price_buckets(**kwargs):
     """Task: Create price buckets for interactions"""
     ti = kwargs['ti']
-    interactions_json = ti.xcom_pull(key='interactions_raw')
-    df = pd.read_json(io.StringIO(interactions_json))
+    df = pickle.loads(ti.xcom_pull(key='interactions_raw'))
 
     context = get_context(**kwargs)
     step = CreatePriceBucketsStep(context)
     df = step.transform(df)
 
-    ti.xcom_push(key='interactions_bucketed', value=df.to_json())
+    ti.xcom_push(key='interactions_bucketed', value=pickle.dumps(df))
     logging.info(f"Created price buckets for {len(df)} interactions")
     return len(df)
 
 def augment_event_names(**kwargs):
     """Task: Augment event names with product and price schema"""
     ti = kwargs['ti']
-    interactions_json = ti.xcom_pull(key='interactions_bucketed')
-    df = pd.read_json(io.StringIO(interactions_json))
+    df = pickle.loads(ti.xcom_pull(key='interactions_bucketed'))
 
     context = get_context(**kwargs)
     step = AugmentEventNamesStep(context)
     df = step.transform(df)
 
-    ti.xcom_push(key='interactions_final', value=df.to_json())
+    ti.xcom_push(key='interactions_final', value=pickle.dumps(df))
     logging.info(f"Augmented event names for {len(df)} interactions")
     return len(df)
 
 def chunk_interactions(**kwargs):
     """Task: Chunk interactions into time windows"""
     ti = kwargs['ti']
-    interactions_json = ti.xcom_pull(key='interactions_final')
-    df = pd.read_json(io.StringIO(interactions_json))
+    df = pickle.loads(ti.xcom_pull(key='interactions_final'))
 
     context = get_context(**kwargs)
     step = ChunkByTimeWindowStep(context)
@@ -135,8 +132,7 @@ def compute_demand(**kwargs):
 def aggregate_price_logs(**kwargs):
     """Task: Aggregate price logs into time windows (VECTORIZED)"""
     ti = kwargs['ti']
-    price_logs_json = ti.xcom_pull(key='price_logs_raw')
-    df = pd.read_json(io.StringIO(price_logs_json))
+    df = pickle.loads(ti.xcom_pull(key='price_logs_raw'))
 
     context = get_context(**kwargs)
     step = AggregatePriceLogsStep(context)
@@ -156,7 +152,7 @@ def compute_elasticity(**kwargs):
     step = ComputeElasticityStep(context)
     elasticity_df = step.transform((demand_chunks, price_chunks))
 
-    ti.xcom_push(key='elasticity_results', value=elasticity_df.to_json())
+    ti.xcom_push(key='elasticity_results', value=pickle.dumps(elasticity_df))
     logging.info(f"Computed elasticity for {len(elasticity_df)} products")
 
     return {
@@ -168,8 +164,7 @@ def compute_elasticity(**kwargs):
 def build_state_space(**kwargs):
     """Task: Build state space from elasticity"""
     ti = kwargs['ti']
-    elasticity_json = ti.xcom_pull(key='elasticity_results')
-    elasticity_df = pd.read_json(io.StringIO(elasticity_json))
+    elasticity_df = pickle.loads(ti.xcom_pull(key='elasticity_results'))
 
     context = get_context(**kwargs)
     step = BuildStateSpaceStep(context)
@@ -182,8 +177,7 @@ def build_state_space(**kwargs):
 def fit_pricing_function(**kwargs):
     """Task: Fit pricing function using elasticity"""
     ti = kwargs['ti']
-    elasticity_json = ti.xcom_pull(key='elasticity_results')
-    elasticity_df = pd.read_json(io.StringIO(elasticity_json))
+    elasticity_df = pickle.loads(ti.xcom_pull(key='elasticity_results'))
 
     context = get_context(**kwargs)
     step = FitPricingFunctionStep(context)
@@ -203,18 +197,15 @@ def predict_prices(**kwargs):
     step = PredictPricesStep(context)
     prices_df = step.transform((pricer, state_space))
 
-    ti.xcom_push(key='predicted_prices', value=prices_df.to_json())
+    ti.xcom_push(key='predicted_prices', value=pickle.dumps(prices_df))
     logging.info(f"Predicted prices for {len(prices_df)} products")
     return len(prices_df)
 
 def publish_results(**kwargs):
     """Task: Publish elasticity and pricing results to model registry"""
     ti = kwargs['ti']
-    elasticity_json = ti.xcom_pull(key='elasticity_results')
-    prices_json = ti.xcom_pull(key='predicted_prices')
-
-    elasticity_df = pd.read_json(io.StringIO(elasticity_json))
-    prices_df = pd.read_json(io.StringIO(prices_json))
+    elasticity_df = pickle.loads(ti.xcom_pull(key='elasticity_results'))
+    prices_df = pickle.loads(ti.xcom_pull(key='predicted_prices'))
 
     sys.path.insert(0, '/opt/airflow')
     from lib.model_registry import ModelRegistry
