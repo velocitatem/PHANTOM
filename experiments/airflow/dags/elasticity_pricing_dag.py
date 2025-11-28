@@ -130,7 +130,7 @@ def compute_demand(**kwargs):
     return len(demand_chunks)
 
 def aggregate_price_logs(**kwargs):
-    """Task: Aggregate price logs into time windows (VECTORIZED)"""
+    """Task: Aggregate price logs into time windows """
     ti = kwargs['ti']
     df = pickle.loads(ti.xcom_pull(key='price_logs_raw'))
 
@@ -139,7 +139,7 @@ def aggregate_price_logs(**kwargs):
     price_chunks = step.transform(df)
 
     ti.xcom_push(key='price_chunks', value=pickle.dumps(price_chunks))
-    logging.info(f"Aggregated {len(price_chunks)} price chunks (vectorized)")
+    logging.info(f"Aggregated {len(price_chunks)} price chunks")
     return len(price_chunks)
 
 def compute_elasticity(**kwargs):

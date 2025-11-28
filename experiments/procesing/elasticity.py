@@ -130,25 +130,24 @@ class TemporalElasticityEstimator(BaseEstimator, TransformerMixin):
 
     def _build_product_timeseries(self, aligned_chunks):
         """Build time series [price, quantity] per product."""
-        series_by_product = {}
-
+        # vectorize chunk merging instead of iterating rows
+        all_merged = []
         for chunk in aligned_chunks:
-            demand_df = chunk['demand']
-            price_df = chunk['prices']
+            merged = chunk['demand'].merge(chunk['prices'], on='productId', how='inner')
+            merged['timestamp'] = chunk['window_start']
+            all_merged.append(merged[['productId', 'timestamp', 'price', 'demand_score']])
 
-            # merge on productId
-            merged = demand_df.merge(price_df, on='productId', how='inner')
+        if not all_merged:
+            return {}
 
-            for _, row in merged.iterrows():
-                pid = row['productId']
-                if pid not in series_by_product:
-                    series_by_product[pid] = []
-
-                series_by_product[pid].append({
-                    'timestamp': chunk['window_start'],
-                    'price': row['price'],
-                    'quantity': row['demand_score']
-                })
+        # concat all chunks and group by productId in one pass
+        combined = pd.concat(all_merged, ignore_index=True)
+        series_by_product = {
+            pid: group[['timestamp', 'price', 'demand_score']].rename(
+                columns={'demand_score': 'quantity'}
+            ).to_dict('records')
+            for pid, group in combined.groupby('productId')
+        }
 
         return series_by_product
 
