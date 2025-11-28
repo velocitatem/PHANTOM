@@ -189,7 +189,7 @@ def publish_results(**context):
 
     # import registry and pricing modules
     import sys
-    sys.path.insert(0, '/opt/airflow/procesing')
+    sys.path.insert(0, '/opt/airflow/procesing') # this is pretty janky
     sys.path.insert(0, '/opt/airflow')
 
     from lib.model_registry import ModelRegistry
@@ -243,8 +243,8 @@ def publish_results(**context):
 with DAG(
     'elasticity_pricing_pipeline',
     default_args=default_args,
-    description='E2E pipeline: interactions → demand → elasticity → pricing',
-    schedule_interval='*/5 * * * *',  # every 5 minutes for real-time pricing
+    description='E2E pipeline: interactions -> demand -> elasticity -> pricing',
+    schedule_interval='*/15 * * * *',  # every 5 minutes for real-time pricing
     start_date=days_ago(1),
     catchup=False,
     max_active_runs=1,
