@@ -94,7 +94,7 @@ services:
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-fb4E5zWb8hh7WKN7tXUkWP0r5nTcN1nKZGh1h0N3x6Q=}
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
       - _AIRFLOW_DB_MIGRATE=true
@@ -124,7 +124,7 @@ services:
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-fb4E5zWb8hh7WKN7tXUkWP0r5nTcN1nKZGh1h0N3x6Q=}
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
@@ -166,7 +166,7 @@ services:
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY:-fb4E5zWb8hh7WKN7tXUkWP0r5nTcN1nKZGh1h0N3x6Q=}
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
