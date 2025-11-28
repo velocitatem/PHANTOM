@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from procesing.steps.base import BaseContextStep
-from procesing.pricing import ElasticityBasedPricingFunction
+from procesing.pricers import ElasticityBasedPricer
 
 class StateSpace:
     """State representation for pricing functions"""
@@ -57,7 +57,7 @@ class FitPricingFunctionStep(BaseContextStep):
     """
 
     def transform(self, elasticity_df: pd.DataFrame):
-        pricing_class = self.context.config.get('pricing_function_class', ElasticityBasedPricingFunction)
+        pricing_class = self.context.config.get('pricing_function_class', ElasticityBasedPricer)
         pricing_params = self.context.config.get('pricing_function_params', {})
 
         pricer = pricing_class(**pricing_params)
@@ -79,7 +79,7 @@ class PredictPricesStep(BaseContextStep):
         products = self.context.products
         product_ids = products['id'].values
 
-        predicted_prices = pricer.transform(state_space, product_ids)
+        predicted_prices = pricer.predict(state_space)
 
         return pd.DataFrame({
             'productId': product_ids,
