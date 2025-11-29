@@ -6,3 +6,8 @@
 **/session_*.svg
 **/*graph.svg
 paper/src/bib/auto
+
+# Airflow logs - exclude DAG run logs
+experiments/airflow/logs/*
+experiments/airflow/logs/scheduler/
+experiments/airflow/logs/dag_processor_manager/

@@ -20,10 +20,40 @@ export async function GET(req: NextRequest) {
         );
     }
 
-    // stub: call external pricing provider (random for now)
-    const basePrice = 100 + Math.random() * 900; // 100-1000 range
-    const price = Math.round(basePrice * 100) / 100;
     const timestamp = new Date().toISOString();
+    let price: number;
+    let basePrice: number | undefined;
+    let markup: number | undefined;
+    let elasticity: number | undefined;
+
+    // call real pricing provider
+    const providerUrl = process.env.PRICING_PROVIDER_URL || 'http://localhost:5001';
+    try {
+        const queryParams = new URLSearchParams();
+        if (sessionId) queryParams.append('sessionId', sessionId);
+        if (experimentId) queryParams.append('experimentId', experimentId);
+
+        const providerResponse = await fetch(
+            `${providerUrl}/api/${storeMode}/price/${productId}?${queryParams.toString()}`,
+            { headers: { 'Accept': 'application/json' }, cache: 'no-store' }
+        );
+
+        if (!providerResponse.ok) {
+            throw new Error(`Provider returned ${providerResponse.status}`);
+        }
+
+        const providerData = await providerResponse.json();
+        price = providerData.price;
+        basePrice = providerData.base_price;
+        markup = providerData.markup;
+        elasticity = providerData.elasticity;
+
+    } catch (err) {
+        console.error('[pricing-provider-error]', err);
+        // fallback to random pricing if provider unavailable
+        const randomBase = 100 + Math.random() * 900;
+        price = Math.round(randomBase * 100) / 100;
+    }
 
     // log price to kafka for elasticity computation
     if (sessionId) {
@@ -43,19 +73,13 @@ export async function GET(req: NextRequest) {
             });
         } catch (err) {
             console.error('[price-log-error]', err);
-            // don't fail the pricing request if logging fails
         }
     }
 
-    // log in dev
     if (process.env.NODE_ENV === 'development') {
         console.log('[pricing-api]', {
-            productId,
-            sessionId,
-            experimentId,
-            storeMode,
-            price,
-            timestamp,
+            productId, sessionId, experimentId, storeMode,
+            price, basePrice, markup, elasticity, timestamp,
         });
     }
 

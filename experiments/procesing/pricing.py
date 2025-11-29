@@ -35,8 +35,9 @@ from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
 import pandas as pd
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from supabase import create_client, Client
-from pipeline import interaction_pipeline, price_data_pipeline, elasticity_pipeline
 
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
@@ -79,18 +80,136 @@ class PricingFunction(BaseEstimator, TransformerMixin, ABC):
 class SimpleLinearPricingFunction(PricingFunction):
     def __init__(self, price_sensitivity: float = -0.1):
         super().__init__()
-        self.price_sensitivity = price_sensitivity  # simple coefficient
+        self.price_sensitivity = price_sensitivity
 
     def fit(self, historical_data):
         return self
 
     def transform(self, state_space: StateSpace) -> np.ndarray:
-        # Simple linear adjustment: P_{t+1} = P_t + sensitivity * Q_t
-        new_prices = state_space.prices + self.price_sensitivity * state_space.demand # this is not great
+        new_prices = state_space.prices + self.price_sensitivity * state_space.demand
         return np.maximum(new_prices, 0)
+
+
+class ElasticityBasedPricingFunction(PricingFunction):
+    """
+    Revenue-maximizing pricing using elasticity estimates.
+
+    For each product, optimal price P* maximizes R = P * Q(P)
+    where Q(P) follows power law: Q(P) = Q_0 * (P/P_0)^ε
+
+    Taking derivative dR/dP = 0 gives optimal markup:
+    P* = P_0 * (1 + 1/ε) if ε < -1 (elastic)
+
+    For inelastic demand (|ε| < 1), we apply bounded markup.
+    """
+
+    def __init__(self,
+                 cost_floor: float = 0.5,
+                 max_markup: float = 2.0,
+                 min_markup: float = 1.0,
+                 inelastic_markup: float = 1.3):
+        super().__init__()
+        self.cost_floor = cost_floor  # prices as fraction of base
+        self.max_markup = max_markup  # max price = base * max_markup
+        self.min_markup = min_markup  # min price = base * min_markup
+        self.inelastic_markup = inelastic_markup  # default for |ε| < 1
+        self.elasticity_map = {}  # productId -> elasticity
+
+    def fit(self, elasticity_df: pd.DataFrame):
+        """
+        Args:
+            elasticity_df: df with [productId, elasticity, std_error, n_obs]
+        """
+        if elasticity_df is not None and not elasticity_df.empty:
+            self.elasticity_map = dict(zip(
+                elasticity_df['productId'],
+                elasticity_df['elasticity']
+            ))
+        return self
+
+    def transform(self, state_space: StateSpace, product_ids: np.ndarray = None) -> np.ndarray:
+        """
+        Args:
+            state_space: current state (prices = base prices)
+            product_ids: array of productIds aligned with state_space.prices
+
+        Returns:
+            optimized prices P_{t+1}
+        """
+        base_prices = state_space.prices
+
+        if product_ids is None:
+            # fallback: use positional index as productId (not ideal)
+            product_ids = np.arange(len(base_prices))
+
+        new_prices = np.zeros_like(base_prices)
+
+        for i, (base_p, pid) in enumerate(zip(base_prices, product_ids)):
+            elasticity = self.elasticity_map.get(pid, 0.0)
+
+            if elasticity < -1:  # elastic demand
+                # optimal markup: (1 + 1/ε)
+                markup = 1 + (1 / elasticity)
+                optimal_p = base_p * markup
+            elif elasticity > -1 and elasticity < 0:  # inelastic
+                # conservative markup
+                optimal_p = base_p * self.inelastic_markup
+            else:  # ε ≥ 0 (demand increases with price, or no data)
+                # no elasticity data or anomalous, keep base price
+                optimal_p = base_p
+
+            # apply bounds
+            optimal_p = np.clip(
+                optimal_p,
+                base_p * self.min_markup,
+                base_p * self.max_markup
+            )
+            optimal_p = max(optimal_p, self.cost_floor)
+
+            new_prices[i] = optimal_p
+
+        return new_prices
+
+
+class ContextualElasticityPricing(PricingFunction):
+    """
+    Revenue optimization with contextual adjustments based on session features.
+
+    Combines elasticity-based pricing with surge/demand-based multipliers.
+    """
+
+    def __init__(self,
+                 base_pricer: ElasticityBasedPricingFunction = None,
+                 demand_sensitivity: float = 0.1,
+                 surge_threshold: float = 0.7):
+        super().__init__()
+        self.base_pricer = base_pricer or ElasticityBasedPricingFunction()
+        self.demand_sensitivity = demand_sensitivity
+        self.surge_threshold = surge_threshold
+
+    def fit(self, elasticity_df: pd.DataFrame):
+        self.base_pricer.fit(elasticity_df)
+        return self
+
+    def transform(self, state_space: StateSpace, product_ids: np.ndarray = None) -> np.ndarray:
+        # get base optimal prices from elasticity
+        base_optimal = self.base_pricer.transform(state_space, product_ids)
+
+        # compute surge multiplier from demand
+        if len(state_space.demand) > 0:
+            demand_normalized = state_space.demand / (state_space.demand.max() + 1e-8)
+            surge_multiplier = 1 + self.demand_sensitivity * np.maximum(
+                demand_normalized - self.surge_threshold, 0
+            )
+        else:
+            surge_multiplier = np.ones_like(base_optimal)
+
+        return base_optimal * surge_multiplier
 
 # Example usage:
 if __name__ == "__main__":
+    from pipeline import interaction_pipeline, price_data_pipeline, elasticity_pipeline
+
     store_mode = 'hotel'
     interaction_data = interaction_pipeline.fit_transform(None)
     price_data = price_data_pipeline.fit_transform(None)

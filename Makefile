@@ -49,4 +49,8 @@ install: $(VENV)
 test: $(VENV)
 	$(PYTEST) -v
 
+count-lines:
+	@find . \( -path '*/node_modules' -o -path '*/.venv' -o -path '*/venv' \) -prune -o \
+	\( -name "*.ts" -o -name "*.py" \) -type f -print0 | xargs -0 cat | wc -l
+
 .PHONY: all pdf clean watch run.webapp install test
