@@ -202,7 +202,7 @@ def predict_prices(**kwargs):
     return len(prices_df)
 
 def publish_results(**kwargs):
-    """Task: Publish elasticity and pricing results to model registry"""
+    """Task: Publish elasticity, pricing model, and predicted prices to registry"""
     ti = kwargs['ti']
     elasticity_df = pickle.loads(ti.xcom_pull(key='elasticity_results'))
     prices_df = pickle.loads(ti.xcom_pull(key='predicted_prices'))
@@ -222,7 +222,6 @@ def publish_results(**kwargs):
 
     registry.publish_elasticity(elasticity_df, model_name='latest', metadata=metadata)
 
-    # get fitted pricer from XCom
     pricer = pickle.loads(ti.xcom_pull(key='pricer'))
     registry.publish_pricing_model(
         pricer,
@@ -230,10 +229,13 @@ def publish_results(**kwargs):
         metadata={**metadata, 'model_type': type(pricer).__name__}
     )
 
-    logging.info(f"Published elasticity + pricing for {len(elasticity_df)} products")
+    registry.publish_prices(prices_df, model_name='latest', metadata=metadata)
+
+    logging.info(f"Published elasticity + pricing + prices for {len(elasticity_df)} products")
 
     return {
         'n_products': len(elasticity_df),
+        'n_prices': len(prices_df),
         'registry_status': 'success',
         'elasticity_mean': float(elasticity_df['elasticity'].mean())
     }

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
+from experiments.procesing.pricers.simple import StaticPricer
 from procesing.steps.base import BaseContextStep
 from procesing.pricers import ElasticityBasedPricer
 
@@ -113,17 +114,17 @@ class BuildStateSpaceStep(BaseContextStep):
 
 class FitPricingFunctionStep(BaseContextStep):
     """
-    Fit pricing function using elasticity data.
-    Input: elasticity_df
+    Fit pricing function using data.
+    Input: pricing_data
     Output: fitted pricing function instance
     """
 
-    def transform(self, elasticity_df: pd.DataFrame):
-        pricing_class = self.context.config.get('pricing_function_class', ElasticityBasedPricer)
+    def transform(self, pricing_data: pd.DataFrame):
+        pricing_class = self.context.config.get('pricing_function_class', StaticPricer)
         pricing_params = self.context.config.get('pricing_function_params', {})
 
         pricer = pricing_class(**pricing_params)
-        pricer.fit(elasticity_df)
+        pricer.fit(pricing_data)
 
         return pricer
 

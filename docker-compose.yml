@@ -208,6 +208,7 @@ services:
       - KAFKA_PORT=29092
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - BACKEND_URL=http://localhost:5000
     ports:
       - "${PROVIDER_PORT:-5001}:5001"
     volumes:

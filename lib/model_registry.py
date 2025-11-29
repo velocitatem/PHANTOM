@@ -26,6 +26,7 @@ class ModelRegistry:
         self.metadata_prefix = "model:meta:"
         self.data_prefix = "model:data:"
         self.elasticity_prefix = "elasticity:"
+        self.prices_prefix = "prices:"
 
     def publish_elasticity(self,
                           elasticity_df: pd.DataFrame,
@@ -129,6 +130,46 @@ class ModelRegistry:
                 models[model_name] = json.loads(meta_json)
 
         return models
+
+    def publish_prices(self,
+                      prices_df: pd.DataFrame,
+                      model_name: str = 'latest',
+                      metadata: Optional[Dict[str, Any]] = None):
+        """Store predicted prices in registry.
+
+        Args:
+            prices_df: df with [productId, predicted_price, ...]
+            model_name: identifier for this price snapshot
+            metadata: additional info
+        """
+        key = f"{self.prices_prefix}{model_name}"
+        data_json = prices_df.to_json(orient='records')
+
+        self.redis_client.set(key, data_json)
+
+        meta = metadata or {}
+        meta.update({
+            'n_products': len(prices_df),
+            'model_type': 'predicted_prices'
+        })
+
+        meta_key = f"{self.metadata_prefix}prices_{model_name}"
+        self.redis_client.set(meta_key, json.dumps(meta))
+
+        log.info(f"Published prices '{model_name}' for {len(prices_df)} products")
+
+    def get_prices(self, model_name: str = 'latest') -> Optional[pd.DataFrame]:
+        """Retrieve predicted prices from registry."""
+        key = f"{self.prices_prefix}{model_name}"
+        data_json = self.redis_client.get(key)
+
+        if data_json is None:
+            return None
+
+        if isinstance(data_json, bytes):
+            data_json = data_json.decode('utf-8')
+
+        return pd.read_json(data_json, orient='records')
 
     def health_check(self) -> bool:
         """Check if Redis connection is alive."""

@@ -121,6 +121,8 @@ if __name__ == '__main__':
     context = PipelineContext(
         provider=Provider(backend_url="http://localhost:5000"),
         store_mode='hotel',
+        # 15 min not month
+        window_size='15min',
     )
 
     elasticity_df, prices_df = full_pipeline(context)
