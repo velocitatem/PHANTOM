@@ -5,7 +5,9 @@ from procesing.steps.augment import CreatePriceBucketsStep, AugmentEventNamesSte
 from procesing.steps.chunk import ChunkByTimeWindowStep
 from procesing.steps.demand import ComputeDemandStep, ComputeDemandForChunksStep
 from procesing.steps.elasticity import AggregatePriceLogsStep, ComputeElasticityStep
-from procesing.steps.pricing import StateSpace, BuildStateSpaceStep, FitPricingFunctionStep, PredictPricesStep
+from procesing.steps.pricing import FitPricingFunctionStep, PredictPricesStep
+from procesing.steps.session import ExtractSessionFeaturesStep, _extract_features_for_session
+# StateSpace, BuildStateSpaceStep,
 
 __all__ = [
     'BaseContextStep',
@@ -20,8 +22,8 @@ __all__ = [
     'ComputeDemandForChunksStep',
     'AggregatePriceLogsStep',
     'ComputeElasticityStep',
-    'StateSpace',
-    'BuildStateSpaceStep',
     'FitPricingFunctionStep',
     'PredictPricesStep',
+    'ExtractSessionFeaturesStep',
+    '_extract_features_for_session',
 ]

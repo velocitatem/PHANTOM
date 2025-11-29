@@ -14,7 +14,7 @@ from procesing.steps import (
     ComputeDemandForChunksStep,
     AggregatePriceLogsStep,
     ComputeElasticityStep,
-    BuildStateSpaceStep,
+    # BuildStateSpaceStep,
     FitPricingFunctionStep,
     PredictPricesStep,
 )

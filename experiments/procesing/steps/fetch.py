@@ -17,6 +17,8 @@ class FetchInteractionsStep(BaseContextStep):
             )
 
         df = df.dropna(subset=['eventName'])
+        # drop all where page has /admin/
+        df = df[~df['page'].str.contains('/admin/', na=False)]
 
         # Remap dateIndex if present
         if 'metadata_dateIndex' in df.columns:
