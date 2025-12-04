@@ -211,11 +211,6 @@ services:
       - BACKEND_URL=http://localhost:5000
     ports:
       - "${PROVIDER_PORT:-5001}:5001"
-    volumes:
-      - ./lib:/app/lib:ro
-      - ./experiments/procesing:/app/procesing:ro
-      - ./backend/provider:/app/provider:ro
-    command: python -m uvicorn provider.app:app --host 0.0.0.0 --port 5001
     restart: unless-stopped
 
 volumes:

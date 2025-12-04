@@ -14,11 +14,13 @@ RUN apt-get update && apt-get install -y \
 COPY backend/provider/requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Structure will be mounted via volumes:
-# /app/lib -> lib/
-# /app/procesing -> experiments/procesing/
-# /app/provider -> backend/provider/
+# Copy application code into image
+COPY lib/ /app/lib/
+COPY experiments/procesing/ /app/procesing/
+COPY backend/provider/ /app/provider/
 
 ENV PYTHONPATH=/app:/app/lib:/app/procesing
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5001", "--app-dir", "/app/provider"]
+WORKDIR /app/provider
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5001"]
