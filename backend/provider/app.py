@@ -19,7 +19,6 @@ from procesing.pricers import (
     ElasticityBasedPricer
 )
 from procesing.steps import (
-    StateSpace,
     PredictPricesStep
 )
 from procesing import PipelineContext
