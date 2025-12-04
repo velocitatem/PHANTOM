@@ -111,6 +111,7 @@ def full_pipeline(context: PipelineContext):
     return elasticity_df, prices_df
 
 
+
 if __name__ == '__main__':
 
     class Provider(SupabaseProvider, BackendAPIProvider):

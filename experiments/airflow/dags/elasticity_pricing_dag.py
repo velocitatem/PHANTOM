@@ -22,7 +22,7 @@ from procesing.steps import (
     ComputeDemandForChunksStep,
     AggregatePriceLogsStep,
     ComputeElasticityStep,
-    BuildStateSpaceStep,
+    # BuildStateSpaceStep,
     FitPricingFunctionStep,
     PredictPricesStep,
 )
@@ -38,7 +38,7 @@ default_args = {
 
 def get_provider():
     """Factory to create composite provider"""
-    class CompositeProvider(SupabaseProvider, BackendAPIProvider):
+    class CompositeProvider(SupabaseProvider, BackendAPIProvider): # TODO: Fix this into one global provider singelton instead of multiple inheritance declarations acoss the codebase
         def __init__(self):
             SupabaseProvider.__init__(self)
             BackendAPIProvider.__init__(self)
