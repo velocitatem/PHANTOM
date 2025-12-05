@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import type { Hotel } from '@/lib/hotel-utils';
+import PriceDisplay from '@/components/ui/PriceDisplay';
 
 interface HotelDetailsProps {
   product: Hotel;
@@ -8,15 +10,60 @@ interface HotelDetailsProps {
   addedToCart: boolean;
 }
 
+const PriceTotalDisplay = ({ productId, nights }: { productId: string; nights: number }) => {
+  const [price, setPrice] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchPrice = async () => {
+      try {
+        const sessionRes = await fetch('/api/session');
+        const sessionData = await sessionRes.json();
+        const params = new URLSearchParams({
+          productId,
+          sessionId: sessionData.sessionId || '',
+          experimentId: sessionData.experimentId || '',
+        });
+        const res = await fetch(`/api/pricing?${params.toString()}`);
+        const data = await res.json();
+        setPrice(data.price);
+      } catch (err) {
+        console.error('failed to fetch price for total:', err);
+      }
+    };
+    fetchPrice();
+  }, [productId]);
+
+  if (!price) return <span className="text-4xl font-bold text-gray-900">Loading...</span>;
+
+  return (
+    <span className="text-4xl font-bold text-gray-900">
+      ${(price * nights).toFixed(2)}
+    </span>
+  );
+};
+
 export default function HotelDetails({ product, onAddToCart, addedToCart }: HotelDetailsProps) {
+  const imageUrl = `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop`;
+
   return (
     <div className="w-full flex flex-col lg:flex-row gap-12 py-8">
-      {/* Image Section - Larger and cleaner */}
-      <div className="w-full lg:w-1/2 bg-gray-100 rounded-lg aspect-[4/3] flex items-center justify-center shrink-0">
-        <span className="text-gray-400 text-lg font-medium">Hotel Image</span>
+      <div className="w-full lg:w-1/2 rounded-lg aspect-[4/3] overflow-hidden shrink-0">
+        <img
+          src={imageUrl}
+          alt={product.name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            if (e.currentTarget.nextElementSibling) {
+              (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+            }
+          }}
+        />
+        <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center" style={{ display: 'none' }}>
+          <span className="text-gray-400 text-lg font-medium">Hotel Image</span>
+        </div>
       </div>
 
-      {/* Details Section - Full height/width usage */}
       <div className="flex-1 flex flex-col">
         <div className="border-b pb-6 mb-6">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">{product.name}</h1>
@@ -45,17 +92,15 @@ export default function HotelDetails({ product, onAddToCart, addedToCart }: Hote
           </div>
         </div>
 
-        {product.refundable && (
-          <div className="mb-8 p-4 bg-green-50 text-green-800 rounded-md inline-block">
-            <span className="font-medium">Free cancellation available</span>
-          </div>
-        )}
-
         <div className="mt-auto pt-6 border-t flex items-center justify-between">
           <div>
+            <p className="text-sm text-gray-500 mb-1">Price per night</p>
+            <div className="mb-3">
+              <PriceDisplay productId={product.id} className="!text-2xl" />
+            </div>
             <p className="text-sm text-gray-500 mb-1">Total for {product.nights} night{product.nights > 1 ? 's' : ''}</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-gray-900">${product.pricePerNight * product.nights}</span>
+              <PriceTotalDisplay productId={product.id} nights={product.nights} />
               <span className="text-gray-500">/ {product.nights} nights</span>
             </div>
           </div>

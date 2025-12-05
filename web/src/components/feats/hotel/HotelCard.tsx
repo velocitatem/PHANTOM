@@ -47,13 +47,27 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         window.location.href = `/hotel/products/${hotel.id}`;
     };
 
+    const imageUrl = `https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=300&fit=crop`;
+
     return (
         <div
             className="hotel-card cursor-pointer"
             onClick={handleCardClick}
         >
-            <div className="hotel-image bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-400 text-sm">Image</span>
+            <div className="hotel-image relative overflow-hidden">
+                <img
+                    src={imageUrl}
+                    alt={hotel.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                    }}
+                />
+                <div className="absolute inset-0 bg-gray-200 flex items-center justify-center" style={{ display: 'none' }}>
+                    <span className="text-gray-400 text-sm">Image</span>
+                </div>
             </div>
 
             <div className="hotel-info">
@@ -67,9 +81,6 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
                         <AmenityIcon key={a} name={a} />
                     ))}
                 </div>
-                {hotel.refundable && (
-                    <div className="free-cancellation mt-2">Free cancellation</div>
-                )}
             </div>
 
             <div className="hotel-pricing">
