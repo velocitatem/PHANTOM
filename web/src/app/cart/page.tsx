@@ -96,7 +96,10 @@ export default function CartPage() {
                                 <span className="text-3xl font-bold">${total.toFixed(2)}</span>
                             </div>
                             <button
-                                onClick={() => dispatchInteraction('checkout_start', undefined, { total, itemCount })}
+                                onClick={() => {
+                                    dispatchInteraction('checkout_start', undefined, { total, itemCount });
+                                    window.location.href = '/checkout';
+                                }}
                                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                             >
                                 Proceed to Checkout

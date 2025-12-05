@@ -67,7 +67,6 @@ export default function HotelDetails({ product, onAddToCart, addedToCart }: Hote
       <div className="flex-1 flex flex-col">
         <div className="border-b pb-6 mb-6">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">{product.name}</h1>
-          <p className="text-xl text-gray-500">{product.roomType}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-8 mb-8">
@@ -86,7 +85,7 @@ export default function HotelDetails({ product, onAddToCart, addedToCart }: Hote
           <div className="flex flex-wrap gap-3">
             {product.amenities.map(a => (
               <span key={a} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-sm font-medium">
-                {a}
+                  {a.replaceAll('_', ' ')}
               </span>
             ))}
           </div>
@@ -97,11 +96,6 @@ export default function HotelDetails({ product, onAddToCart, addedToCart }: Hote
             <p className="text-sm text-gray-500 mb-1">Price per night</p>
             <div className="mb-3">
               <PriceDisplay productId={product.id} className="!text-2xl" />
-            </div>
-            <p className="text-sm text-gray-500 mb-1">Total for {product.nights} night{product.nights > 1 ? 's' : ''}</p>
-            <div className="flex items-baseline gap-2">
-              <PriceTotalDisplay productId={product.id} nights={product.nights} />
-              <span className="text-gray-500">/ {product.nights} nights</span>
             </div>
           </div>
 

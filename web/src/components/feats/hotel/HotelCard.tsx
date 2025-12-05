@@ -21,7 +21,7 @@ const AmenityIcon = ({ name }: { name: string }) => {
         breakfast: 'Breakfast',
         spa: 'Spa',
     };
-    return <span className="feature-tag">{iconMap[name.toLowerCase()] || name}</span>;
+    return <span className="feature-tag">{iconMap[name.toLowerCase()] || name.replaceAll("_", " ")}</span>;
 };
 
 export default function HotelCard({ hotel }: { hotel: Hotel }) {
@@ -72,7 +72,6 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
 
             <div className="hotel-info">
                 <h3 ref={titleRef} className="hotel-name">{hotel.name}</h3>
-                <div className="hotel-location text-sm mb-2">{hotel.roomType}</div>
                 <div className="text-sm text-[var(--text-secondary)] mb-2">
                     {hotel.checkIn} - {hotel.checkOut}
                 </div>
