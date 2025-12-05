@@ -32,3 +32,19 @@ class JoinExperimentsStep(BaseContextStep):
         })
 
         return interactions_df.merge(experiments_df, on='experimentId', how='left')
+
+class JoinProductFeaturesStep(BaseContextStep):
+    """Join product features to interactions"""
+
+    def transform(self, data: tuple):
+        """
+        Args:
+            data: (interactions_df, products_df)
+        Returns:
+            merged interactions dataframe
+        """
+        demand_df, price_df = data
+
+        if price_df.empty:
+            return demand_df
+        return demand_df.merge(price_df, on='productId', how='left')

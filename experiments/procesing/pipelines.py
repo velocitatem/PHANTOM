@@ -2,7 +2,6 @@ from sklearn.pipeline import Pipeline
 import pandas as pd
 from procesing.context import PipelineContext
 from procesing.providers import SupabaseProvider, BackendAPIProvider
-from typing import Union
 from procesing.steps import (
     FetchInteractionsStep,
     FetchPriceLogsStep,
@@ -17,6 +16,8 @@ from procesing.steps import (
     # BuildStateSpaceStep,
     FitPricingFunctionStep,
     PredictPricesStep,
+    ComputeDemandStep,
+    JoinProductFeaturesStep
 )
 
 def interaction_extraction_pipeline(context: PipelineContext):
@@ -35,80 +36,127 @@ def price_extraction_pipeline(context: PipelineContext):
     ])
 
 
-def elasticity_computation_pipeline(context: PipelineContext,
+def product_features_pipeline(context: PipelineContext,
                                     interactions_df: pd.DataFrame,
                                     price_logs_df: pd.DataFrame):
-    """
-    Compute elasticity from interactions and price logs.
-    Manual orchestration needed for branching logic.
-    """
-    # branch 1: chunk interactions and compute demand
-    chunk_step = ChunkByTimeWindowStep(context)
-    interaction_chunks = chunk_step.transform(interactions_df)
-
-    demand_step = ComputeDemandForChunksStep(context)
-    demand_chunks = demand_step.transform(interaction_chunks)
-
-    # branch 2: aggregate price logs
+    # elasticity_step = ComputeElasticityStep(context)
+    demand_step = ComputeDemandStep(context)
     price_step = AggregatePriceLogsStep(context)
-    price_chunks = price_step.transform(price_logs_df)
-
-    # convergence: compute elasticity
-    elasticity_step = ComputeElasticityStep(context)
-    elasticity_df = elasticity_step.transform((demand_chunks, price_chunks))
-
-    return elasticity_df
+    join_step = JoinProductFeaturesStep(context)
 
 
-def pricing_pipeline(context: PipelineContext, elasticity_df: pd.DataFrame):
+    demand_data = demand_step.transform(interactions_df)
+    price_data= price_step.transform(price_logs_df)
+    joined_data = join_step.transform((demand_data, price_data))
+
+    return joined_data
+
+
+
+def pricing_pipeline(context: "PipelineContext",
+                     data: pd.DataFrame,
+                     high_threshold: int = 10,
+                     low_threshold: int = 2,
+                     surge_multiplier: float = 1.2,
+                     discount_multiplier: float = 0.9) -> pd.DataFrame:
     """
-    Generate optimal prices from elasticity estimates.
+    Generate product-level optimal prices using simple surge pricing rules.
+    Replaces complex Bayesian curve fitting with threshold-based adjustments.
+
+    Args:
+        context: Pipeline context
+        data: DataFrame with [productId, demand_score, price]
+        high_threshold: Demand threshold for surge pricing (default 10)
+        low_threshold: Demand threshold for discounts (default 2)
+        surge_multiplier: Price multiplier for high demand (default 1.2 = +20%)
+        discount_multiplier: Price multiplier for low demand (default 0.9 = -10%)
+
+    Returns:
+        DataFrame with [productId, current_price, optimal_price, demand_score]
     """
-    # build state space
-    state_step = BuildStateSpaceStep(context)
-    state_space = state_step.transform(elasticity_df)
 
-    # fit pricing function
-    fit_step = FitPricingFunctionStep(context)
-    pricer = fit_step.transform(elasticity_df)
+    if data.empty or 'productId' not in data.columns:
+        return pd.DataFrame()
 
-    # predict prices
-    predict_step = PredictPricesStep(context)
-    prices_df = predict_step.transform((pricer, state_space))
+    products = context.products
+    results = []
 
-    return prices_df
+    for pid in data['productId'].unique():
+        prod_data = data[data['productId'] == pid]
+
+        if prod_data.empty:
+            continue
+
+        demand = prod_data["demand_score"].mean()
+        current_price = prod_data["price"].mean()
+
+        # get base price from metadata or use current price
+        prod_meta = products[products['id'] == pid]
+        if not prod_meta.empty:
+            meta = prod_meta.iloc[0]['metadata']
+            base_price = meta.get('base_price', current_price) if isinstance(meta, dict) else current_price
+        else:
+            base_price = current_price
+
+        # apply surge rules
+        if demand >= high_threshold:
+            optimal_price = base_price * surge_multiplier
+        elif demand <= low_threshold:
+            optimal_price = base_price * discount_multiplier
+        else:
+            optimal_price = base_price
+
+        results.append({
+            'productId': pid,
+            'current_price': current_price,
+            'base_price': base_price,
+            'optimal_price': optimal_price,
+            'demand_score': demand
+        })
+
+    return pd.DataFrame(results)
 
 
-def full_pipeline(context: PipelineContext):
+
+
+
+def full_pipeline(context: PipelineContext,
+                  high_threshold: int = 10,
+                  low_threshold: int = 2,
+                  surge_multiplier: float = 1.2,
+                  discount_multiplier: float = 0.9):
     """
-    Complete end-to-end pipeline: data extraction -> elasticity -> pricing
-    Returns: (elasticity_df, prices_df)
+    Complete end-to-end pipeline: data extraction -> demand/price aggregation -> surge pricing
+
+    Args:
+        context: Pipeline context
+        high_threshold: Demand threshold for surge pricing
+        low_threshold: Demand threshold for discounts
+        surge_multiplier: Price multiplier for high demand
+        discount_multiplier: Price multiplier for low demand
+
+    Returns:
+        tuple: (product_features_df, optimal_prices_df)
+            - product_features_df: [productId, demand_score, price]
+            - optimal_prices_df: [productId, current_price, optimal_price, demand_score]
     """
-    # extract interactions
     interaction_pipe = interaction_extraction_pipeline(context)
-    interactions_df = interaction_pipe.fit_transform(None)
-
-    # extract price logs
     price_pipe = price_extraction_pipeline(context)
+
+    interactions_df = interaction_pipe.fit_transform(None)
     price_logs_df = price_pipe.fit_transform(None)
+    product_features_df = product_features_pipeline(context, interactions_df, price_logs_df)
+    print(product_features_df.to_string())
 
-    if interactions_df.empty or price_logs_df.empty:
-        return None, None
+    # generate optimal prices using surge rules
+    optimal_prices_df = pricing_pipeline(context, product_features_df,
+                                          high_threshold=high_threshold,
+                                          low_threshold=low_threshold,
+                                          surge_multiplier=surge_multiplier,
+                                          discount_multiplier=discount_multiplier)
 
-    # compute elasticity
-    elasticity_df = elasticity_computation_pipeline(
-        context,
-        interactions_df,
-        price_logs_df
-    )
+    return product_features_df, optimal_prices_df
 
-    if elasticity_df is None or elasticity_df.empty:
-        return elasticity_df, None
-
-    # generate prices
-    prices_df = pricing_pipeline(context, elasticity_df)
-
-    return elasticity_df, prices_df
 
 
 
@@ -140,20 +188,7 @@ if __name__ == '__main__':
     context = PipelineContext(
         provider=HistoricalProvider(),
         store_mode='hotel',
-        # 15 min not month
-        window_size='15min',
     )
 
-    elasticity_df, prices_df = full_pipeline(context)
-
-    if elasticity_df is not None and not elasticity_df.empty:
-        print("Elasticity Estimates:")
-        print(elasticity_df.to_string(index=False))
-    else:
-        print("No elasticity estimates computed.")
-
-    if prices_df is not None and not prices_df.empty:
-        print("\nPredicted Prices:")
-        print(prices_df.to_string(index=False))
-    else:
-        print("No prices predicted.")
+    product_features, prices = full_pipeline(context)
+    print(prices.to_string())

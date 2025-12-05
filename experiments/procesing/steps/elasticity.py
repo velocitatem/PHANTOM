@@ -16,7 +16,7 @@ class AggregatePriceLogsStep(BaseContextStep):
 
         df = price_logs_df.copy()
         ts_col = self.context.config.get('ts_col', 'ts')
-        window_size = self.context.window_size
+        #window_size = self.context.window_size WE ARE NOT USING CHUNKS ANYMORE
 
         # ensure datetime
         if not pd.api.types.is_datetime64_any_dtype(df[ts_col]):
@@ -24,52 +24,23 @@ class AggregatePriceLogsStep(BaseContextStep):
 
         df = df.sort_values([ts_col, 'productId'])
         products = self.context.products
-        unique_products = products['id'].unique()
-
-        # VECTORIZED: group by product, resample by time window, compute mean
-        df_indexed = df.set_index(ts_col)
-
-        windowed = (
-            df_indexed
-            .groupby('productId')['price']
-            .resample(window_size)
-            .mean()
-            .reset_index()
+        # get base price from metadata if available 1) read the metadata col as json and get the base_price
+        products['base_price'] = products.apply(
+            lambda row: row['metadata'].get('base_price', 0) if isinstance(row['metadata'], dict) else 0,
+            axis=1
         )
 
-        # forward fill missing windows (carry last known price)
-        windowed = windowed.sort_values([ts_col, 'productId'])
-        windowed['price'] = windowed.groupby('productId')['price'].ffill()
-        windowed = windowed.dropna(subset=['price'])
+        unique_products = products['id'].unique()
 
-        # group into chunks by window
-        chunks = []
-        for window_start, group in windowed.groupby(ts_col):
-            price_vector = group[['productId', 'price']].copy()
+        df_indexed = df.set_index(ts_col)
+        # we return a df of average price per product over the entire period
+        # TODO: maybe consider different opration to handle price aggregation over time
+        avg_prices = df_indexed.groupby('productId')['price'].mean().reindex(unique_products, fill_value=0).reset_index()
+        avg_prices.columns = ['productId', 'price']
+        # fill 0s with base_price from products
+        base_price_map = products.set_index('id')['base_price'].to_dict()
+        return avg_prices
 
-            # fill missing products with last known price before this window
-            missing_products = set(unique_products) - set(price_vector['productId'])
-            if missing_products:
-                for pid in missing_products:
-                    last_price = df_indexed[
-                        (df_indexed['productId'] == pid) &
-                        (df_indexed.index < window_start)
-                    ]['price']
-
-                    if not last_price.empty:
-                        price_vector = pd.concat([
-                            price_vector,
-                            pd.DataFrame({'productId': [pid], 'price': [last_price.iloc[-1]]})
-                        ], ignore_index=True)
-
-            if not price_vector.empty:
-                chunks.append({
-                    'window_start': window_start,
-                    'window_end': window_start + pd.Timedelta(window_size),
-                    'price_vector': price_vector
-                })
-
-        return chunks
 
 
 class ComputeElasticityStep(BaseContextStep):
@@ -89,9 +60,9 @@ class ComputeElasticityStep(BaseContextStep):
         all_product_ids = products['id'].unique()
 
         # align chunks by window_start
-        aligned = self._align_chunks(demand_chunks, price_chunks)
+        # aligned = self._align_chunks(demand_chunks, price_chunks)
 
-        if not aligned:
+        if None:
             return pd.DataFrame({
                 'productId': all_product_ids,
                 'elasticity': 0.0,
