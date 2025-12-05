@@ -12,4 +12,5 @@ graphviz
 python-dotenv>=1.0.0
 requests>=2.31.0
 typing-extensions>=4.8.0
-pickle5>=0.0.11; python_version < '3.8'
+pypickle
+pymc

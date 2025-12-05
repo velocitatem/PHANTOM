@@ -292,12 +292,7 @@ async def get_products(
         # filter by exact date_index if provided
         # dateIndex from frontend is days from today, convert to days since epoch
         if dateIndex is not None:
-            from datetime import datetime
-            epoch = datetime(1970, 1, 1)
-            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            today_index = int((today - epoch).total_seconds() / 86400)
-            actual_date_index = today_index + dateIndex
-            query = query.eq('date_index', actual_date_index)
+            query = query.eq('date_index', dateIndex)
 
         response = query.execute()
         results = response.data

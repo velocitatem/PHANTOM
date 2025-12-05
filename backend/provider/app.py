@@ -79,7 +79,7 @@ def get_price(mode: Literal['hotel', 'airline'], productId: str, sessionId: Opti
             elasticity=None
         )
 
-    optimal_price = float(product_price_row['predicted_price'].iloc[0])
+    optimal_price = float(product_price_row['optimal_price'].iloc[0]) # TODO: use optimal_price everywhere as  aresult
 
     # get elasticity if available
     product_elasticity = None
