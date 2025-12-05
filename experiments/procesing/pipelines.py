@@ -12,7 +12,6 @@ from procesing.steps import (
     ChunkByTimeWindowStep,
     ComputeDemandForChunksStep,
     AggregatePriceLogsStep,
-    ComputeElasticityStep,
     # BuildStateSpaceStep,
     FitPricingFunctionStep,
     PredictPricesStep,
@@ -39,7 +38,6 @@ def price_extraction_pipeline(context: PipelineContext):
 def product_features_pipeline(context: PipelineContext,
                                     interactions_df: pd.DataFrame,
                                     price_logs_df: pd.DataFrame):
-    # elasticity_step = ComputeElasticityStep(context)
     demand_step = ComputeDemandStep(context)
     price_step = AggregatePriceLogsStep(context)
     join_step = JoinProductFeaturesStep(context)

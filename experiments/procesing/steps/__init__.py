@@ -4,7 +4,7 @@ from procesing.steps.join import JoinExperimentsStep, JoinProductFeaturesStep
 from procesing.steps.augment import CreatePriceBucketsStep, AugmentEventNamesStep, AugmentInteractionsStep
 from procesing.steps.chunk import ChunkByTimeWindowStep
 from procesing.steps.demand import ComputeDemandStep, ComputeDemandForChunksStep
-from procesing.steps.elasticity import AggregatePriceLogsStep, ComputeElasticityStep
+from procesing.steps.elasticity import AggregatePriceLogsStep
 from procesing.steps.pricing import FitPricingFunctionStep, PredictPricesStep
 from procesing.steps.session import ExtractSessionFeaturesStep, _extract_features_for_session
 
@@ -22,7 +22,6 @@ __all__ = [
     'ComputeDemandStep',
     'ComputeDemandForChunksStep',
     'AggregatePriceLogsStep',
-    'ComputeElasticityStep',
     'FitPricingFunctionStep',
     'PredictPricesStep',
     'ExtractSessionFeaturesStep',
