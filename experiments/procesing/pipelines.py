@@ -131,7 +131,7 @@ if __name__ == '__main__':
     # example run
     context = PipelineContext(
         provider=HistoricalProvider(),
-        store_mode='hotel',
+        store_mode='airline',
     )
 
     product_features, prices = full_pipeline(context)

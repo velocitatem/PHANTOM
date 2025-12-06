@@ -2,7 +2,7 @@ import pandas as pd
 from procesing.steps.base import BaseContextStep
 
 class FetchInteractionsStep(BaseContextStep):
-    """Fetch raw interaction data from Kafka topic with optional time filtering"""
+    """Fetch raw interaction data from Kafka topic with optional time and store_mode filtering"""
 
     def __init__(self, context, lookback: str = None):
         super().__init__(context)
@@ -24,6 +24,10 @@ class FetchInteractionsStep(BaseContextStep):
         # drop all where page has /admin/
         df = df[~df['page'].str.contains('/admin/', na=False)]
 
+        # filter by store_mode from context
+        if 'storeMode' in df.columns:
+            df = df[df['storeMode'] == self.context.store_mode]
+
         # Remap dateIndex if present
         if 'metadata_dateIndex' in df.columns:
             df['dateIndex'] = df['metadata_dateIndex'].astype('Int64')
@@ -38,7 +42,7 @@ class FetchInteractionsStep(BaseContextStep):
 
 
 class FetchPriceLogsStep(BaseContextStep):
-    """Fetch price log data from Kafka topic with optional time filtering"""
+    """Fetch price log data from Kafka topic with optional time and store_mode filtering"""
 
     def __init__(self, context, lookback: str = None):
         super().__init__(context)
@@ -49,6 +53,10 @@ class FetchPriceLogsStep(BaseContextStep):
 
         if df.empty:
             return df
+
+        # filter by store_mode from context
+        if 'storeMode' in df.columns:
+            df = df[df['storeMode'] == self.context.store_mode]
 
         # Apply time filtering if lookback specified
         if self.lookback and 'ts' in df.columns:
