@@ -46,3 +46,46 @@ class RandomPricer(PricingFunction):
         if self.n_products is None:
             self.n_products = len(state_space.demand)
         return self.rng.uniform(self.price_min, self.price_max, size=self.n_products)
+
+
+class SimpleSurgePricer(PricingFunction):
+    """
+    Rule-based surge pricer adjusting prices via demand thresholds.
+    Logic: if demand > high_threshold -> surge, if demand < low_threshold -> discount.
+    Simpler and more controllable than curve fitting approaches.
+    """
+
+    def __init__(self,
+                 base_prices: np.ndarray = None,
+                 high_threshold: int = 10,
+                 low_threshold: int = 2,
+                 surge_multiplier: float = 1.2,
+                 discount_multiplier: float = 0.9):
+        self.base_prices = base_prices
+        self.high_threshold = high_threshold
+        self.low_threshold = low_threshold
+        self.surge_multiplier = surge_multiplier
+        self.discount_multiplier = discount_multiplier
+
+    def fit(self, market_data : pd.DataFrame):
+        """Extract base prices from product catalog or historical averages"""
+        self.base_prices = market_data['base_price'].to_numpy() if 'base_price' in market_data.columns else market_data['price'].values
+        self.demand_history = market_data['demand'].to_numpy() if 'demand' in market_data.columns else np.zeros_like(self.base_prices)
+
+    def predict(self) -> np.ndarray:
+        """
+        Adjust prices based on current demand using surge rules.
+        state_space.demand: demand counts per product
+        state_space.prices: current prices (fallback if base_prices not set)
+        """
+        current_prices = self.base_prices if self.base_prices is not None else np.ones_like(demand_vector) * 99.99
+        demand = self.demand_history if self.demand_history is not None else np.zeros_like(current_prices)
+        new_prices = current_prices.copy()
+
+        high_mask = demand >= self.high_threshold
+        new_prices[high_mask] *= self.surge_multiplier
+
+        low_mask = demand <= self.low_threshold
+        new_prices[low_mask] *= self.discount_multiplier
+
+        return new_prices

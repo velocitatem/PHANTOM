@@ -12,7 +12,6 @@ from procesing.steps import (
     ComputeDemandStep,
     ComputeDemandForChunksStep,
     AggregatePriceLogsStep,
-    ComputeElasticityStep,
     # StateSpace,
     # BuildStateSpaceStep,
     FitPricingFunctionStep,
@@ -21,7 +20,6 @@ from procesing.steps import (
 from procesing.pipelines import (
     interaction_extraction_pipeline,
     price_extraction_pipeline,
-    elasticity_computation_pipeline,
     pricing_pipeline,
     full_pipeline,
 )
@@ -42,14 +40,12 @@ __all__ = [
     'ComputeDemandStep',
     'ComputeDemandForChunksStep',
     'AggregatePriceLogsStep',
-    'ComputeElasticityStep',
     # 'StateSpace',
     # 'BuildStateSpaceStep',
     'FitPricingFunctionStep',
     'PredictPricesStep',
     'interaction_extraction_pipeline',
     'price_extraction_pipeline',
-    'elasticity_computation_pipeline',
     'pricing_pipeline',
     'full_pipeline',
 ]

@@ -25,7 +25,7 @@ class PricingFunction(ABC):
     """
 
     @abstractmethod
-    def fit(self, historical_data: pd.DataFrame, **kwargs):
+    def fit(self, *kwargs):
         """
         Offline training on historical data.
 
@@ -36,7 +36,7 @@ class PricingFunction(ABC):
         pass
 
     @abstractmethod
-    def predict(self, state_space) -> np.ndarray:
+    def predict(self, *kwargs) -> np.ndarray:
         """
         Generate optimal prices given current state.
 

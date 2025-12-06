@@ -290,6 +290,7 @@ async def get_products(
         query = supabase.table(table).select('*')
 
         # filter by exact date_index if provided
+        # dateIndex from frontend is days from today, convert to days since epoch
         if dateIndex is not None:
             query = query.eq('date_index', dateIndex)
 

@@ -2,7 +2,11 @@ import pandas as pd
 from procesing.steps.base import BaseContextStep
 
 class FetchInteractionsStep(BaseContextStep):
-    """Fetch raw interaction data from Kafka topic"""
+    """Fetch raw interaction data from Kafka topic with optional time filtering"""
+
+    def __init__(self, context, lookback: str = None):
+        super().__init__(context)
+        self.lookback = lookback
 
     def transform(self, X=None):
         df = self.context.provider.fetch_kafka_topic('user-interactions')
@@ -24,14 +28,35 @@ class FetchInteractionsStep(BaseContextStep):
         if 'metadata_dateIndex' in df.columns:
             df['dateIndex'] = df['metadata_dateIndex'].astype('Int64')
 
+        # Apply time filtering if lookback specified
+        if self.lookback and 'ts' in df.columns:
+            df['ts'] = pd.to_datetime(df['ts'])
+            cutoff = pd.Timestamp.now() - pd.Timedelta(self.lookback)
+            df = df[df['ts'] >= cutoff]
+
         return df
 
 
 class FetchPriceLogsStep(BaseContextStep):
-    """Fetch price log data from Kafka topic"""
+    """Fetch price log data from Kafka topic with optional time filtering"""
+
+    def __init__(self, context, lookback: str = None):
+        super().__init__(context)
+        self.lookback = lookback
 
     def transform(self, X=None):
-        return self.context.provider.fetch_kafka_topic('price-logs')
+        df = self.context.provider.fetch_kafka_topic('price-logs')
+
+        if df.empty:
+            return df
+
+        # Apply time filtering if lookback specified
+        if self.lookback and 'ts' in df.columns:
+            df['ts'] = pd.to_datetime(df['ts'])
+            cutoff = pd.Timestamp.now() - pd.Timedelta(self.lookback)
+            df = df[df['ts'] >= cutoff]
+
+        return df
 
 
 class FetchExperimentsStep(BaseContextStep):

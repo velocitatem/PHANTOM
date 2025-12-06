@@ -20,7 +20,7 @@ const NavLink = ({ href, children }: { href: string; children: React.ReactNode }
       href={href}
       className={`px-4 py-2 rounded-md transition-colors ${
         isActive
-          ? 'bg-[var(--accent-primary)] text-white font-semibold'
+          ? 'bg-[var(--accent-primary)] font-semibold'
           : 'hover:bg-[var(--accent-primary-light)] text-[var(--text-primary)]'
       }`}
     >
@@ -37,9 +37,7 @@ export default function Navigation() {
           <div className="flex items-center space-x-1">
             <NavLink href="/">Home</NavLink>
             <NavLink href="/products">Products</NavLink>
-            <NavLink href="/search">Search</NavLink>
             <NavLink href="/cart">Cart</NavLink>
-            <NavLink href="/checkout">Checkout</NavLink>
           </div>
         </div>
       </div>

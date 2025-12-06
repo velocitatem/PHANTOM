@@ -21,7 +21,6 @@ export interface Hotel {
   checkOut: string;
   dateIndex: number;
   amenities: string[];
-  refundable: boolean;
   pricePerNight: number;
   nights: number;
 }
@@ -30,19 +29,37 @@ const EPOCH = new Date(0);
 
 export const transformProduct = (p: HotelProduct): Hotel => {
   const { id, room_type, date_index, metadata } = p;
-  const checkIn = new Date(EPOCH.getTime() + date_index * 86400000);
+
+  // DB stores date_index as days since epoch
+  // but if value is small (<1000), treat as days from today for backward compat
+  let checkIn: Date;
+  if (date_index < 1000) {
+    // legacy: treat as offset from today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    checkIn = new Date(today.getTime() + date_index * 86400000);
+  } else {
+    // proper: days since epoch
+    checkIn = new Date(EPOCH.getTime() + date_index * 86400000);
+  }
+
   const nights = 1;
   const checkOut = new Date(checkIn.getTime() + nights * 86400000);
+
+  const formatOpts: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    day: 'numeric',
+    year: checkIn.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+  };
 
   return {
     id,
     name: metadata?.name || room_type,
     roomType: room_type,
-    checkIn: checkIn.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    checkOut: checkOut.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    checkIn: checkIn.toLocaleDateString('en-US', formatOpts),
+    checkOut: checkOut.toLocaleDateString('en-US', formatOpts),
     dateIndex: date_index,
     amenities: metadata?.amenities || [],
-    refundable: metadata?.refundable || false,
     pricePerNight: metadata?.base_price || 100,
     nights,
   };

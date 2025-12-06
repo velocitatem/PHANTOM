@@ -11,3 +11,4 @@ pytest-asyncio
 uv
 scikit-learn
 supabase
+pymc
