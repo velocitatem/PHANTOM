@@ -103,12 +103,6 @@ services:
       - _AIRFLOW_WWW_USER_PASSWORD=admin
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    volumes:
-      - ./experiments/airflow/dags:/opt/airflow/dags
-      - ./experiments/airflow/logs:/opt/airflow/logs
-      - ./experiments/airflow/plugins:/opt/airflow/plugins
-      - ./experiments/procesing:/opt/airflow/procesing
-      - ./lib:/opt/airflow/lib
     command: version
     restart: "no"
 
@@ -138,12 +132,6 @@ services:
       - REDIS_PORT=6379
     ports:
       - "${AIRFLOW_WEBSERVER_PORT:-8085}:8080"
-    volumes:
-      - ./experiments/airflow/dags:/opt/airflow/dags:ro
-      - ./experiments/airflow/logs:/opt/airflow/logs
-      - ./experiments/airflow/plugins:/opt/airflow/plugins:ro
-      - ./experiments/procesing:/opt/airflow/procesing:ro
-      - ./lib:/opt/airflow/lib:ro
     command: webserver
     restart: unless-stopped
     healthcheck:
@@ -177,12 +165,6 @@ services:
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-    volumes:
-      - ./experiments/airflow/dags:/opt/airflow/dags:ro
-      - ./experiments/airflow/logs:/opt/airflow/logs
-      - ./experiments/airflow/plugins:/opt/airflow/plugins:ro
-      - ./experiments/procesing:/opt/airflow/procesing:ro
-      - ./lib:/opt/airflow/lib:ro
     command: scheduler
     restart: unless-stopped
     healthcheck:
