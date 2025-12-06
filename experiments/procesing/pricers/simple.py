@@ -67,24 +67,19 @@ class SimpleSurgePricer(PricingFunction):
         self.surge_multiplier = surge_multiplier
         self.discount_multiplier = discount_multiplier
 
-    def fit(self, historical_data: pd.DataFrame):
+    def fit(self, market_data : pd.DataFrame):
         """Extract base prices from product catalog or historical averages"""
-        if 'base_price' in historical_data.columns:
-            self.base_prices = historical_data['base_price'].values
-        elif 'price' in historical_data.columns:
-            self.base_prices = historical_data.groupby('productId')['price'].mean().values
-        else:
-            raise ValueError("historical_data must contain 'base_price' or 'price'")
-        return self
+        self.base_prices = market_data['base_price'].to_numpy() if 'base_price' in market_data.columns else market_data['price'].values
+        self.demand_history = market_data['demand'].to_numpy() if 'demand' in market_data.columns else np.zeros_like(self.base_prices)
 
-    def predict(self, state_space) -> np.ndarray:
+    def predict(self) -> np.ndarray:
         """
         Adjust prices based on current demand using surge rules.
         state_space.demand: demand counts per product
         state_space.prices: current prices (fallback if base_prices not set)
         """
-        current_prices = self.base_prices if self.base_prices is not None else state_space.prices
-        demand = state_space.demand
+        current_prices = self.base_prices if self.base_prices is not None else np.ones_like(demand_vector) * 99.99
+        demand = self.demand_history if self.demand_history is not None else np.zeros_like(current_prices)
         new_prices = current_prices.copy()
 
         high_mask = demand >= self.high_threshold

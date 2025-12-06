@@ -45,6 +45,14 @@ class JoinProductFeaturesStep(BaseContextStep):
         """
         demand_df, price_df = data
 
+        # get base prices from products if available
+        products = self.context.products
+        products['base_price'] = products.apply(
+            lambda row: float(row['metadata'].get('base_price', 0.0)) if isinstance(row['metadata'], dict) else 0,
+            axis=1
+        )
+        products = products[['id', 'base_price']].rename(columns={'id': 'productId'})
+
         if price_df.empty:
             return demand_df
-        return demand_df.merge(price_df, on='productId', how='left')
+        return demand_df.merge(price_df, on='productId', how='left').merge(products, on='productId', how='left')

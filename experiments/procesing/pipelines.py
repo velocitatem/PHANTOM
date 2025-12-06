@@ -18,6 +18,7 @@ from procesing.steps import (
     ComputeDemandStep,
     JoinProductFeaturesStep
 )
+from procesing.pricers import SimpleSurgePricer
 
 def interaction_extraction_pipeline(context: PipelineContext):
     """Pipeline for extracting and augmenting interaction data"""
@@ -57,65 +58,14 @@ def pricing_pipeline(context: "PipelineContext",
                      low_threshold: int = 2,
                      surge_multiplier: float = 1.2,
                      discount_multiplier: float = 0.9) -> pd.DataFrame:
-    """
-    Generate product-level optimal prices using simple surge pricing rules.
-    Replaces complex Bayesian curve fitting with threshold-based adjustments.
-
-    Args:
-        context: Pipeline context
-        data: DataFrame with [productId, demand_score, price]
-        high_threshold: Demand threshold for surge pricing (default 10)
-        low_threshold: Demand threshold for discounts (default 2)
-        surge_multiplier: Price multiplier for high demand (default 1.2 = +20%)
-        discount_multiplier: Price multiplier for low demand (default 0.9 = -10%)
-
-    Returns:
-        DataFrame with [productId, current_price, optimal_price, demand_score]
-    """
 
     if data.empty or 'productId' not in data.columns:
         return pd.DataFrame()
 
-    products = context.products
-    results = []
-
-    for pid in data['productId'].unique():
-        prod_data = data[data['productId'] == pid]
-
-        if prod_data.empty:
-            continue
-
-        demand = prod_data["demand_score"].mean()
-        current_price = prod_data["price"].mean()
-
-        # get base price from metadata or use current price
-        prod_meta = products[products['id'] == pid]
-        if not prod_meta.empty:
-            meta = prod_meta.iloc[0]['metadata']
-            base_price = meta.get('base_price', current_price) if isinstance(meta, dict) else current_price
-        else:
-            base_price = current_price
-
-        # apply surge rules
-        if demand >= high_threshold:
-            optimal_price = base_price * surge_multiplier
-        elif demand <= low_threshold:
-            optimal_price = base_price * discount_multiplier
-        else:
-            optimal_price = base_price
-
-        results.append({
-            'productId': pid,
-            'current_price': current_price,
-            'base_price': base_price,
-            'optimal_price': optimal_price,
-            'demand_score': demand
-        })
-
-    return pd.DataFrame(results)
-
-
-
+    surge_pricer = SimpleSurgePricer()
+    surge_pricer.fit(data)
+    data['optimal_price'] = surge_pricer.predict()
+    return data
 
 
 def full_pipeline(context: PipelineContext,
@@ -172,10 +122,6 @@ if __name__ == '__main__':
             interactions_file = "messages(2).json"
             prices_file = "messages(3).json"
 
-            if topic == "interactions":
-                data = pd.read_json(path + interactions_file)
-            elif topic == "price_logs":
-                pd.read_json(path + prices_file)
             data = pd.read_json(path + (interactions_file if topic == "user-interactions" else prices_file))
             data = [r['payload'] for r in data['value'].to_list()]
             data = pd.DataFrame(data)
