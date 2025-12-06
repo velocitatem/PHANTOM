@@ -278,6 +278,8 @@
   padding: 12px;
   transition: border-color 0.2s ease;
   width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
 }
 
 [data-mode="airline"] .input-field:focus {
