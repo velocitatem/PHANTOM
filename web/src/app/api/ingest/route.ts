@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const storeMode = process.env.STORE_MODE || 'hotel';
+    const storeMode = process.env.NEXT_PUBLIC_STORE_MODE || process.env.STORE_MODE || 'hotel';
     const userAgent = req.headers.get('user-agent') || undefined;
 
     const event: EventBase = {

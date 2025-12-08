@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const productId = searchParams.get('productId');
     const sessionId = searchParams.get('sessionId');
     const experimentId = searchParams.get('experimentId');
-    const storeMode = process.env.NEXT_PUBLIC_STORE_MODE || 'shop';
+    const storeMode = process.env.NEXT_PUBLIC_STORE_MODE || process.env.STORE_MODE || 'hotel';
 
     if (!productId) {
         return NextResponse.json(

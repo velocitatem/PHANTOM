@@ -16,7 +16,7 @@ const envSchema = z.object({
 // parse and validate env at module load, fail fast with descriptive errors
 const parseEnv = (): Env => {
     const result = envSchema.safeParse({
-        STORE_MODE: process.env.STORE_MODE,
+        STORE_MODE: process.env.NEXT_PUBLIC_STORE_MODE || process.env.STORE_MODE,
         NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE,
         NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV,
     });
