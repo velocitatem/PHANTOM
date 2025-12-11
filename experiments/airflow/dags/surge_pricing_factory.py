@@ -29,11 +29,12 @@ DEFAULT_ARGS = {
     'retry_delay': timedelta(minutes=5),
 }
 
+class CompositeProvider(SupabaseProvider, BackendAPIProvider):
+    def __init__(self):
+        SupabaseProvider.__init__(self)
+        BackendAPIProvider.__init__(self)
+
 def _get_provider():
-    class CompositeProvider(SupabaseProvider, BackendAPIProvider):
-        def __init__(self):
-            SupabaseProvider.__init__(self)
-            BackendAPIProvider.__init__(self)
     return CompositeProvider()
 
 def _make_task_callables(store_mode: str):
