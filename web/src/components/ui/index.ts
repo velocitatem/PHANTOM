@@ -5,3 +5,5 @@ export { default as DateInput } from './DateInput';
 export { default as RadioGroup } from './RadioGroup';
 export { default as Dropdown, DropdownCounter } from './Dropdown';
 export { default as Navigation } from './Navigation';
+export { default as SelectDropdown } from './SelectDropdown';
+export type { SelectOption } from './SelectDropdown';

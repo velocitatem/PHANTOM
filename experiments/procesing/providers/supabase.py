@@ -18,10 +18,17 @@ class SupabaseProvider(DataProvider):
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
 
     def fetch_products(self, store_mode: str) -> pd.DataFrame:
-        resp = self.supabase.table(f'{store_mode}_products').select(
-            "id, room_type, date_index, metadata, availability"
-        ).execute()
-        return pd.DataFrame(resp.data) if resp.data else pd.DataFrame()
+        # hotel uses room_type, airline uses flight_type; select all and normalize
+        resp = self.supabase.table(f'{store_mode}_products').select("*").execute()
+        if not resp.data:
+            return pd.DataFrame()
+        df = pd.DataFrame(resp.data)
+        # normalize type column: hotel has room_type, airline has flight_type
+        if 'room_type' in df.columns:
+            df['product_type'] = df['room_type']
+        elif 'flight_type' in df.columns:
+            df['product_type'] = df['flight_type']
+        return df
 
     def fetch_experiments(self, experiment_ids: List[str]) -> pd.DataFrame:
         if not experiment_ids:

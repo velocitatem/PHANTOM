@@ -2,10 +2,20 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Label, Input, DateInput, RadioGroup, Dropdown, DropdownCounter } from '@/components/ui';
+import { Button, Label, DateInput, Dropdown, DropdownCounter, SelectDropdown, SelectOption } from '@/components/ui';
 import { dateToDaysFromToday } from '@/lib/airline-utils';
 
-type TripType = 'roundtrip' | 'oneway' | 'multicity';
+const CITIES: SelectOption[] = [
+  { value: 'JFK', label: 'New York (JFK)', sublabel: 'John F. Kennedy International' },
+  { value: 'LAX', label: 'Los Angeles (LAX)', sublabel: 'Los Angeles International' },
+  { value: 'ORD', label: 'Chicago (ORD)', sublabel: "O'Hare International" },
+  { value: 'MIA', label: 'Miami (MIA)', sublabel: 'Miami International' },
+  { value: 'SFO', label: 'San Francisco (SFO)', sublabel: 'San Francisco International' },
+  { value: 'SEA', label: 'Seattle (SEA)', sublabel: 'Seattle-Tacoma International' },
+  { value: 'ATL', label: 'Atlanta (ATL)', sublabel: 'Hartsfield-Jackson International' },
+  { value: 'DFW', label: 'Dallas (DFW)', sublabel: 'Dallas/Fort Worth International' },
+];
+
 
 const PlaneIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,11 +32,9 @@ const LocationIcon = () => (
 
 export default function AirlineHero() {
   const router = useRouter();
-  const [tripType, setTripType] = useState<TripType>('roundtrip');
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [departDate, setDepartDate] = useState('');
-  const [returnDate, setReturnDate] = useState('');
   const [passengers, setPassengers] = useState({ adults: 1, children: 0, infants: 0 });
 
   const handleSearch = (e: FormEvent) => {
@@ -40,8 +48,6 @@ export default function AirlineHero() {
 
     if (origin) params.set('origin', origin);
     if (destination) params.set('destination', destination);
-    if (tripType !== 'roundtrip') params.set('tripType', tripType);
-    if (returnDate && tripType === 'roundtrip') params.set('returnDate', returnDate);
 
     params.set('adults', passengers.adults.toString());
     params.set('children', passengers.children.toString());
@@ -66,28 +72,15 @@ export default function AirlineHero() {
 
         <div className="search-form">
           <form onSubmit={handleSearch}>
-            <div className="mb-6">
-              <RadioGroup
-                name="tripType"
-                value={tripType}
-                onChange={setTripType}
-                options={[
-                  { value: 'roundtrip', label: 'Round-trip' },
-                  { value: 'oneway', label: 'One-way' },
-                  { value: 'multicity', label: 'Multi-city' },
-                ]}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="origin">From</Label>
-                <Input
-                  type="text"
+                <SelectDropdown
                   id="origin"
                   value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                  placeholder="Airport or city"
+                  onChange={setOrigin}
+                  options={CITIES}
+                  placeholder="Select origin"
                   icon={<PlaneIcon />}
                   required
                 />
@@ -95,12 +88,12 @@ export default function AirlineHero() {
 
               <div>
                 <Label htmlFor="destination">To</Label>
-                <Input
-                  type="text"
+                <SelectDropdown
                   id="destination"
                   value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  placeholder="Airport or city"
+                  onChange={setDestination}
+                  options={CITIES}
+                  placeholder="Select destination"
                   icon={<LocationIcon />}
                   required
                 />
@@ -114,20 +107,6 @@ export default function AirlineHero() {
                   onChange={(e) => setDepartDate(e.target.value)}
                   required
                 />
-              </div>
-
-              <div>
-                <Label htmlFor="returnDate">Return</Label>
-                {tripType === 'roundtrip' ? (
-                  <DateInput
-                    id="returnDate"
-                    value={returnDate}
-                    onChange={(e) => setReturnDate(e.target.value)}
-                    required
-                  />
-                ) : (
-                  <DateInput id="returnDate" disabled />
-                )}
               </div>
             </div>
 

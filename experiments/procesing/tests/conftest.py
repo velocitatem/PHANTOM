@@ -144,7 +144,7 @@ def mock_price_logs_raw_kafka():
                     'price': 162.47,
                     'sessionId': 'd423ce8a-77aa-4c9a-94d4-d1adddcc3472',
                     'experimentId': '53aefd07-f66a-4d7f-ba8b-7ea1fc562d35',
-                    'storeMode': 'shop',
+                    'storeMode': 'hotel',
                     'ts': '2025-11-25T21:05:57.967Z'
                 }
             }
@@ -157,7 +157,7 @@ def mock_price_logs_raw_kafka():
                     'price': 743.49,
                     'sessionId': 'd423ce8a-77aa-4c9a-94d4-d1adddcc3472',
                     'experimentId': '53aefd07-f66a-4d7f-ba8b-7ea1fc562d35',
-                    'storeMode': 'shop',
+                    'storeMode': 'hotel',
                     'ts': '2025-11-25T21:05:57.993Z'
                 }
             }
@@ -170,7 +170,7 @@ def mock_price_logs_raw_kafka():
                     'price': 163.87,
                     'sessionId': 'd423ce8a-77aa-4c9a-94d4-d1adddcc3472',
                     'experimentId': '53aefd07-f66a-4d7f-ba8b-7ea1fc562d35',
-                    'storeMode': 'shop',
+                    'storeMode': 'hotel',
                     'ts': '2025-11-25T21:05:58.009Z'
                 }
             }
@@ -183,7 +183,7 @@ def mock_price_logs_raw_kafka():
                     'price': 397.46,
                     'sessionId': 'd423ce8a-77aa-4c9a-94d4-d1adddcc3472',
                     'experimentId': '53aefd07-f66a-4d7f-ba8b-7ea1fc562d35',
-                    'storeMode': 'shop',
+                    'storeMode': 'hotel',
                     'ts': '2025-11-25T21:05:58.049Z'
                 }
             }
@@ -196,7 +196,7 @@ def mock_price_logs_raw_kafka():
                     'price': 401.66,
                     'sessionId': 'd423ce8a-77aa-4c9a-94d4-d1adddcc3472',
                     'experimentId': '53aefd07-f66a-4d7f-ba8b-7ea1fc562d35',
-                    'storeMode': 'shop',
+                    'storeMode': 'hotel',
                     'ts': '2025-11-25T21:06:08.864Z'
                 }
             }
@@ -222,7 +222,7 @@ def mock_experiments():
         'created_at': pd.to_datetime(['2025-11-25T20:00:00Z', '2025-11-26T10:00:00Z']),
         'subject_name': ['Session A', 'Session B'],
         'xp_human_only': [True, False],
-        'xp_market_mode': ['hotel', 'shop'],
+        'xp_market_mode': ['hotel', 'airline'],
         'xp_task_id': [None, None]
     })
 
