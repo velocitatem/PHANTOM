@@ -2,6 +2,7 @@ from sklearn.pipeline import Pipeline
 import pandas as pd
 from procesing.context import PipelineContext
 from procesing.providers import SupabaseProvider, BackendAPIProvider
+import os
 from procesing.steps import (
     FetchInteractionsStep,
     FetchPriceLogsStep,
@@ -12,11 +13,13 @@ from procesing.steps import (
     ChunkByTimeWindowStep,
     ComputeDemandForChunksStep,
     AggregatePriceLogsStep,
-    # BuildStateSpaceStep,
     FitPricingFunctionStep,
     PredictPricesStep,
     ComputeDemandStep,
-    JoinProductFeaturesStep
+    JoinProductFeaturesStep,
+    ExtractSessionFeaturesStep,
+    JoinLabelsStep,
+    ValidateDataStep,
 )
 from procesing.pricers import SimpleSurgePricer
 
@@ -106,33 +109,54 @@ def full_pipeline(context: PipelineContext,
     return product_features_df, optimal_prices_df
 
 
+def ml_training_pipeline(context: PipelineContext) -> pd.DataFrame:
+    """
+    Build labeled session-level feature matrix for ML model training.
+    Pipeline: fetch -> validate -> extract features -> join labels
+
+    Returns:
+        DataFrame with ~25 features per session + is_agent label
+        Columns: sessionId, experimentId, temporal/behavioral/product/ua features, is_agent
+    """
+    # fetch raw interactions
+    interactions_df = FetchInteractionsStep(context).transform(None)
+
+    # validate data quality (report cached in context)
+    interactions_df = ValidateDataStep(context).transform(interactions_df)
+    if interactions_df.empty:
+        return pd.DataFrame()
+
+    # extract vectorized session features
+    features_df = ExtractSessionFeaturesStep(context).transform(interactions_df)
+    if features_df.empty:
+        return pd.DataFrame()
+
+    # join experiment labels (is_agent = ~xp_human_only)
+    labeled_df = JoinLabelsStep(context).transform(features_df)
+
+    return labeled_df
+
+
 
 
 if __name__ == '__main__':
 
-    class Provider(SupabaseProvider, BackendAPIProvider):
-        def __init__(self, backend_url: str):
-            SupabaseProvider.__init__(self)
-            BackendAPIProvider.__init__(self, backend_url=backend_url)
-
-
-    class HistoricalProvider(SupabaseProvider, BackendAPIProvider):
+    class ExperimentsProvider(SupabaseProvider, BackendAPIProvider):
         def fetch_kafka_topic(self, topic: str) -> pd.DataFrame:
-            path = "/home/velocitatem/Documents/Projects/PHANTOM/experiments/collected_data/858c61ab-0a7f-4595-ae49-33f4365517b9/"
-            interactions_file = "messages(2).json"
-            prices_file = "messages(3).json"
+            path = "/home/velocitatem/Documents/Projects/PHANTOM/experiments/collected_data/"
+            subdirs = os.listdir(path)
+            full_df = pd.DataFrame()
+            files = {"user-interactions": "int.json", "price-logs": "price.json"}
+            for d in subdirs:
+                path += d + "/"
+                data = pd.read_json(path + files.get(topic, files["user-interactions"]))
+                data = pd.DataFrame([r['payload'] for r in data['value'].to_list()])
+                full_df = pd.concat([full_df, data], ignore_index=True)
+            return full_df
 
-            data = pd.read_json(path + (interactions_file if topic == "user-interactions" else prices_file))
-            data = [r['payload'] for r in data['value'].to_list()]
-            data = pd.DataFrame(data)
-            return data
-
-
-    # example run
-    context = PipelineContext(
-        provider=HistoricalProvider(),
-        store_mode='airline',
-    )
-
-    product_features, prices = full_pipeline(context)
-    print(prices.to_string())
+    # demo: run ML training pipeline
+    context = PipelineContext(provider=ExperimentsProvider(), store_mode='hotel')
+    features = ml_training_pipeline(context)
+    print(f"Feature matrix: {features.shape}")
+    print(features.head())
+    print(features.info())
