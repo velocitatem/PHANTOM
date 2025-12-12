@@ -21,6 +21,13 @@ BROWSER_PATTERNS = [('Chrome', r'Chrome/[\d.]+'), ('Firefox', r'Firefox/[\d.]+')
                     ('Safari', r'Safari/[\d.]+'), ('Edge', r'Edg/[\d.]+')]
 
 
+def _get_browser(s: str) -> str:
+    if pd.isna(s): return 'Unknown'
+    for name, pat in BROWSER_PATTERNS:
+        if re.search(pat, s): return name
+    return 'Other'
+
+
 class TemporalFeatureStep(BaseContextStep):
     """Vectorized time-based features: durations, velocities, gaps."""
 
@@ -119,13 +126,7 @@ class UserAgentFeatureStep(BaseContextStep):
         ua = df.groupby('sessionId')['userAgent'].first().reset_index()
         ua['is_headless'] = ua['userAgent'].str.contains(HEADLESS_RE, na=False)
         ua['is_automation'] = ua['userAgent'].str.contains(AUTOMATION_RE, na=False)
-
-        def get_browser(s):
-            if pd.isna(s): return 'Unknown'
-            for name, pat in BROWSER_PATTERNS:
-                if re.search(pat, s): return name
-            return 'Other'
-        ua['browser_family'] = ua['userAgent'].apply(get_browser)
+        ua['browser_family'] = ua['userAgent'].apply(_get_browser)
         return ua[['sessionId', 'is_headless', 'is_automation', 'browser_family']]
 
 
