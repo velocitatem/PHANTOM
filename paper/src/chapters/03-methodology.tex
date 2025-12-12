@@ -18,6 +18,9 @@ In order for our research to have grounding in interactions we built a robust e-
 \
 The architectuer of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a kafka cluster. This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to. Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into kafka. This kafak cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The final stage of the pricing pipeline, submits computed dyanmic pricing results into a redis database for quick updates which is then read by the pricing provider and displayed on the webapp. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks.
 
+
+\subsubsection{DevOps Principles}
+
 \subsubsection{Online Dynamic Pricing}
 
 The dynamic pricing done is handled by a pipeline which computes a demand estimate on a per-product basis of a specific window of the data, defined by the period $T$ which by default is 5 mintues. This dynamic pricing pipeline computes a demand estimate vector $\hat{q} \in \mathbb{R}^N$ by a weighted sum of interactions for each product, it additionally computes a price elasticity vector $\hat{\epsilon}$ in the same dimensions as our demand. The final features matrix is of the size $N \times 2$ which we translate to a new price vector $\hat{p} \in \mathbb{R}^N$. The transformation that governs this dynamic pricing is a very simple surge-based pricing:
@@ -31,7 +34,7 @@ p_{0,i} & \text{otherwise}
 \quad \forall i \in \{1, \ldots, N\}
 \end{equation}
 
-where $p_0 \in \mathbb{R}^N$ is the base price vector, $\theta_{\text{high}}, \theta_{\text{low}} \in \mathbb{R}$ are demand thresholds defining surge and discount regions, and $\lambda_{\text{surge}}, \lambda_{\text{disc}} \in \mathbb{R}^+$ are multiplicative factors with typical values $\lambda_{\text{surge}} = 1.2$ and $\lambda_{\text{disc}} = 0.9$. This piecewise function enables rapid price adjustment in response to observed demand without requiring complex elasticity estimation or historical calibration, allowing us to expose actors within our experiments to a system with a dynamic component of pricing.
+where $p_0 \in \mathbb{R}^N$ is the base price vector (which is seeded into our database distinctly for each mode of the commerce platform), $\theta_{\text{high}}, \theta_{\text{low}} \in \mathbb{R}$ are demand thresholds defining surge and discount regions, and $\lambda_{\text{surge}}, \lambda_{\text{disc}} \in \mathbb{R}^+$ are multiplicative factors with typical values $\lambda_{\text{surge}} = 1.2$ and $\lambda_{\text{disc}} = 0.9$. This piecewise function enables rapid price adjustment in response to observed demand without requiring complex elasticity estimation or historical calibration, allowing us to expose actors within our experiments to a system with a dynamic component of pricing.
 
 \subsection{Experimental Design}
 
@@ -59,8 +62,13 @@ The schema of our features is developed in \cref{tab:features} which shows the d
 
 \input{chapters/feature_table.tex}
 
+The problem we have is constrained by two fronteirs, one is extreme (paranoid) detection which includes methods such as CAPTCHA or more mechanical solutions to traffic blocking and detection. % TODO: talk about more methodologies here
+On the other hand, a more lax system without detection (myopic) defines the lower bound of performance for our solution. Our goal is to achieve a paretto optimal detection sytem which creates a balance across the dimension of performance aswell as a more subjective but none the less important user experience index. To meaure or approach to this optimal solution we define a strong evalutation platform to compare our solutions to this learning task. Following the no free lunch theorem we must be proliphic in our approach to finding the correct method.
+
+
 \subsection{Dynamic Pricing Algorithm Analysis}
 Deep dive into how the algorithm works, different kinds and justification for chosen appraoches + agent impact modeling and quantification.
+
 \subsection{Reinforcement Learning Formulation}
 How do we define the state space, action space and reward function breakdown and algorithm benchmarking.
 POSSIBLY: Expand into full subsections: 3.6.1 (State-Action Space), 3.6.2 (Reward Design), 3.6.3 (Benchmarking)
