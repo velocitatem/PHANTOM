@@ -15,9 +15,7 @@ Mathematical demonstration and validation of the COI and citation backed evidenc
 
 \subsection{System Architecture}
 
-In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation—airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplane which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an envrionment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
-
-
+In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation: airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplane which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an envrionment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
 
 
 \subsection{Experimental Design}
@@ -28,7 +26,9 @@ In order for our research to have grounding in interactions we built a robust e-
   }
   \caption{Overview of the Dynamic Pricing Tasks.}
 \end{figure}
-Study methodology and approach. Data acquisition strategy. Defined objectives and success criteria. Observable metrics and KPIs
+
+
+Study methodology and approach. Data acquisition strategy. Defined objectives and success criteria. Observable metrics and KPIs.
 
 \subsection{Dynamic Pricing Algorithm Analysis}
 Deep dive into how the algorithm works, different kinds and justification for chosen appraoches + agent impact modeling and quantification.
