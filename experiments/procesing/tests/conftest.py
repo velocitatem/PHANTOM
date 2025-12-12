@@ -269,3 +269,13 @@ def empty_context(empty_provider):
         store_mode='hotel',
         window_size='30s'
     )
+
+
+@pytest.fixture
+def session_interactions(mock_interactions):
+    """Enriched interaction data for session feature extraction tests"""
+    df = mock_interactions.copy()
+    df['userAgent'] = ['Mozilla/5.0 Chrome/120', 'Mozilla/5.0 Chrome/120',
+                       'HeadlessChrome/120', 'HeadlessChrome/120', 'HeadlessChrome/120']
+    df['metadata_base_price'] = [None, None, 150.0, 150.0, 200.0]
+    return df
