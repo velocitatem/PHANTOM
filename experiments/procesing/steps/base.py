@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from sklearn.base import BaseEstimator, TransformerMixin
 from procesing.context import PipelineContext
+from typing import Any
 
 class BaseContextStep(BaseEstimator, TransformerMixin, ABC):
     """
@@ -16,7 +17,7 @@ class BaseContextStep(BaseEstimator, TransformerMixin, ABC):
         return self
 
     @abstractmethod
-    def transform(self, X):
+    def transform(self, X) -> Any:
         """Transform input using context. Must be implemented by subclass."""
         pass
 

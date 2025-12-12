@@ -7,12 +7,12 @@ class AggregatePriceLogsStep(BaseContextStep):
     """
     Aggregate price logs into time windows using VECTORIZED operations.
     Input: price_logs_df
-    Output: list of price chunks with [productId, price]
+    Output: DataFrame with columns [productId, price]
     """
 
     def transform(self, price_logs_df: pd.DataFrame):
         if price_logs_df.empty:
-            return []
+            return pd.DataFrame(columns=['productId', 'price'])
 
         df = price_logs_df.copy()
         ts_col = self.context.config.get('ts_col', 'ts')
