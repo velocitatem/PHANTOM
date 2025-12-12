@@ -1,4 +1,15 @@
 services:
+
+  tensorboard:
+    image: tensorflow/tensorflow:latest
+    container_name: "PHANTOM-tensorboard"
+    ports:
+      - "6006:6006"
+    volumes:
+      - ./experiments/ml/checkpoints:/logs
+    command: tensorboard --logdir=/logs --host=0.0.0.0 --port=6006
+    restart: unless-stopped
+
   backend:
     container_name: "PHANTOM-backend"
     build:
