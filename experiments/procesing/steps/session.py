@@ -29,11 +29,11 @@ class TemporalFeatureStep(BaseContextStep):
         self.timeout_sec = timeout_sec
         self.velocity_window = velocity_window
 
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        df = X.copy()
         if df.empty or 'ts' not in df.columns:
-            return pd.DataFrame(columns=['sessionId'])
+            return pd.DataFrame(columns=pd.Series(['sessionId']))
 
-        df = df.copy()
         df['ts_dt'] = pd.to_datetime(df['ts'])
         df = df.sort_values(['sessionId', 'ts_dt'])
         df['time_diff'] = df.groupby('sessionId')['ts_dt'].diff().dt.total_seconds()
@@ -53,19 +53,18 @@ class TemporalFeatureStep(BaseContextStep):
             (agg['total_interactions'] / agg['session_duration_sec']) * 60, 0)
 
         vel = df.set_index('ts_dt').groupby('sessionId').resample(self.velocity_window, include_groups=False).size()
-        agg = agg.merge(vel.groupby('sessionId').max().rename('max_velocity_5min'),
-                        on='sessionId', how='left').fillna({'max_velocity_5min': 0})
+        agg = agg.merge(vel.groupby('sessionId').max().rename('max_velocity_5min'),on='sessionId', how='left').fillna({'max_velocity_5min': 0}) # warns but its a series so whatevs
         return agg
 
 
 class BehavioralFeatureStep(BaseContextStep):
     """Vectorized event counts and ratios per session."""
 
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        df = X.copy()
         if df.empty or 'eventName' not in df.columns:
-            return pd.DataFrame(columns=['sessionId'])
+            return pd.DataFrame(columns=pd.Series(['sessionId']))
 
-        df = df.copy()
         for cat, events in EVENT_CATS.items():
             df[f'is_{cat}'] = df['eventName'].isin(events)
         df['is_hover'] = df['is_hover'] | df['eventName'].str.startswith('hover_over_')
@@ -86,11 +85,10 @@ class BehavioralFeatureStep(BaseContextStep):
 class ProductFeatureStep(BaseContextStep):
     """Vectorized product interaction features: diversity, depth, price sensitivity."""
 
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        df = X.copy()
         if df.empty:
-            return pd.DataFrame(columns=['sessionId'])
-
-        df = df.copy()
+            return pd.DataFrame(columns=pd.Series(['sessionId']))
         price_col = next((c for c in ['metadata_base_price', 'metadata_price', 'base_price'] if c in df.columns), None)
         df['price_seen'] = pd.to_numeric(df[price_col], errors='coerce') if price_col else np.nan
 
@@ -111,9 +109,10 @@ class ProductFeatureStep(BaseContextStep):
 class UserAgentFeatureStep(BaseContextStep):
     """Parse userAgent into bot-detection signals."""
 
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame|pd.Series:
+        df = X.copy()
         if df.empty or 'userAgent' not in df.columns:
-            return pd.DataFrame(columns=['sessionId'])
+            return pd.DataFrame(columns=pd.Series(['sessionId']))
 
         ua = df.groupby('sessionId')['userAgent'].first().reset_index()
         ua['is_headless'] = ua['userAgent'].str.contains(HEADLESS_RE, na=False)
@@ -135,9 +134,10 @@ class ExtractSessionFeaturesStep(BaseContextStep):
     Output: session-level feature matrix
     """
 
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        if df.empty:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        if X.empty:
             return pd.DataFrame()
+        df = X.copy()
 
         # run all feature steps and merge on sessionId
         temporal = TemporalFeatureStep(self.context).transform(df)
@@ -165,7 +165,8 @@ class JoinLabelsStep(BaseContextStep):
     Output: labeled feature matrix with is_agent column
     """
 
-    def transform(self, data) -> pd.DataFrame:
+    def transform(self, X : tuple) -> pd.DataFrame:
+        data = X;
         if isinstance(data, tuple):
             features_df, experiments_df = data
         else:
@@ -199,7 +200,8 @@ class ValidateDataStep(BaseContextStep):
     """
     REQUIRED = ['sessionId', 'eventName', 'ts']
 
-    def transform(self, df: pd.DataFrame) -> pd.DataFrame:
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        df = X.copy()
         report = {'status': 'valid', 'rows': len(df), 'sessions': 0}
         if df.empty:
             report['status'] = 'empty'
@@ -235,7 +237,7 @@ def _extract_features_for_session(session_df: pd.DataFrame, session_timeout_sec:
         session_df['sessionId'] = 'tmp'
 
     # use a dummy context for the steps
-    class DummyCtx: config = {}
+    class DummyCtx: config = {} # should maybe inherit but whatever
     ctx = DummyCtx()
 
     t = TemporalFeatureStep(ctx, timeout_sec=session_timeout_sec).transform(session_df)
