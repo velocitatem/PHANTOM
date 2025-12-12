@@ -6,7 +6,11 @@ from procesing.steps.chunk import ChunkByTimeWindowStep
 from procesing.steps.demand import ComputeDemandStep, ComputeDemandForChunksStep
 from procesing.steps.elasticity import AggregatePriceLogsStep
 from procesing.steps.pricing import FitPricingFunctionStep, PredictPricesStep
-from procesing.steps.session import ExtractSessionFeaturesStep, _extract_features_for_session
+from procesing.steps.session import (
+    ExtractSessionFeaturesStep, JoinLabelsStep, ValidateDataStep,
+    TemporalFeatureStep, BehavioralFeatureStep, ProductFeatureStep, UserAgentFeatureStep,
+    _extract_features_for_session
+)
 
 __all__ = [
     'BaseContextStep',
@@ -25,5 +29,11 @@ __all__ = [
     'FitPricingFunctionStep',
     'PredictPricesStep',
     'ExtractSessionFeaturesStep',
+    'JoinLabelsStep',
+    'ValidateDataStep',
+    'TemporalFeatureStep',
+    'BehavioralFeatureStep',
+    'ProductFeatureStep',
+    'UserAgentFeatureStep',
     '_extract_features_for_session',
 ]
