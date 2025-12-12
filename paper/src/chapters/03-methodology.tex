@@ -1,6 +1,5 @@
 \section{Methodology}
 
-
 \subsection{Problem Formalization}
 
 Mathematical formalization of agent-induced pricing distortions. Formal definition of potential loss mechanisms $\alpha D$
@@ -16,46 +15,19 @@ Mathematical demonstration and validation of the COI and citation backed evidenc
 
 \subsection{System Architecture}
 
+In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation—airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplane which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an envrionment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
+
+
+
+
+\subsection{Experimental Design}
+
 \begin{figure}[ht]
   \resizebox{\columnwidth}{!}{%
     \input{chapters/loop_figure.tex}
   }
   \caption{Overview of the Dynamic Pricing Tasks.}
 \end{figure}
-
-
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}[
-  node distance=1.5cm and 2.5cm,
-  box/.style={rectangle, draw, thick, minimum height=1cm, minimum width=3cm, align=center, fill=blue!10},
-  kafka/.style={rectangle, draw=orange, thick, minimum height=1cm, minimum width=3cm, align=center, fill=orange!15},
-  arrow/.style={thick,->,>=Stealth}
-]
-
-% Nodes
-\node[box] (webapp) {Web Application \\ (Producer \& Consumer)};
-\node[kafka, below=of webapp] (kafka) {Apache Kafka \\ Cluster};
-\node[box, below=of kafka] (backend) {Backend Services / Microservices \\ (Producers and Consumers)};
-
-% Connections
-\draw[arrow] (webapp) to[out=210,in=150] node[above]{Publish} (kafka);
-\draw[arrow] (kafka) to[out=50,in=330] node[below]{Consume} (webapp);
-\draw[arrow] (backend) -- node[above]{Publish/Consume} (kafka);
-
-% Optional: Kafka internal components
-%\node[below=0.7cm of kafka, align=center] (topics) {Topics \\ Partitions};
-
-% Optional background
-\begin{scope}[on background layer]
-  \node[draw, rounded corners, fill=orange!5, fit=(kafka), inner sep=0.3cm] {};
-\end{scope}
-\end{tikzpicture}
-\caption{Technical Diagram}
-\end{figure}
-
-High level overview of how it works
-\subsection{Experimental Design}
 Study methodology and approach. Data acquisition strategy. Defined objectives and success criteria. Observable metrics and KPIs
 
 \subsection{Dynamic Pricing Algorithm Analysis}
