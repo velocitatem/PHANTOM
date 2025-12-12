@@ -4,9 +4,8 @@
 
 Mathematical formalization of agent-induced pricing distortions. Formal definition of potential loss mechanisms $\alpha D$
 
-We consider a business across time during which we have an evolving vector $p_t \in \Re^N$ where $N$ is the number of products in our catalogue. our price vector is directly dependent on a demand function $q_t$ which we define as a linear method of a price elasticity matrix $B_t$. This is the same setup that Microsoft created in their research.
+We consider a business across time during which we have an evolving vector $p_t \in \mathbb{R}^N$ where $N$ is the number of products in our catalogue. our price vector is directly dependent on a demand function $q_t$ which we define as a linear method of a price elasticity matrix $B_t$. This is the same setup that Microsoft created in their research.
 
-We gether interaction data from users interacting with a sample platform simulating a hotel/airline which generates interaction distributions $I_t = \{(p_t, q_t^\text{obs}, \pi_t)\}_{t=1}^T$
 
 
 \subsection{Cost of Information Framework}
@@ -16,9 +15,29 @@ Mathematical demonstration and validation of the COI and citation backed evidenc
 \subsection{System Architecture}
 
 In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation: airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplane which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an envrionment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
+\
+The architectuer of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a kafka cluster. This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to. Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into kafka. This kafak cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The final stage of the pricing pipeline, submits computed dyanmic pricing results into a redis database for quick updates which is then read by the pricing provider and displayed on the webapp. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks.
 
+\subsubsection{Online Dynamic Pricing}
+
+The dynamic pricing done is handled by a pipeline which computes a demand estimate on a per-product basis of a specific window of the data, defined by the period $T$ which by default is 5 mintues. This dynamic pricing pipeline computes a demand estimate vector $\hat{q} \in \mathbb{R}^N$ by a weighted sum of interactions for each product, it additionally computes a price elasticity vector $\hat{\epsilon}$ in the same dimensions as our demand. The final features matrix is of the size $N \times 2$ which we translate to a new price vector $\hat{p} \in \mathbb{R}^N$. The transformation that governs this dynamic pricing is a very simple surge-based pricing:
+
+\begin{equation}
+\hat{p}_i = \begin{cases}
+p_{0,i} \cdot \lambda_{\text{surge}} & \text{if } \hat{q}_i \geq \theta_{\text{high}} \\
+p_{0,i} \cdot \lambda_{\text{disc}} & \text{if } \hat{q}_i \leq \theta_{\text{low}} \\
+p_{0,i} & \text{otherwise}
+\end{cases}
+\quad \forall i \in \{1, \ldots, N\}
+\end{equation}
+
+where $p_0 \in \mathbb{R}^N$ is the base price vector, $\theta_{\text{high}}, \theta_{\text{low}} \in \mathbb{R}$ are demand thresholds defining surge and discount regions, and $\lambda_{\text{surge}}, \lambda_{\text{disc}} \in \mathbb{R}^+$ are multiplicative factors with typical values $\lambda_{\text{surge}} = 1.2$ and $\lambda_{\text{disc}} = 0.9$. This piecewise function enables rapid price adjustment in response to observed demand without requiring complex elasticity estimation or historical calibration, allowing us to expose actors within our experiments to a system with a dynamic component of pricing.
 
 \subsection{Experimental Design}
+
+The experimentation begins with the design of goals, with careful consideration to assure a uniform spanning across different variables within each product-architecture of either the hotel or airline platforms. Our crafted collection of goals (jobs to be done) is then tracked in a postgress database with one table to track goals and another table to track different experiment runs, and their associated goals in a experiment-goal one-to-one relationship.
+
+The purpose of this effort to gather data on interactions, is the first half of our research. With this collected data on behavioral characteristics, enhanced by our feature augmentation, we can create distribution separation into two bins $y \in \{A,H\}$ with a certain probability $p$ dependent on the session-specific features. To adddres the second loop of our system, we use this gained capability of discrimination to enhance the learner design involved in our surrogate dynamic pricing task which simulates an independent dynamic pricing scenario under which we can train a more controlled policy with the ability to account for true demand signals under conditions of contamination from non-human actors.
 
 \begin{figure}[ht]
   \resizebox{\columnwidth}{!}{%
@@ -29,6 +48,16 @@ In order for our research to have grounding in interactions we built a robust e-
 
 
 Study methodology and approach. Data acquisition strategy. Defined objectives and success criteria. Observable metrics and KPIs.
+
+
+\subsection{Discriminative Model Design}
+
+With data collected from our platform we have a series of observed interactions, with each interaction having a mapping to a specific \texttt{sessionId} and \texttt{experimentId} which allows us to join all components of the experiment design into an information rich feature vector for each session in our observed data.
+
+\subsubsection{Feature Development}
+The schema of our features is developed in \cref{tab:features} which shows the diferent types of features we produce in order to train our model to understand the origin of the traffic and to which distribution it belongs to. The features can be computed on a rolling basis of each session, for online deployment, however for our purposes it is currently compouted uniquely for each \texttt{sessionId} in our historical data.
+
+\input{chapters/feature_table.tex}
 
 \subsection{Dynamic Pricing Algorithm Analysis}
 Deep dive into how the algorithm works, different kinds and justification for chosen appraoches + agent impact modeling and quantification.
