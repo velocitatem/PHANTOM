@@ -52,7 +52,7 @@ class TemporalFeatureStep(BaseContextStep):
             agg['session_duration_sec'] > 0,
             (agg['total_interactions'] / agg['session_duration_sec']) * 60, 0)
 
-        vel = df.set_index('ts_dt').groupby('sessionId').resample(self.velocity_window).size()
+        vel = df.set_index('ts_dt').groupby('sessionId').resample(self.velocity_window, include_groups=False).size()
         agg = agg.merge(vel.groupby('sessionId').max().rename('max_velocity_5min'),
                         on='sessionId', how='left').fillna({'max_velocity_5min': 0})
         return agg
