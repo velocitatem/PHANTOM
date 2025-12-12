@@ -83,7 +83,7 @@ def train(data_path=None, model_type='xgboost', test_size=0.2, random_state=42,
     # class distribution
     n_agents = y.sum()
     n_humans = (y == 0).sum()
-    logger.info(f"Class distribution: {n_humans} humans, {n_agents} agents (ratio {n_humans/n_agents:.2f})")
+    logger.info(f"Class distribution: {n_humans} humans, {n_agents} agents" + (f" (ratio {n_humans / n_agents:.2f})" if n_agents > 0 else ""))
 
     # train/test split with stratification
     X_train, X_test, y_train, y_test = train_test_split(
