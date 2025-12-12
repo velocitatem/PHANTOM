@@ -12,3 +12,11 @@ uv
 scikit-learn
 supabase
 pymc
+
+# ml focused
+torch
+tensorboard
+fastparquet
+pyarrow
+xgboost
+lightgbm
