@@ -4,14 +4,28 @@ To better understand all wedges of the work, we must start by exploring the natu
 
 \subsection{Agent Taxonomy and Definitions}
 
-describe agents as defined in \cite{Russell}
+An agent in the contex of artificial inteligence is generally defined by anything that can reason and act uppon observations of its environments (collected through some sensory inputs) and carry out actions trough effectors. Moreover, a rational agent is an entity that is capable of perceiving the world around them and taking actions to advance specified goals. This definition by \cite{Russell} is further developed in an economic context by \cite{Parkes2015}, suggesting AI research attempts to construct a synthetic \textit{homo economicus}, which may also be termed \textit{machina economicus}.
+A specific class or taxon of this \textit{machina economicus}, the Large Language Model (LLM) agent, is defined as an autonomous system capable of achieving goals and adapting post-training, often without needing explicit code or fundamental model changes. \cite{Xia2025}
+
+We must however acknowledge the current SOTA as presented by OSWORLD simulations in \cite{Xie} have demonstrated that multi-modal tasks across desktop and web interaction modes, have a top-performing score of only 12.24\% sucess, whereas humans have a higher 72\% sucess rate. This weakness matters for this research because it clarifies the near-term threat model: practical exploitation does not require a fully competent ``computer assistant'', only enough automation to perform high-volume reconnaissance actions (search/filter/open product pages, probe availability/price boundaries) that can contaminate behavioral signals. With the expected growth of these capabilities, this threat only becomes more perilous to revenue management systems.
 
 \subsection{Economic Agents: From Homo Economicus to Machina Economicus}
 
-Existing behvarioal economic models tend to be criticized for the assumption of rational behavior, as is embodied in the term of homo economicus. The definition of a machina economicus by \cite{Parkes2015} is quite apropriate for our case...
-What is the taxonomy and definition of an agent and an actor in this case, a bit more about interaction models in sessions and about dynamic pricing algorithms.
+Existing behvarioal economic models tend to be criticized for the assumption of rational behavior, as is embodied in the term of homo economicus. The definition of a machina economicus by \cite{Parkes2015} is quite apropriate for our case, particularly becuase these assumptions of rationality have been argued to be a very adequeate reference for AI research by \cite{Varian}. For modeling this behavior, the trajectories of these agents can be formally defined to be partially observable Markov decision processes. \cite{Xie} Agents are however not to be confused with web-bots which have previously been known as automated software applications or scrapers which are set with a purpose of carrying out specific tasks on the internet, without a higher level of internal judgement. \cite{Imperva2025} In our research, we refer to this actor simply as an Agent belonging to the distribution $A$.
+
+This economic framing also helps separate two related but distinct phenomena of agents as buyers (changing market demand composition), and agents as information gatherers (changing the observed itneractions used by pricing/recommendation systems). The thesis focuses on the second, where information acquisition strategically precedes purchase execution.
+
 
 \subsection{Problem Evidence and Market Impact}
+
+% For dynamic pricing systems that map observed demand features into updated prices, contamination is not only a security issue but a statistical one: automated reconnaissance can distort session-level funnels (view-to-cart, look-to-book), inflate demand proxies, and bias elasticity estimates. The practical consequence is mispricing—either supra-competitive outcomes driven by inflated demand signals, or defensive price suppression that harms margin and legitimate customer experience.
+
+The statistical issue of contamination in dynamic pricing systems that observe demand features as a means to update prices has been documented in various previous contexts. The airline industry (which has accounted for 24\% of observed disruptions) has seen malicious activity with a measureable impact on skewing key performance indicators by behavior such as look-to-book. Excessive reconnaissance traffic inflates search volume without corresponding completed bookings, thereby skewing demand forecasts and disrupting dynamic pricing models. Demand proxies have also been observed to cause significant threat to inventory management by creating artificial scarcity that distorts the demand-supply relationships in the enterprise model. Censored demand as shown in \cite{Amjad2017} can also be observed in low-bias demand under-estimation caused by a distortion effect coming from non-human traffic data. \cite{Imperva2025}
+
+% • Defensive Price Suppression (Harm to Margin): When algorithms operate on heavily contaminated or noisy data, the risk associated with inaccurate price setting increases. To mitigate the unknown risk introduced by bad data, some systems may default to defensive price suppression to ensure sales continuity, thereby unnecessarily harming margins and resulting in lost revenue. Furthermore, systems that are poorly constrained can learn undesirable behaviors like price gouging in pursuit of short-term rewards if not properly monitored.
+\cite{Mullapudi}
+
+
 Documented instances of agent-driven market disruptions - Quantitative evidence of pricing manipulation - Case studies from affected industries
 
 \subsection{Theoretical Foundations: Economic Prallels}
