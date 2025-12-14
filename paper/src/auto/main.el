@@ -6,7 +6,7 @@
    (setq TeX-command-extra-options
          "-file-line-error -interaction=nonstopmode")
    (TeX-add-to-alist 'LaTeX-provided-class-options
-                     '(("report" "12pt") ("article" "12pt") ("acmart" "sigconf" "nonacm" "natbib=false")))
+                     '(("report" "12pt") ("article" "12pt") ("acmart" "sigconf" "nonacm" "natbib=false" "manuscript")))
    (TeX-run-style-hooks
     "latex2e"
     "preamble"
