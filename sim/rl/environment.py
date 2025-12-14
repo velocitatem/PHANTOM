@@ -40,7 +40,7 @@ class CommercePlatform:
             'mean_sale_price': df[df['action'] == 'purchase']['price'].mean(),
         }
 
-    def run_pricing_simulation(self, prices: np.ndarray) -> np.ndarray:
+    def run_pricing_simulation(self, prices: np.ndarray) -> dict:
         # Simulate demand based on prices
 
         observed_demand, demand_from_agents = self.setup_true_demand(prices)
@@ -51,16 +51,17 @@ class CommercePlatform:
         demand_estimates = self.demand_estimate(interaction_data)
         internal_error = np.abs(true_demand - demand_estimates) / (true_demand + 1e-6)
 
-        self.simulation_history.append(
-            {
+
+        summary = {
                 'prices': prices,
                 'true_demand': true_demand,
                 'demand_estimates': demand_estimates,
                 'internal_error': internal_error,
                 'interaction_data': interaction_data,
                 'interaction_features': interaction_features
-            })
-        return np.array(interaction_data)
+            }
+        self.simulation_history.append(summary)
+        return summary
 
     def get_interaction_data(self) -> np.ndarray:
         # Simulate interaction data
@@ -118,10 +119,24 @@ class PHANTOMEnv(gym.Env):
                             self.constraints.system_min_price,
                             self.constraints.system_max_price)
 
+        result = self.commerce_platform.run_pricing_simulation(self.state['price'])
+        history = self.commerce_platform.simulation_history
+        self.state['demand'] = result['demand_estimates']
 
 
-        # Calculate reward (e.g., revenue)
-        reward = new_price * demand
+
+        reward = sum(
+            self.state['price'] * self.state['demand'],
+            # performance historically, to take into account business kpi trends (using features from interaction data)
+            sum(
+                [-0.05 * i * history[-1]['internal_error'] for i in range(1, len(history))],
+            ) if len(history) > 1 else 0,
+            sum(
+                [0.1 * history[-1]['interaction_features']['mean_sale_price'] - 0.1 * history[i]['interaction_features']['mean_sale_price'] for i in range(len(history)-1)],
+            ) if len(history) > 1 else 0
+        )
+
+
 
         # Check if episode is done
         done = self.state['price'] <= 0.0 or self.state['demand'] <= 0.0
