@@ -170,3 +170,5 @@ if __name__ == '__main__':
     print(f"Feature matrix: {features.shape}")
     print(features.head())
     print(features.info())
+
+    features.to_parquet("features.parquet")
