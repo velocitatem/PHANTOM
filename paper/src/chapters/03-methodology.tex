@@ -50,7 +50,7 @@ The architectuer of this platform begins with the deployed web-apps posting inte
 
 \subsubsection{Online Dynamic Pricing}
 
-The dynamic pricing done is handled by a pipeline which computes a demand estimate on a per-product basis of a specific window of the data, defined by the period $T$ which by default is 5 mintues. This dynamic pricing pipeline computes a demand estimate vector $\hat{q} \in \mathbb{R}^N$ by a weighted sum of interactions for each product, it additionally computes a price elasticity vector $\hat{\epsilon}$ in the same dimensions as our demand. The final features matrix is of the size $N \times 2$ which we translate to a new price vector $\hat{p} \in \mathbb{R}^N$. The transformation that governs this dynamic pricing is a very simple surge-based pricing:
+The dynamic pricing done is handled by a pipeline which computes a demand estimate on a per-product basis of a specific window of the data, defined by the period $T$ which by default is 5 mintues. This dynamic pricing pipeline computes a demand estimate vector $\hat{q} \in \mathbb{R}^N$ by a weighted sum of interactions for each product, it additionally computes a price elasticity vector $\hat{\epsilon}$ in the same dimensions as our demand. The final features matrix is of the size $N \times 2$ which we translate to a new price vector $\hat{p} \in \mathbb{R}^N$. The transformation that governs this dynamic pricing is a very simple surge-based pricing (a special case of our later defined policy $\pi$):
 
 \begin{equation}
 \hat{p}_i = \begin{cases}
@@ -114,7 +114,10 @@ R &= \text{revenue} - \text{COI} - \text{UX frinction index}
 $$
 
 
-As part of our reward engineering we want to take inot account the cost of information in our reward with a weight. Our pricing engine can be modeled by the mapping:
+As part of our reward engineering we want to take inot account the cost of information in our reward with a weight.
+
+
+Our pricing engine can be modeled by the mapping:
 $$
 \pi : \mathbb{R}^N_+ \times H_t \to \mathbb{R}_+^N
 $$
