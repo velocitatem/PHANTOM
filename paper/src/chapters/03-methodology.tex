@@ -110,7 +110,7 @@ We define our surrogate commercial environment within which we can accurately co
 On top of this our gym environment has a built demand estimator callback which is defined individually by each pricing engine. This engine is constructed to interact with the gym environment with the gyn environment at each step running a cycle via the comercial environment, creating an observation of all the interactions $I$ and a baseline vector which tells us the ground truth of demand, sales statistic and revenue. The engine is then responsible for learning the pricing policy prociding a pricing vector $p_{t+1}$ motivated by a per-episode summary reward composed by.
 
 $$
-R &= \text{revenue} - \text{COI} - \text{UX frinction index}
+R = \text{revenue} - \text{COI} - \text{UX friction index}
 $$
 
 

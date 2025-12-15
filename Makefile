@@ -23,7 +23,7 @@ pdf: $(BUILDDIR)
 	@echo "Concatenating source code..."
 	@bash paper/concat_code.sh
 	@cd $(SRCDIR) && \
-	$(LATEXMK) -pdf -jobname=$(JOBNAME) -f \
+	$(LATEXMK) -pdf -jobname=$(JOBNAME) \
 		-interaction=nonstopmode -file-line-error \
 		-r ../.latexmkrc \
 		-outdir=../$(BUILDDIR) $(TEX)
