@@ -1,8 +1,17 @@
 services:
-
-  tensorboard:
+  tensorboard-rl:
     image: tensorflow/tensorflow:latest
-    container_name: "PHANTOM-tensorboard"
+    container_name: "PHANTOM-tensorboard-rl"
+    ports:
+      - "6007:6006"
+    volumes:
+      - ./sim/rl/runs:/logs
+    command: tensorboard --logdir=/logs --host=0.0.0.0 --port=6006
+    restart: unless-stopped
+
+  tensorboard-ml:
+    image: tensorflow/tensorflow:latest
+    container_name: "PHANTOM-tensorboard-ml"
     ports:
       - "6006:6006"
     volumes:
