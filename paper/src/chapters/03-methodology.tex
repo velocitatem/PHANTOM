@@ -2,14 +2,14 @@
 
 \subsection{Problem Formalization}
 
-In a commercial setting we can collect behavioral data on any actors interactions within a platform we have control over. This collection is done through sessions such each session belongs to an actor class $Y_s \in \{H,A\}$ with randomized assignment. This lets us build a trajectory $\tau_s$ of observable interaction events $\tau_s=(e_{s,1},\ldots,e_{s,L_s})$ where each event is defined as $e_{s,k} = (a_{s,k},i_{s,k},t_{s,k})$. We additionally define the rest of the components in each event acordingly:
+In a commercial setting we can collect behavioral data on any actors interactions within a platform we have control over. This collection is done through sessions such each session belongs to an actor class $Y_s \in \{H,A\}$ with randomized assignment. This lets us build a trajectory $\tau_s$ of observable interaction events $\tau_s=(e_{s,1},\ldots,e_{s,L_s})$ where each event is defined as $e_{s,k} = (a_{s,k},i_{s,k},t_{s,k})$. We additionally define the rest of the components in each event accordingly:
 \begin{itemize}
-\item $a_{s,k} \in A$ where $A = \{\text{page\_view}, \text{view\_item\_page}, \text{add\_item}\}$. % TODO: translate all from /home/velocitatem/Documents/Projects/PHANTOM/web/src/lib/events.ts into this latex
+\item $a_{s,k} \in \mathcal{A}$ where $\mathcal{A} = \{\text{page\_view}, \text{view\_item\_page}, \text{add\_item}\}$. % TODO: translate all from /home/velocitatem/Documents/Projects/PHANTOM/web/src/lib/events.ts into this latex
 \item $i_{s,k} \in \{1, \ldots, N\}$ which is the product association per-event (if applicable).
 \item $t_{s,k}$ which is the timestamp mapped to the session.
 \end{itemize}
 
-What the platform observes is the interaction logs $\tau_s$, price query logs and purchase signals. It is important to note that our pricing pipeline works not direclty with observed true human demand, but rather a behavioral proxy which is a composite of $H+A$.
+What the platform observes is the interaction logs $\tau_s$, price query logs and purchase signals. It is important to note that our pricing pipeline works not directly with observed true human demand, but rather a behavioral proxy which is a composite of $q_H+q_A$.
 
 Each interaction $i$ gives us some information about the willingness to pay ($v$) of a given customer, which we can try to estimate and measure against the true baseline.
 
@@ -20,7 +20,7 @@ $$
 This lets us formalize the quality of our proxy $\hat{v}$ about the true $v$ from observing $\tau$ from any session $s$
 
 \subsubsection{Proxy Definition for Demand Estimation}
-Our proxy estimator is a critical component which has direct impact all downstream tasks, we start with a mapping of weights $\omega: A \to \mathbb{R}_+$ where for an epoch $t$ and product $i$ the observed demand proxy of a session $s$ looks like:
+Our proxy estimator is a critical component which has direct impact all downstream tasks, we start with a mapping of weights $\omega: \mathcal{A} \to \mathbb{R}_+$ where for an epoch $t$ and product $i$ the observed demand proxy of a session $s$ looks like:
 $$
 \hat{q}_{t,i} = \sum_{e_{s,k}\in t} \omega(a_{s,k}) \cdot \mathbf{1} [i_{s,k}=i]
 $$
@@ -41,16 +41,16 @@ Mathematical demonstration and validation of the COI and citation backed evidenc
 
 \subsection{System Architecture}
 
-In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation: airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplane which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an envrionment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
+In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation: airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplate which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an environment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
 \
-The architectuer of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a kafka cluster. This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to. Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into kafka. This kafak cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The final stage of the pricing pipeline, submits computed dyanmic pricing results into a redis database for quick updates which is then read by the pricing provider and displayed on the webapp. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks.
+The architecture of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a kafka cluster. This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to. Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into kafka. This kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The final stage of the pricing pipeline, submits computed dynamic pricing results into a redis database for quick updates which is then read by the pricing provider and displayed on the webapp. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks.
 
 
 \subsubsection{DevOps Principles}
 
 \subsubsection{Online Dynamic Pricing}
 
-The dynamic pricing done is handled by a pipeline which computes a demand estimate on a per-product basis of a specific window of the data, defined by the period $T$ which by default is 5 mintues. This dynamic pricing pipeline computes a demand estimate vector $\hat{q} \in \mathbb{R}^N$ by a weighted sum of interactions for each product, it additionally computes a price elasticity vector $\hat{\epsilon}$ in the same dimensions as our demand. The final features matrix is of the size $N \times 2$ which we translate to a new price vector $\hat{p} \in \mathbb{R}^N$. The transformation that governs this dynamic pricing is a very simple surge-based pricing (a special case of our later defined policy $\pi$):
+The dynamic pricing done is handled by a pipeline which computes a demand estimate on a per-product basis of a specific window of the data, defined by the period $T$ which by default is 5 minutes. This dynamic pricing pipeline computes a demand estimate vector $\hat{q} \in \mathbb{R}^N$ by a weighted sum of interactions for each product, it additionally computes a price elasticity vector $\hat{\epsilon}$ in the same dimensions as our demand. The final features matrix is of the size $N \times 2$ which we translate to a new price vector $\hat{p} \in \mathbb{R}^N$. The transformation that governs this dynamic pricing is a very simple surge-based pricing (a special case of our later defined policy $\pi$):
 
 \begin{equation}
 \hat{p}_i = \begin{cases}
@@ -67,10 +67,10 @@ where $p_0 \in \mathbb{R}^N$ is the base price vector (which is seeded into our 
 
 The experimentation begins with the design of goals, with careful consideration to assure a uniform spanning across different variables within each product-architecture of either the hotel or airline platforms. Our crafted collection of goals (jobs to be done) is then tracked in a postgress database with one table to track goals and another table to track different experiment runs, and their associated goals in a experiment-goal one-to-one relationship.
 
-The purpose of this effort to gather data on interactions, is the first half of our research. With this collected data on behavioral characteristics, enhanced by our feature augmentation, we can create distribution separation into two bins $y \in \{A,H\}$ with a certain probability $p$ dependent on the session-specific features. To adddres the second loop of our system, we use this gained capability of discrimination to enhance the learner design involved in our surrogate dynamic pricing task which simulates an independent dynamic pricing scenario under which we can train a more controlled policy with the ability to account for true demand signals under conditions of contamination from non-human actors.
+The purpose of this effort to gather data on interactions, is the first half of our research. With this collected data on behavioral characteristics, enhanced by our feature augmentation, we can create distribution separation into two bins $y \in \{A,H\}$ with a certain probability $p$ dependent on the session-specific features. To address the second loop of our system, we use this gained capability of discrimination to enhance the learner design involved in our surrogate dynamic pricing task which simulates an independent dynamic pricing scenario under which we can train a more controlled policy with the ability to account for true demand signals under conditions of contamination from non-human actors.
 
 
-Our approach can be well summarized by a three-stage division, first we intend to observe and \textit{vectorize} the behavioral interaction data from our experiments, we then develop the separability which helps us deepen the semantic understanding of the behavioral patterns. Finally we use our newly gained learner to leverage a defensive mechanism within the simulation stage of a controled dynamic pricing loop.
+Our approach can be well summarized by a three-stage division, first we intend to observe and \textit{vectorize} the behavioral interaction data from our experiments, we then develop the separability which helps us deepen the semantic understanding of the behavioral patterns. Finally we use our newly gained learner to leverage a defensive mechanism within the simulation stage of a controlled dynamic pricing loop.
 
 \begin{figure}[ht]
   \resizebox{\columnwidth}{!}{%
@@ -85,44 +85,44 @@ Study methodology and approach. Data acquisition strategy. Defined objectives an
 
 \subsection{Discriminative Model Design}
 
-With data collected from our platform we have a series of observed interactions, with each interaction having a mapping to a specific \texttt{sessionId} and \texttt{experimentId} which allows us to join all components of the experiment design into an information rich feature vector for each session in our observed data. To develop more explicitly the demand estimation, we propose a decomposition of the proxy $\hat{q_t}$ into two latent components:
+With data collected from our platform we have a series of observed interactions, with each interaction having a mapping to a specific \texttt{sessionId} and \texttt{experimentId} which allows us to join all components of the experiment design into an information rich feature vector for each session in our observed data. To develop more explicitly the demand estimation, we propose a decomposition of the proxy $\hat{q}_t$ into two latent components:
 
 $$
-\hat{q_t} = \hat{q_t}^H + \hat{q_t}^A
+\hat{q}_t = \hat{q}_t^H + \hat{q}_t^A
 $$
 
 
 \subsubsection{Feature Development}
-The schema of our features is developed in \cref{tab:features} which shows the diferent types of features we produce in order to train our model to understand the origin of the traffic and to which distribution it belongs to. The features can be computed on a rolling basis of each session, for online deployment, however for our purposes it is currently compouted uniquely for each \texttt{sessionId} in our historical data.
+The schema of our features is developed in \cref{tab:features} which shows the different types of features we produce in order to train our model to understand the origin of the traffic and to which distribution it belongs to. The features can be computed on a rolling basis of each session, for online deployment, however for our purposes it is currently computed uniquely for each \texttt{sessionId} in our historical data.
 
 \input{chapters/feature_table.tex}
 
-The problem we have is constrained by two fronteirs, one is extreme (paranoid) detection which includes methods such as CAPTCHA or more mechanical solutions to traffic blocking and detection. % TODO: talk about more methodologies here
-On the other hand, a more lax system without detection (myopic) defines the lower bound of performance for our solution. Our goal is to achieve a paretto optimal detection sytem which creates a balance across the dimension of performance aswell as a more subjective but none the less important user experience index. To meaure or approach to this optimal solution we define a strong evalutation platform to compare our solutions to this learning task. Following the no free lunch theorem we must be proliphic in our approach to finding the correct method.
+The problem we have is constrained by two frontiers, one is extreme (paranoid) detection which includes methods such as CAPTCHA or more mechanical solutions to traffic blocking and detection. % TODO: talk about more methodologies here
+On the other hand, a more lax system without detection (myopic) defines the lower bound of performance for our solution. Our goal is to achieve a Pareto optimal detection system which creates a balance across the dimension of performance as well as a more subjective but none the less important user experience index. To measure our approach to this optimal solution we define a strong evaluation platform to compare our solutions to this learning task. Following the no free lunch theorem we must be prolific in our approach to finding the correct method.
 
 
 \subsection{Dynamic Pricing Algorithm Analysis}
-Deep dive into how the algorithm works, different kinds and justification for chosen appraoches + agent impact modeling and quantification.
+Deep dive into how the algorithm works, different kinds and justification for chosen approaches + agent impact modeling and quantification.
 
 \subsection{Reinforcement Learning Formulation}
 
-We define our surrogate commercial environment within which we can accurately control for all the variables such as the true demand, providing a clear transaparency of the entire system. We start with a product catalogue of size $N$ with random supply initialization per-product. At every step the commercial simulation recieves a price vector $p$ according to which we simulate a set of interactions $I$ with a certain proportion $l_a$ of agents contributing interactions. The interactions serve as a proxy to estimating the true demand $q(p)$ which is composed of two separate demand generators $q_A(p)$ and $q_H(p)$.
-On top of this our gym environment has a built demand estimator callback which is defined individually by each pricing engine. This engine is constructed to interact with the gym environment with the gyn environment at each step running a cycle via the comercial environment, creating an observation of all the interactions $I$ and a baseline vector which tells us the ground truth of demand, sales statistic and revenue. The engine is then responsible for learning the pricing policy prociding a pricing vector $p_{t+1}$ motivated by a per-episode summary reward composed by.
+We define our surrogate commercial environment within which we can accurately control for all the variables such as the true demand, providing a clear transparency of the entire system. We start with a product catalogue of size $N$ with random supply initialization per-product. At every step the commercial simulation receives a price vector $p$ according to which we simulate a set of interactions $I$ with a certain proportion $l_a$ of agents contributing interactions. The interactions serve as a proxy to estimating the true demand $q(p)$ which is composed of two separate demand generators $q_A(p)$ and $q_H(p)$.
+On top of this our gym environment has a built demand estimator callback which is defined individually by each pricing engine. This engine is constructed to interact with the gym environment with the gym environment at each step running a cycle via the commercial environment, creating an observation of all the interactions $I$ and a baseline vector which tells us the ground truth of demand, sales statistic and revenue. The engine is then responsible for learning the pricing policy providing a pricing vector $p_{t+1}$ motivated by a per-episode summary reward composed by.
 
 $$
 R = \text{revenue} - \text{COI} - \text{UX friction index}
 $$
 
 
-As part of our reward engineering we want to take inot account the cost of information in our reward with a weight.
+As part of our reward engineering we want to take into account the cost of information in our reward with a weight.
 
 
 Our pricing engine can be modeled by the mapping:
 $$
-\pi : \mathbb{R}^N_+ \times H_t \to \mathbb{R}_+^N
+\pi : \mathbb{R}^N_+ \times \mathcal{H}_t \to \mathbb{R}_+^N
 $$
 
-where $H_t$ is the history and state we keep track of, allowing us to define a progression of prices as $p_{t+1} \gets \pi(\hat{q}_t,H_t)$. With this we can establish that $\tau$ influences $p_{t+1}$ through $\hat{q}_t$
+where $\mathcal{H}_t$ is the history and state we keep track of, allowing us to define a progression of prices as $p_{t+1} \gets \pi(\hat{q}_t,\mathcal{H}_t)$. With this we can establish that $\tau$ influences $p_{t+1}$ through $\hat{q}_t$
 
 
 How do we define the state space, action space and reward function breakdown and algorithm benchmarking.
