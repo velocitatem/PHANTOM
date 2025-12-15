@@ -2,11 +2,15 @@
 
 \subsection{Problem Formalization}
 
-In a commercial setting we can collect behavioral data on any actors interactions within a platform we have control over. This collection is done through sessions such each session belongs to an actor class $Y_s \in \{H,A\}$ with randomized assignment. This lets us build a trajectory $\tau_s$ of observable interaction events $\tau_s=(e_{s,1},\ldots,e_{s,L_s})$ where each event is defined as $e_{s,k} = (a_{s,k},i_{s,k},t_{s,k})$.
+In a commercial setting we can collect behavioral data on any actors interactions within a platform we have control over. This collection is done through sessions such each session belongs to an actor class $Y_s \in \{H,A\}$ with randomized assignment. This lets us build a trajectory $\tau_s$ of observable interaction events $\tau_s=(e_{s,1},\ldots,e_{s,L_s})$ where each event is defined as $e_{s,k} = (a_{s,k},i_{s,k},t_{s,k})$. We additionally define the rest of the components in each event acordingly:
 \begin{itemize}
-\item $a_{s,k}$ \in $A$
+\item $a_{s,k} \in A$ where $A = \{\text{page\_view}, \text{view\_item\_page}, \text{add\_item}\}$. % TODO: translate all from /home/velocitatem/Documents/Projects/PHANTOM/web/src/lib/events.ts into this latex
+\item $i_{s,k} \in \{1, \ldots, N\}$ which is the product association per-event (if applicable).
+\item $t_{s,k}$ which is the timestamp mapped to the session.
 \end{itemize}
-$A = \{\text{page\_view}, \text{view\_item\_page}, \text{add\_item}\}$. % TODO: translate all from /home/velocitatem/Documents/Projects/PHANTOM/web/src/lib/events.ts into this latex
+
+What the platform observes is the interaction logs $\tau_s$, price query logs and purchase signals. It is important to note that our pricing pipeline works not direclty with observed true human demand, but rather a behavioral proxy which is a composite of $H+A$.
+
 Each interaction $i$ gives us some information about the willingness to pay ($v$) of a given customer, which we can try to estimate and measure against the true baseline.
 
 $$
@@ -14,6 +18,12 @@ I(\tau) = \mathbb{E}[v \vert \tau] - \mathbb{E}[v]
 $$
 
 This lets us formalize the quality of our proxy $\hat{v}$ about the true $v$ from observing $\tau$ from any session $s$
+
+\subsubsection{Proxy Definition for Demand Estimation}
+Our proxy estimator is a critical component which has direct impact all downstream tasks, we start with a mapping of weights $\omega: A \to \mathbb{R}_+$ where for an epoch $t$ and product $i$ the observed demand proxy of a session $s$ looks like:
+$$
+\hat{q}_{t,i} = \sum_{e_{s,k}\in t} \omega(a_{s,k}) \cdot \mathbf{1} [i_{s,k}=i]
+$$
 
 
 \subsection{Cost of Information Framework}
@@ -25,7 +35,7 @@ $$
 COI(\tau) = \mathbb{E}[p(\tau)] - p_0
 $$
 
-Where the $p_0$ vector is both the initial state of the system and the base price for each product. We also define a pricing method at any time $t$ as $t: p_t \in \mathbb{R}_+^N$, satisfying a discrete cap $p \ in \mathbb{R}_+^N \vert \underline{p} \leq p \leq \overline{p}$ which act as our business constraints. We treat $p_t$ as the price vector shown to the an actor both experimentally and in-simulation.
+Where the $p_0$ vector is both the initial state of the system and the base price for each product. We also define a pricing method at any time $t$ as $t: p_t \in \mathbb{R}_+^N$, satisfying a discrete cap $\{p \in \mathbb{R}_+^N \vert \quad \underline{p} \leq p \leq \overline{p}\}$ which act as our business constraints, limiting prices to the range of $(\underline{p}, \overline{p})$. We treat $p_t$ as the price vector shown to the an actor both experimentally and in-simulation.
 
 Mathematical demonstration and validation of the COI and citation backed evidence, and framework overview + show harm to user via other cost distortions. Maybe split into 3.2.1 (COI Theory) and 3.2.2 (Framework Design)
 
@@ -75,7 +85,12 @@ Study methodology and approach. Data acquisition strategy. Defined objectives an
 
 \subsection{Discriminative Model Design}
 
-With data collected from our platform we have a series of observed interactions, with each interaction having a mapping to a specific \texttt{sessionId} and \texttt{experimentId} which allows us to join all components of the experiment design into an information rich feature vector for each session in our observed data.
+With data collected from our platform we have a series of observed interactions, with each interaction having a mapping to a specific \texttt{sessionId} and \texttt{experimentId} which allows us to join all components of the experiment design into an information rich feature vector for each session in our observed data. To develop more explicitly the demand estimation, we propose a decomposition of the proxy $\hat{q_t}$ into two latent components:
+
+$$
+\hat{q_t} = \hat{q_t}^H + \hat{q_t}^A
+$$
+
 
 \subsubsection{Feature Development}
 The schema of our features is developed in \cref{tab:features} which shows the diferent types of features we produce in order to train our model to understand the origin of the traffic and to which distribution it belongs to. The features can be computed on a rolling basis of each session, for online deployment, however for our purposes it is currently compouted uniquely for each \texttt{sessionId} in our historical data.
@@ -99,12 +114,12 @@ R &= \text{revenue} - \text{COI} - \text{UX frinction index}
 $$
 
 
-As part of our reward engineering we want to take inot account the cost of information in our reward with a weight. Our pricing engine can be modeled by:
+As part of our reward engineering we want to take inot account the cost of information in our reward with a weight. Our pricing engine can be modeled by the mapping:
 $$
-\textmd{O}: X \to p_{t+1}
+\pi : \mathbb{R}^N_+ \times H_t \to \mathbb{R}_+^N
 $$
 
-where $X$
+where $H_t$ is the history and state we keep track of, allowing us to define a progression of prices as $p_{t+1} \gets \pi(\hat{q}_t,H_t)$. With this we can establish that $\tau$ influences $p_{t+1}$ through $\hat{q}_t$
 
 
 How do we define the state space, action space and reward function breakdown and algorithm benchmarking.
