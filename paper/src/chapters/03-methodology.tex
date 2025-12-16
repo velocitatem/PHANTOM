@@ -34,6 +34,17 @@ What we define in this game is the interaction between the pricing system and no
 
 
 
+Putting it all together for formalization, we have a complete mapping of our pipeline
+
+\begin{equation}
+  \tau \to x_s \to \hat{\pi} \to \tilde{q_t} \to p_{t+1} \\
+  p_{t+i}(\tau) = \hat{\pi}(x_s) \\
+  % explixitly fully develop an expansion of showing the mappin from p to tau and how that carries all information and from that we can identify where to intercept with our treatments.
+\end{equation}
+
+
+
+
 \subsection{Cost of Information Framework}
 
 
@@ -139,7 +150,7 @@ R = \text{revenue} - \text{COI} - \text{UX friction index}
 As part of our reward engineering we want to take into account the cost of information in our reward with a weight. As seen in most other dynamic pricing systems, regret is most often use to guide the policy development, which in our case serves very well in comparing the ground truth and estimated demand. For us the regret is the revenue loss compared to the oracle which has perfect information access.
 
 \begin{equation}
- \text{Regret}(\p\i) = TR(\pi_\text{oracle}) - TR(\pi)
+ \text{Regret}(\pi) = TR(\pi_\text{oracle}) - TR(\pi)
 \end{equation}
 % TR= total revenue
 % Regret is the revenue loss compared to oracle with perfect information:
