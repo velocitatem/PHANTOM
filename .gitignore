@@ -11,3 +11,9 @@ paper/src/bib/auto
 experiments/airflow/logs/*
 experiments/airflow/logs/scheduler/
 experiments/airflow/logs/dag_processor_manager/
+experiments/collected_data/*
+
+paper/src/auto/*
+lib/
+docs/goals/*.md
+PHANTOM.wiki/
