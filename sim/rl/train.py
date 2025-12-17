@@ -39,7 +39,7 @@ class EngineTrainer:
         obs, _ = self.env.reset(seed=seed)
         prices = None
         for ep in range(n_episodes):
-            prices = self.engine.compute_prices(prices, obs
+            prices = self.engine.compute_prices(prices, obs)
             obs, reward, done, _, info = self.env.step(prices)
             self.engine.update(obs, reward, done, info)
         return self
