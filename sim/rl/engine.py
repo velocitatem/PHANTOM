@@ -1,3 +1,4 @@
+from os import kill
 import numpy as np
 import pandas as pd
 from abc import ABC, abstractmethod
@@ -5,12 +6,18 @@ from typing import Dict, Any
 from environment import BusinessLogicConstraints
 
 
+"""
+An angine by default should have its own demand estimation mechanism from the observed observations whihc are the computer feature.
+From these features we then follow the researc hstructure of q -> p with a testable and must be updatable mechanism.
+"""
+
 class BasePricingEngine(ABC):
     """base interface for all pricing engines"""
     def __init__(self, constraints: BusinessLogicConstraints, seed: int = 0):
         self.c = constraints
         self.rng = np.random.default_rng(seed)
         self.step_count = 0
+
 
     @abstractmethod
     def compute_prices(self, current_prices: np.ndarray, observation: Dict[str, Any]) -> np.ndarray:
