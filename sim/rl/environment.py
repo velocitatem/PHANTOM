@@ -1,5 +1,7 @@
+from sys import intern
 import gymnasium as gym
 from gymnasium import spaces
+from matplotlib import interactive
 import numpy as np
 from dataclasses import dataclass
 import pandas as pd
@@ -24,7 +26,7 @@ class BusinessLogicConstraints():
     coi_sigmoid_temp: float = 1.25
     base_human_demand: float = 0.08
     base_agent_demand: float = 0.05
-    human_price_elasticity: float = -1.2
+    human_price_elasticity: float = -1.2 # assumptions here
     agent_price_elasticity: float = -0.6
     w_agent_loss: float = 1.0
     w_volatility: float = 5.0
@@ -35,30 +37,24 @@ class BusinessLogicConstraints():
 def _sigmoid(x: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-x))
 
-
-def simple_agent_detector(session_df: pd.DataFrame) -> pd.Series:
-    # baseline heuristic: high velocity + low conversion
-    v = session_df.get("interaction_velocity", pd.Series(0.0, index=session_df.index))
-    cr = session_df.get("conversion_rate", pd.Series(0.0, index=session_df.index))
-    total = session_df.get("total_interactions", pd.Series(0, index=session_df.index))
-    return (total >= 12) & (v >= 0.20) & (cr <= 0.01)
-
-
 class CommercePlatform:
-    def __init__(self, product_catelogue_size: int, max_price: float, min_price: float,
-                 constraints: BusinessLogicConstraints, agent_detector: Optional[Callable[[pd.DataFrame], pd.Series]] = None,
-                 use_defense: bool = False):
+    """
+    This is just an extension of the state management for the environment, it does not implement anything dynamic just helps us simulate demand.
+    """
+    def __init__(self,
+                 product_catelogue_size: int,
+                 max_price: float,
+                 min_price: float,
+                 constraints: BusinessLogicConstraints):
         self.product_catelogue_size = product_catelogue_size
+        self.product_supply = np.random.uniform(low=10, high=50, size=(self.product_catelogue_size,))
         self.max_price = max_price
         self.min_price = min_price
         self.constraints = constraints
-        self.use_defense = use_defense
-        self.agent_detector = agent_detector
         self.simulation_history: List[Dict[str, Any]] = []
         self._rng = np.random.default_rng(constraints.seed)
-        self._popularity = self._rng.lognormal(mean=0.0, sigma=0.6, size=self.product_catelogue_size)
-        self._popularity = self._popularity / (self._popularity.mean() + 1e-12)
         self._last_interaction_df: pd.DataFrame = pd.DataFrame()
+
 
     def setup_true_demand(self, prices: np.ndarray) -> Dict[str, np.ndarray]:
         # ground truth purchase propensities
@@ -67,14 +63,19 @@ class CommercePlatform:
         human_prob = self.constraints.base_human_demand * (pn ** self.constraints.human_price_elasticity)
         agent_prob = self.constraints.base_agent_demand * (pn ** self.constraints.agent_price_elasticity)
         return {
-            "human_purchase_prob": np.clip(human_prob * self._popularity, 0.0, 0.95),
-            "agent_purchase_prob": np.clip(agent_prob * self._popularity, 0.0, 0.95)
+            "human_purchase_prob": np.clip(human_prob, 0.0, 0.95),
+            "agent_purchase_prob": np.clip(agent_prob, 0.0, 0.95)
         }
 
-    def _session_markup_multiplier(self, signal_score: float) -> float:
-        # session-based COI markup based on demand signal expression
-        x = (signal_score - self.constraints.coi_threshold) / max(self.constraints.coi_sigmoid_temp, 1e-6)
-        return 1.0 + self.constraints.coi_strength * float(_sigmoid(np.array([x]))[0])
+    def _load_behavioral_profile(actor : str, demand_forcing):
+        """
+        This returns a markov chain with average weights which we get from interaction data of our experiments.
+        This defines transition probabilities between different events:
+        search -> view_item_price_binN: 0.7
+        view_item_price_binN -> add_to_cart: 0.2
+        we also must reweight with the demand_forcing vector or purchase probabilities per-product
+        """
+
 
     def _simulate_sessions(self, base_prices: np.ndarray) -> pd.DataFrame:
         demand = self.setup_true_demand(base_prices)
@@ -84,94 +85,32 @@ class CommercePlatform:
         T = self.constraints.sessions_per_step
         n_agent_sessions = int(round(T * self.constraints.agent_share))
         n_human_sessions = T - n_agent_sessions
-
-        # human sessions: normal browse with possible purchase
-        for s in range(n_human_sessions):
-            session_id = f"h_{len(events)}_{s}"
-            k = int(self._rng.integers(1, 4))
-            prod_ids = self._rng.choice(self.product_catelogue_size, size=k, replace=False)
-            t = 0.0
-            inter_times = self._rng.gamma(shape=2.0, scale=3.0, size=3 * k)
-            signal_score = 0.0
-            purchased_any = False
-
-            for i, pid in enumerate(prod_ids):
-                t += float(inter_times[i])
-                price_shown = float(base_prices[pid])
-                events.append({
-                    "session_id": session_id, "actor": "human", "agent_id": None, "product_id": int(pid),
-                    "action": "view", "t": t, "price_shown": price_shown, "is_purchase": 0,
-                    "price_paid": 0.0, "oracle_price_paid": 0.0, "signal_score": 0.0,
-                })
-                signal_score += 1.0
-
-                if self._rng.random() < 0.35:
-                    t += float(inter_times[i + k])
-                    events.append({
-                        "session_id": session_id, "actor": "human", "agent_id": None, "product_id": int(pid),
-                        "action": "cart", "t": t, "price_shown": price_shown, "is_purchase": 0,
-                        "price_paid": 0.0, "oracle_price_paid": 0.0, "signal_score": 0.0,
-                    })
-                    signal_score += 2.0
-
-                if (not purchased_any) and (self._rng.random() < float(human_pprob[pid])):
-                    t += float(inter_times[i + 2 * k])
-                    mult = self._session_markup_multiplier(signal_score)
-                    price_paid = float(np.clip(base_prices[pid] * mult, self.min_price, self.max_price))
-                    events.append({
-                        "session_id": session_id, "actor": "human", "agent_id": None, "product_id": int(pid),
-                        "action": "purchase", "t": t, "price_shown": float(base_prices[pid]), "is_purchase": 1,
-                        "price_paid": price_paid, "oracle_price_paid": price_paid, "signal_score": signal_score,
-                    })
-                    purchased_any = True
-
-        # agent sessions: split recon/purchase to circumvent COI
         n_agent_ids = max(1, n_agent_sessions // 2)
-        for a in range(n_agent_ids):
-            agent_id = f"a_{a}"
-            recon_session_id = f"{agent_id}_recon"
-            t = 0.0
-            n_views = int(self._rng.poisson(lam=8) * self.constraints.agent_recon_multiplier) + 5
-            inter_times = self._rng.gamma(shape=2.0, scale=0.6, size=max(n_views, 1))
-            prod_ids = self._rng.integers(0, self.product_catelogue_size, size=n_views)
-            recon_signal = 0.0
+        session_map = {
+            'humans': n_human_sessions,
+            'agents': n_agent_ids
+        }
+        pprob_map = {
+            'humans': human_pprob,
+            'agents': agent_pprob
+        }
+        joint_events = []
+        for actor, n_sessions in session_map.items():
+            bp = _load_behavioral_profile(actor, pprob_map[actor])
+            counter = 0
+            events = []
+            while counter < n_sessions:
+                session_events = []
+                while len(session_events) == 0 or session_events[-1]['action'] == 'checkout':
+                    interaction_event = bp.sample(self._rng)
+                    interaction_event['session_id'] = f'{actor}_{counter:06d}'
+                    # TODO any other assignments
+                    session_events.append(interaction_event)
+                events.extend(session_events)
+                counter += 1
+            joint_events.extend(events)
 
-            for i, pid in enumerate(prod_ids):
-                t += float(inter_times[i])
-                events.append({
-                    "session_id": recon_session_id, "actor": "agent", "agent_id": agent_id, "product_id": int(pid),
-                    "action": "view", "t": t, "price_shown": float(base_prices[pid]), "is_purchase": 0,
-                    "price_paid": 0.0, "oracle_price_paid": 0.0, "signal_score": 0.0,
-                })
-                recon_signal += 1.0
-
-            # clean purchase session with minimal interactions
-            if self._rng.random() < self.constraints.agent_purchase_probability:
-                purchase_session_id = f"{agent_id}_clean"
-                pid = int(self._rng.integers(0, self.product_catelogue_size))
-                t2 = 0.0
-                clean_signal = 0.0
-                t2 += float(self._rng.gamma(shape=2.0, scale=0.7))
-                events.append({
-                    "session_id": purchase_session_id, "actor": "agent", "agent_id": agent_id, "product_id": pid,
-                    "action": "view", "t": t2, "price_shown": float(base_prices[pid]), "is_purchase": 0,
-                    "price_paid": 0.0, "oracle_price_paid": 0.0, "signal_score": 0.0,
-                })
-                clean_signal += 1.0
-
-                if self._rng.random() < float(agent_pprob[pid]):
-                    t2 += float(self._rng.gamma(shape=2.0, scale=0.7))
-                    obs_mult = self._session_markup_multiplier(clean_signal)
-                    obs_paid = float(np.clip(base_prices[pid] * obs_mult, self.min_price, self.max_price))
-                    oracle_mult = self._session_markup_multiplier(recon_signal)  # oracle links recon->purchase
-                    oracle_paid = float(np.clip(base_prices[pid] * oracle_mult, self.min_price, self.max_price))
-                    events.append({
-                        "session_id": purchase_session_id, "actor": "agent", "agent_id": agent_id, "product_id": pid,
-                        "action": "purchase", "t": t2, "price_shown": float(base_prices[pid]), "is_purchase": 1,
-                        "price_paid": obs_paid, "oracle_price_paid": oracle_paid, "signal_score": clean_signal,
-                    })
-
-        return pd.DataFrame(events)
+        return pd.DataFrame(joint_events)
 
     def compute_interaction_features(self, interaction_df: pd.DataFrame) -> Dict[str, float]:
         if interaction_df.empty:
@@ -183,6 +122,7 @@ class CommercePlatform:
         return {"mean_sale_price": mean_sale_price, "look_to_book": float(views / (buys + 1e-6))}
 
     def _session_feature_table(self, df: pd.DataFrame) -> pd.DataFrame:
+        # TODO: adapt this
         if df.empty:
             return pd.DataFrame()
         g = df.groupby("session_id", sort=False)
@@ -208,73 +148,6 @@ class CommercePlatform:
             "is_agent": is_agent.astype(bool),
         }).reset_index()
 
-    def demand_estimate(self, interaction_df: pd.DataFrame, exclude_sessions: Optional[pd.Series] = None) -> np.ndarray:
-        # proxy demand from weighted interaction events
-        if interaction_df.empty:
-            return np.zeros(self.product_catelogue_size, dtype=np.float32)
-        df = interaction_df
-        if exclude_sessions is not None:
-            bad_sessions = set(exclude_sessions.loc[exclude_sessions].index)
-            df = df[~df["session_id"].isin(bad_sessions)]
-        weights = {"view": 0.15, "cart": 0.75, "purchase": 2.5}
-        w = df["action"].map(weights).fillna(0.0).to_numpy(dtype=float)
-        prod = df["product_id"].to_numpy(dtype=int)
-        q_hat = np.zeros(self.product_catelogue_size, dtype=float)
-        np.add.at(q_hat, prod, w)
-        return q_hat.astype(np.float32)
-
-    def run_pricing_simulation(self, prices: np.ndarray) -> Dict[str, Any]:
-        interaction_df = self._simulate_sessions(prices)
-        self._last_interaction_df = interaction_df
-        session_df = self._session_feature_table(interaction_df)
-
-        predicted_agent_sessions = None
-        if (self.use_defense and self.agent_detector is not None and not session_df.empty):
-            predicted_agent_sessions = self.agent_detector(session_df.set_index("session_id"))
-
-        q_hat_naive = self.demand_estimate(interaction_df, exclude_sessions=None)
-        q_hat_defended = self.demand_estimate(interaction_df, exclude_sessions=predicted_agent_sessions) \
-            if predicted_agent_sessions is not None else q_hat_naive.copy()
-
-        true_human = np.zeros(self.product_catelogue_size, dtype=float)
-        true_agent = np.zeros(self.product_catelogue_size, dtype=float)
-        if not interaction_df.empty:
-            purchases = interaction_df[interaction_df["action"] == "purchase"]
-            if not purchases.empty:
-                for _, r in purchases.iterrows():
-                    if r["actor"] == "human":
-                        true_human[int(r["product_id"])] += 1.0
-                    else:
-                        true_agent[int(r["product_id"])] += 1.0
-
-        revenue_observed = float(interaction_df["price_paid"].sum()) if not interaction_df.empty else 0.0
-        revenue_oracle = float(interaction_df["oracle_price_paid"].sum()) if not interaction_df.empty else 0.0
-        agent_loss = max(0.0, revenue_oracle - revenue_observed)
-
-        eps = 1e-6
-        internal_error_naive = np.abs(true_human - q_hat_naive) / (true_human + eps)
-        internal_error_def = np.abs(true_human - q_hat_defended) / (true_human + eps)
-        interaction_features = self.compute_interaction_features(interaction_df)
-
-        summary = {
-            "prices": prices.copy(),
-            "interaction_df": interaction_df,
-            "session_df": session_df,
-            "q_hat_naive": q_hat_naive,
-            "q_hat_defended": q_hat_defended,
-            "true_human_demand": true_human.astype(np.float32),
-            "true_agent_purchases": true_agent.astype(np.float32),
-            "internal_error_naive": internal_error_naive.astype(np.float32),
-            "internal_error_defended": internal_error_def.astype(np.float32),
-            "interaction_features": interaction_features,
-            "revenue_observed": revenue_observed,
-            "revenue_oracle": revenue_oracle,
-            "agent_loss": agent_loss,
-            "predicted_agent_sessions": predicted_agent_sessions,
-        }
-        self.simulation_history.append(summary)
-        return summary
-
     def get_interaction_data(self) -> np.ndarray:
         if self._last_interaction_df.empty:
             return np.array([], dtype=object)
@@ -284,7 +157,7 @@ class CommercePlatform:
 class PHANTOMEnv(gym.Env):
     metadata = {"render_modes": []}
 
-    def __init__(self, use_defense: bool = False):
+    def __init__(self, constraints):
         super().__init__()
         self.constraints = BusinessLogicConstraints()
         self.action_space = spaces.Box(low=-self.constraints.max_price_adjustment,
@@ -301,14 +174,13 @@ class PHANTOMEnv(gym.Env):
                     high=np.full((self.constraints.product_catelogue_size,), 1e6, dtype=np.float32),
                     dtype=np.float32),
             })
+            # TODO: define more features that we compute from the interaction data
         })
         self.commerce_platform = CommercePlatform(
             product_catelogue_size=self.constraints.product_catelogue_size,
             max_price=self.constraints.system_max_price,
             min_price=self.constraints.system_min_price,
-            constraints=self.constraints,
-            agent_detector=simple_agent_detector,
-            use_defense=use_defense)
+            constraints=self.constraints)
         self._rng = np.random.default_rng(self.constraints.seed)
         self.t = 0
         self._prev_prices: Optional[np.ndarray] = None
@@ -336,17 +208,13 @@ class PHANTOMEnv(gym.Env):
         new_prices = np.clip(base_prices * (1.0 + action.astype(np.float32)),
                            self.constraints.system_min_price,
                            self.constraints.system_max_price).astype(np.float32)
-        result = self.commerce_platform.run_pricing_simulation(new_prices)
-
-        if self.commerce_platform.use_defense:
-            demand_est = result["q_hat_defended"]
-            internal_err = result["internal_error_defended"]
-        else:
-            demand_est = result["q_hat_naive"]
-            internal_err = result["internal_error_naive"]
 
         self.state["elasticity"]["price"] = new_prices
-        self.state["elasticity"]["demand"] = demand_est
+        # TODO: use the commerce platform to simulate sessions
+        interactions_df = self.commerce_platform._simulate_sessions(new_prices)
+        result = self.commerce_platform.compute_interaction_features(interactions_df)
+        # TODO: implement COI computation to use in reward
+        COI = 0.0
 
         volatility = 0.0 if self._prev_prices is None else \
             float(np.mean(np.abs((new_prices - self._prev_prices) / (self._prev_prices + 1e-6))))
@@ -354,12 +222,13 @@ class PHANTOMEnv(gym.Env):
 
         revenue_observed = float(result["revenue_observed"])
         agent_loss = float(result["agent_loss"])
-        err_mean = float(np.mean(internal_err))
 
         reward = (revenue_observed
-                 - self.constraints.w_agent_loss * agent_loss
-                 - self.constraints.w_volatility * volatility
-                 - self.constraints.w_estimation_error * err_mean)
+                  - COI
+                  - self.constraints.w_agent_loss * agent_loss
+                  - self.constraints.w_volatility * volatility
+                  - self.constraints.w_estimation_error
+                  )
 
         terminated = self.t >= self.constraints.episode_length
         info = {
