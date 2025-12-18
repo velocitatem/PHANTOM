@@ -138,8 +138,16 @@ Deep dive into how the algorithm works, different kinds and justification for ch
 
 \subsection{Reinforcement Learning Formulation}
 
-We define our surrogate commercial environment within which we can accurately control for all the variables such as the true demand, providing a clear transparency of the entire system. We start with a product catalogue of size $N$ with random supply initialization per-product. At every step the commercial simulation receives a price vector $p$ according to which we simulate a set of interactions $I$ with a certain proportion $l_a$ of agents contributing interactions. The interactions serve as a proxy to estimating the true demand $q(p)$ which is composed of two separate demand generators $q_A(p)$ and $q_H(p)$.
-On top of this our gym environment has a built demand estimator callback which is defined individually by each pricing engine. This engine is constructed to interact with the gym environment with the gym environment at each step running a cycle via the commercial environment, creating an observation of all the interactions $I$ and a baseline vector which tells us the ground truth of demand, sales statistic and revenue. The engine is then responsible for learning the pricing policy providing a pricing vector $p_{t+1}$ motivated by a per-episode summary reward composed by.
+We define our surrogate commercial environment within which we can accurately control for all the variables such as the true demand, providing a clear transparency of the entire system. We start with a product catalogue of size $N$ with random supply initialization per-product. At every step the commercial simulation receives a price vector $p$ according to which we simulate a set of interactions $\tau^\prime$ with a certain proportion $\alpha$ of agents contributing interactions. The interactions serve as a proxy to estimating the true demand $q(p)$ which is composed of two separate demand generators $q_A(p)$ and $q_H(p)$.
+On top of this our gym environment has a built demand estimator callback which is defined individually by each pricing engine. This engine is constructed to interact with the gym environment with the gym environment at each step running a cycle via the commercial environment, creating an observation of all the interactions $\tau^\prime$ and a baseline vector which tells us the ground truth of demand, sales statistic and revenue. The engine is then responsible for learning the pricing policy providing a pricing vector $p_{t+1}$ motivated by a per-episode summary reward composed by.
+
+
+To bridge the experimentally collected data into our simulation we start with turning our interaction data into transition generators which learn the transition probabilities between states (actions performed on the platform) as a markovian decision process, which we can then sample to generate our interaction data underlying the simulation. To account for prices we scale these transition probabilities by a willingness to pay vector which will give us the purchase probability per-product.
+
+We start by defining a willingness to pay $v_{i,j}$ for some product $i$ and theoretical actor $j$ which is the maximum price $p_i$ that the customer would be willing to pay, since we do not have customer specific granularity we sample from a distribution $F_v(x)$ which gives us the proportion of customers willing to pay at most the price $x$, defined by $F_v(x) = P(v \le x)$ which we can use to model the probability of a sale $1 - F_v(x)$ in the base case of 1 product, we can scale this to a full vector which encodes the probabilities of sale which we should use as our baseline for demand which affects the generated interaction data $\tau^\prime$. \cite{Roughgarden2013}
+
+We could then use this to compare the prior and posterior demand to have the delta between the ground truth and estimate where the $p \cdot (1 - F_v(p))$ is equal to the expected revenue and if we observer per-product revenue we can base our revenue loss component of the regret.
+
 
 
 \begin{equation}
@@ -169,15 +177,3 @@ where $\mathcal{H}_t$ is the history and state we keep track of, allowing us to 
 
 How do we define the state space, action space and reward function breakdown and algorithm benchmarking.
 POSSIBLY: Expand into full subsections: 3.6.1 (State-Action Space), 3.6.2 (Reward Design), 3.6.3 (Benchmarking)
-
-
-\begin{algorithm}[t]
-\DontPrintSemicolon
-\KwIn{stepsize $\eta$, smoothing $\delta$, rank $d$}
-\For{$t=1$ \KwTo $T$}{
-  Sample $u_t$ on unit sphere; set $x_t^\prime=x_t+\delta u_t$\;
-  Set $p_t \gets U x_t^\prime$ and observe $q_t, R_t(p_t)$\;
-  $x_{t+1} \gets \Pi\_{\mathcal{X}}(x_t-\eta R_t(p_t) u_t)$\;
-}
-\caption{Online Pricing Optimization (template)}
-\end{algorithm}
