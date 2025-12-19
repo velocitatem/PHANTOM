@@ -54,4 +54,14 @@ count-lines:
 	@find . \( -path '*/node_modules' -o -path '*/.venv' -o -path '*/venv' \) -prune -o \
 	\( -name "*.ts" -o -name "*.py" \) -type f -print0 | xargs -0 cat | wc -l
 
-.PHONY: all pdf clean watch run.webapp install test
+wordcount:
+	@echo "Counting words in main text (excluding appendix)..."
+	@texcount -nosub -total -sum -1 \
+		$(SRCDIR)/chapters/01-intro.tex \
+		$(SRCDIR)/chapters/02-literature-review.tex \
+		$(SRCDIR)/chapters/03-methodology.tex \
+		$(SRCDIR)/chapters/04-results.tex \
+		$(SRCDIR)/chapters/05-discussion.tex \
+		$(SRCDIR)/chapters/06-conclusion.tex
+
+.PHONY: all pdf clean watch run.webapp install test wordcount
