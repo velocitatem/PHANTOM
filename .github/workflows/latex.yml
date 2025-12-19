@@ -19,7 +19,7 @@ jobs:
         with:
           root_file: main.tex
           working_directory: paper/src
-          args: -pdf -interaction=nonstopmode -file-line-error -outdir=../build
+          args: -pdf -f -interaction=nonstopmode -file-line-error -outdir=../build
           pre_compile: bash ../concat_code.sh
       - name: Upload PDF
         uses: actions/upload-artifact@v4
