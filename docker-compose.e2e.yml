@@ -1,0 +1,161 @@
+# Docker Compose configuration for E2E testing
+# Usage: docker compose -f docker-compose.e2e.yml up -d
+#
+# This configuration runs only the services needed for E2E pricing tests:
+# - Backend API (event ingestion)
+# - Kafka + Zookeeper (event streaming)
+# - Redis (model registry)
+# - Pricing Provider (price serving)
+#
+# Excluded for E2E tests:
+# - Airflow (pipeline runs directly via test worker)
+# - PostgreSQL (not needed without Airflow)
+# - TensorBoard (ML visualization not needed)
+
+services:
+  # Backend API for event ingestion
+  backend:
+    container_name: "PHANTOM-e2e-backend"
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    environment:
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=29092
+      - BACKEND_PORT=5000
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # Redis for model registry
+  redis:
+    container_name: "PHANTOM-e2e-redis"
+    build:
+      context: ./docker
+      dockerfile: Redis.dockerfile
+    ports:
+      - "${REDIS_PORT:-6378}:6379"
+    volumes:
+      - e2e_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Zookeeper for Kafka coordination
+  zookeeper:
+    container_name: "PHANTOM-e2e-zookeeper"
+    build:
+      context: ./docker
+      dockerfile: Zookeeper.dockerfile
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Kafka for event streaming
+  kafka:
+    container_name: "PHANTOM-e2e-kafka"
+    build:
+      context: ./docker
+      dockerfile: Kafka.dockerfile
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # Faster topic creation for tests
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - e2e_kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # Redpanda Console for Kafka debugging (optional)
+  redpanda-console:
+    container_name: "PHANTOM-e2e-redpanda-console"
+    build:
+      context: ./docker
+      dockerfile: RedpandaConsole.dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: kafka:29092
+    ports:
+      - "${REDPANDA_CONSOLE_PORT:-8080}:8080"
+    restart: unless-stopped
+    profiles:
+      - debug  # Only start with --profile debug
+
+  # Pricing Provider for serving prices
+  pricing-provider:
+    container_name: "PHANTOM-e2e-pricing-provider"
+    build:
+      context: .
+      dockerfile: docker/Provider.dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      - PROVIDER_PORT=5001
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_HOST=kafka
+      - KAFKA_PORT=29092
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - BACKEND_URL=http://backend:5000
+    ports:
+      - "${PROVIDER_PORT:-5001}:5001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  e2e_kafka_data:
+  e2e_redis_data:
+
+networks:
+  default:
+    name: phantom-e2e-network

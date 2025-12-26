@@ -1,0 +1,27 @@
+{
+  "name": "phantom-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for PHANTOM Dynamic Pricing Pipeline",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:pricing": "playwright test dynamic-pricing",
+    "test:health": "playwright test --grep 'health'",
+    "pipeline:run": "python3 lib/pipeline-worker.py --store-mode hotel --high-threshold 3 --surge-multiplier 1.5",
+    "pipeline:dry-run": "python3 lib/pipeline-worker.py --dry-run --json-output",
+    "services:check": "curl -s http://localhost:5000/health && curl -s http://localhost:5001/health"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "uuid": "^9.0.0",
+    "@types/uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
