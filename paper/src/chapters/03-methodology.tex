@@ -50,11 +50,40 @@ Putting it all together for formalization, we have a complete mapping of our pip
 
 The Cost of Information proposed in our research serves as proxy to understand and represent the complex interaction patterns between humans and agents. It is the expected markup a platform applies to a product from derived demand signals.
 
-\begin{equation}
-COI(\tau) = \mathbb{E}[p(\tau)] - p_0
-\end{equation}
+\begin{align}
+COI &= \rho - p_\text{min} \\
+&= \mathbb{E}[P(\tau)] - p_\text{min} \\
+&= \mathbb{E}_{p\sim\pi(\tau)}[p] - \min_{\tau^\prime\in\boldsymbol{\tau}}{\mathbb{E}_{p\sim\pi(\tau^\prime)}[p]}
+\end{align}
 
 Where the $p_0$ vector is both the initial state of the system and the base price for each product. We also define a pricing method at any time $t$ as $t: p_t \in \mathbb{R}_+^N$, satisfying a discrete cap $\{p \in \mathbb{R}_+^N \vert \quad \underline{p} \leq p \leq \overline{p}\}$ which act as our business constraints, limiting prices to the range of $(\underline{p}, \overline{p})$. We treat $p_t$ as the price vector shown to the an actor both experimentally and in-simulation.
+
+Per product we follow a cumulative distrubtion $F(p)$ which we can leverage to prove the existence of COI under certain conditions of agent contamination. We state that:
+% Unify notation of underline p and p_min which now means same things
+\begin{align}
+\int_\underline{p}^\rho (\rho - p) dF(p) &= c \\
+\int_\underline{p}^{\underline{p} + COI} F(p) dp &= c \\
+c &> 0 \\
+\therefore p^* = \rho \wedge \rho &> p_\text{min}
+\end{align}
+
+We then prove that:
+
+\begin{theorem}
+\begin{align}
+\lim_{N \to \infty} COI &= 0 \\
+p_{(1)} &= \min (p_1, p_2, \ldots, p_n) \\
+P(p_{(1)} > p) &= [1-F(p)]^n \\
+\underline{F}(p) &= P(p_{(1)} \leq p) \\
+&= 1 - P(p_{(1)} > p) \\
+&= 1 - [1 - F(p)] \\
+\text{survival functions...} \\
+\mathbb{E}[\underline{F}(p)] &= \underline{p} + \int_{\underline{p}}^\overline{p} [1 - F(p))]^n \\
+COI: \mathbb{E}[\underline{F}(p)] - \underline{p} \\
+\cdots \\ 
+\int_{\underline{p}}^{\overline{p}} 0 dp &= 0 \\
+\end{align}
+\end{theorem}
 
 Mathematical demonstration and validation of the COI and citation backed evidence, and framework overview + show harm to user via other cost distortions. Maybe split into 3.2.1 (COI Theory) and 3.2.2 (Framework Design)
 
