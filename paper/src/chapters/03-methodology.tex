@@ -61,12 +61,14 @@ Where the $p_0$ vector is both the initial state of the system and the base pric
 Per product we follow a cumulative distrubtion $F(p)$ which we can leverage to prove the existence of COI under certain conditions of agent contamination. We state that:
 % Unify notation of underline p and p_min which now means same things
 \begin{align}
-\int_\underline{p}^\rho (\rho - p) dF(p) &= c \\
-\int_\underline{p}^{\underline{p} + COI} F(p) dp &= c \\
+\int_{\underline{p}}^{\rho} (\rho - p) \, dF(p) &= c \\
+\int_{\underline{p}}^{\underline{p} + COI} F(p) \, dp &= c \\
 c &> 0 \\
 \therefore p^* = \rho \wedge \rho &> p_\text{min}
 \end{align}
 
+% here we can also look at mvt to prove that the if we fix the c for the agent's cost we show that you cannot have a COI which has its rho equal to the p min which makes the integral vanish.
+c is the search cost per query incurred by the buyer. and $\rho$ is the users reservation price.
 We then prove that:
 
 \begin{theorem}
@@ -78,19 +80,28 @@ P(p_{(1)} > p) &= [1-F(p)]^n \\
 &= 1 - P(p_{(1)} > p) \\
 &= 1 - [1 - F(p)] \\
 \text{survival functions...} \\
-\mathbb{E}[\underline{F}(p)] &= \underline{p} + \int_{\underline{p}}^\overline{p} [1 - F(p))]^n \\
+\mathbb{E}[\underline{F}(p)] &= \underline{p} + \int_{\underline{p}}^{\overline{p}} [1 - F(p)]^n \, dp \\
 COI: \mathbb{E}[\underline{F}(p)] - \underline{p} \\
 \cdots \\ 
 \int_{\underline{p}}^{\overline{p}} 0 dp &= 0 \\
 \end{align}
+% Since F(p) is a CDF, for any p>pmin​, F(p)>0, implying 0≤1−F(p)<1. By the properties of limits, as n→∞, [1−F(p)]n→0 for all p>pmin​.
+%Applying the Lebesgue Dominated Convergence Theorem (since the integrand is bounded by 1 on a finite interval):
+
+From this we can understand that as the number of independent agentic interactions grows to infinity, the cost of information convergest to 0, circumventing the platforms policy $\pi$ and effectively paying only $\underline{p}$. Thus, standard dynamic pricing is not incentive-compatible with agentic traffic.
+The platform's profit margin from "information rent" is entirely eroded.
 \end{theorem}
 
-Mathematical demonstration and validation of the COI and citation backed evidence, and framework overview + show harm to user via other cost distortions. Maybe split into 3.2.1 (COI Theory) and 3.2.2 (Framework Design)
+% The DRO objective creates a lower bound on COI extraction, effectively guaranteeing a minimum margin even in the presence of adversarial agents. we need to prove this and demonstrate that in a theorem.
+
+
+%Mathematical demonstration and validation of the COI and citation backed evidence, and framework overview + show harm to user via other cost distortions. Maybe split into 3.2.1 (COI Theory) and 3.2.2 (Framework Design)
 
 \subsection{System Architecture}
 
 In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation: airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplate which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an environment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
-\
+
+
 The architecture of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a kafka cluster. This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to. Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into kafka. This kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The final stage of the pricing pipeline, submits computed dynamic pricing results into a redis database for quick updates which is then read by the pricing provider and displayed on the webapp. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks. We intentionally put emphasis on the development of this infrastructure to establish a reproducible framework for interaction and to minimize any noise.
 
 
