@@ -122,6 +122,14 @@ p_{0,i} & \text{otherwise}
 
 where $p_0 \in \mathbb{R}^N$ is the base price vector (which is seeded into our database distinctly for each mode of the commerce platform), $\theta_{\text{high}}, \theta_{\text{low}} \in \mathbb{R}$ are demand thresholds defining surge and discount regions, and $\lambda_{\text{surge}}, \lambda_{\text{disc}} \in \mathbb{R}^+$ are multiplicative factors with typical values $\lambda_{\text{surge}} = 1.2$ and $\lambda_{\text{disc}} = 0.9$. This piecewise function enables rapid price adjustment in response to observed demand without requiring complex elasticity estimation or historical calibration, allowing us to expose actors within our experiments to a system with a dynamic component of pricing.
 
+We will for our offilne experimental intents generalize a master function for encompasing distinct demand estimation and pricing strategies.
+
+\begin{align}
+V(\cdot) = \max_{p_t} \min_{Q \in \mathcal{U}(\hat{d})}{\mathbb{E}_{d\sim Q} [p_t \times d(p_t, x_t ; \theta) + \psi V_{t+1}(\cdot)]} \\
+\end{align}
+
+We follow differnet substitutouns which will server as hyperparameters later on.
+
 \subsection{Experimental Design}
 
 The experimentation begins with the design of goals, with careful consideration to assure a uniform spanning across different variables within each product-architecture of either the hotel or airline platforms. Our crafted collection of goals (jobs to be done) is then tracked in a postgress database with one table to track goals and another table to track different experiment runs, and their associated goals in a experiment-goal one-to-one relationship.
