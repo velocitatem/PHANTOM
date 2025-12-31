@@ -126,7 +126,7 @@ This result proves that standard pricing policies $\pi$ fail to extract surplus 
 
 %Mathematical demonstration and validation of the COI and citation backed evidence, and framework overview + show harm to user via other cost distortions. Maybe split into 3.2.1 (COI Theory) and 3.2.2 (Framework Design)
 
-\subsection{System Architecture}
+\subsection{System Architecture: Hybrid Kappa-Lambda Architecture}
 
 In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation: airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplate which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an environment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
 
@@ -216,3 +216,11 @@ In our simulation, the "Follower" is implemented as a set of Actors. Each Actor 
 
 
 As part of our reward engineering we think about the UX factor ($UX \in [0,1]$) whic his our proxy for user experience degradation, this is computed as a mixture of contribution from the separability model metric of $\frac{1}{\text{Specificity}}$.
+
+We also need to think about a policy like taxation to the agents Strategy-Proof Mechanism Design, specifically the Vickrey-Clarke-Groves (VCG) payment rule. We link and prove that this would create an incentive for the dominant strategy to become truth-telling.
+
+\section{Heuristics as part of neuro-inspired steering systems}
+
+Steve Burns, superior culliculus (face heuristics) we create this sort of part of the 'brain' + amortized inference.
+
+We could say that a DQN for example is the learnin subsystem and then within our reward mechanism or some other computational method we introduce a steering subsystem which acts as the proposed ``pricing heuristic'' against the given non human transaction data.
