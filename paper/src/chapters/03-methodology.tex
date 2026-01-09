@@ -8,7 +8,7 @@ We define a commercial environment where the platform interacts with a stream of
 
 Each session produces a trajectory of observable events $\tau_s = (e_{s,1}, \ldots, e_{s,L_s})$. An event $e_{s,k}$ is a tuple defined as:
 \begin{equation}
-    e_{s,k} = (a_{s,k}, i_{s,k}, t_{s,k})
+e_{s,k} = (a_{s,k}, i_{s,k}, t_{s,k})
 \end{equation}
 where:
 \begin{itemize}
@@ -19,14 +19,14 @@ where:
 
 The platform does not directly observe the true underlying demand function $d(p)$. Instead, it observes a behavioral proxy $\hat{q}_t$, which is a composite signal derived from the mixture of actor types. We define the demand proxy for product $i$ at epoch $t$ as a weighted aggregation of events:
 \begin{equation}
-    \hat{q}_{t,i} = \sum_{s \in \mathcal{S}_t} \sum_{k=1}^{L_s} \omega(a_{s,k}) \cdot \mathbb{1}[i_{s,k} = i]
+\hat{q}_{t,i} = \sum_{s \in \mathcal{S}_t} \sum_{k=1}^{L_s} \omega(a_{s,k}) \cdot \mathbb{1}[i_{s,k} = i]
 \end{equation}
 where $\omega: \mathcal{A} \to \mathbb{R}_+$ assigns weights to actions based on their signal strength regarding willingness to pay.
 
 \subsubsection{Actor Types and Demand Curves}
 We formalize the heterogeneity of actors by introducing a type space $\Theta$. An actor of class $Y_s$ is further parameterized by a type $\theta \sim \mathcal{D}_{Y}$. This type determines the actor's demand response function $d(p; \theta)$, sampled from a distribution of possible demand curves. The total observed demand is a stochastic process governed by the mixture:
 \begin{equation}
-    Q(p) = (1-\alpha) \cdot \mathbb{E}_{\theta \sim \mathcal{D}_H}[d(p; \theta)] + \alpha \cdot \mathbb{E}_{\theta \sim \mathcal{D}_A}[d(p; \theta)] + \epsilon_t
+Q(p) = (1-\alpha) \cdot \mathbb{E}_{\theta \sim \mathcal{D}_H}[d(p; \theta)] + \alpha \cdot \mathbb{E}_{\theta \sim \mathcal{D}_A}[d(p; \theta)] + \epsilon_t
 \end{equation}
 where $\alpha \in [0, 1]$ represents the contamination parameter (proportion of agents) and $\epsilon_t$ is non-stationary market noise.
 
@@ -89,32 +89,32 @@ Let $p_1, \ldots, p_N$ be independent and identically distributed (i.i.d.) price
 
 The survival function (or reliability function) of the minimum price is given by:
 \begin{equation}
-    S_{p_{(1)}}(t) = P(p_{(1)} > t) = [1 - F(t)]^N
+S_{p_{(1)}}(t) = P(p_{(1)} > t) = [1 - F(t)]^N
 \end{equation}
 
 To determine the expected value $\mathbb{E}[p_{(1)}]$, we recall the property that for any continuous random variable $X$ with support $[A, B]$, the expectation can be expressed as the lower bound plus the integral of the survival function:
 \begin{equation}
-    \mathbb{E}[X] = A + \int_{A}^{B} P(X > t) \, dt
+\mathbb{E}[X] = A + \int_{A}^{B} P(X > t) \, dt
 \end{equation}
 
 Applying this to our pricing statistic where the lower bound is $\underline{p}$:
 \begin{align}
-    \mathbb{E}[p_{(1)}] &= \underline{p} + \int_{\underline{p}}^{\bar{p}} P(p_{(1)} > t) \, dt \\
-    &= \underline{p} + \int_{\underline{p}}^{\bar{p}} [1 - F(t)]^N \, dt
+\mathbb{E}[p_{(1)}] &= \underline{p} + \int_{\underline{p}}^{\bar{p}} P(p_{(1)} > t) \, dt \\
+&= \underline{p} + \int_{\underline{p}}^{\bar{p}} [1 - F(t)]^N \, dt
 \end{align}
 
 Since $F(t)$ is a valid CDF, for any $t > \underline{p}$, we have strict inequality $F(t) > 0$, implying $0 \le 1 - F(t) < 1$. By the properties of limits, as $N \to \infty$, the term $[1 - F(t)]^N$ converges to 0 pointwise for all $t > \underline{p}$.
 
 Applying the Lebesgue Dominated Convergence Theorem (noting that the integrand is bounded by 1 on the finite interval $[\underline{p}, \bar{p}]$):
 \begin{equation}
-    \lim_{N \to \infty} \int_{\underline{p}}^{\bar{p}} [1 - F(t)]^N \, dt = \int_{\underline{p}}^{\bar{p}} 0 \, dt = 0
+\lim_{N \to \infty} \int_{\underline{p}}^{\bar{p}} [1 - F(t)]^N \, dt = \int_{\underline{p}}^{\bar{p}} 0 \, dt = 0
 \end{equation}
 
 Substituting this back into the expression for COI:
 \begin{align}
-    \lim_{N \to \infty} \text{COI} &= \lim_{N \to \infty} (\mathbb{E}[p_{(1)}] - \underline{p}) \\
-    &= \lim_{N \to \infty} \left( (\underline{p} + 0) - \underline{p} \right) \\
-    &= 0
+\lim_{N \to \infty} \text{COI} &= \lim_{N \to \infty} (\mathbb{E}[p_{(1)}] - \underline{p}) \\
+&= \lim_{N \to \infty} \left( (\underline{p} + 0) - \underline{p} \right) \\
+&= 0
 \end{align}
 \end{proof}
 
@@ -154,7 +154,7 @@ where $p_0 \in \mathbb{R}^N$ is the base price vector (which is seeded into our 
 We will for our offilne experimental intents generalize a master function for encompasing distinct demand estimation and pricing strategies.
 
 \begin{align}
-V(\cdot) = \max_{p_t} \min_{Q \in \mathcal{U}(\hat{d})}{\mathbb{E}_{d\sim Q} [p_t \times d(p_t, x_t ; \theta) + \psi V_{t+1}(\cdot)]} \\
+V(\cdot) = \max_{p_t} \min_{Q \in \mathcal{U}(\hat{d})}{\mathbb{E}_{d\sim Q} [p_t \times d(p_t, x_t ; \theta) + \psi V_{t+1}(\cdot)]}
 \end{align}
 
 We follow differnet substitutouns which will server as hyperparameters later on.
@@ -200,14 +200,14 @@ We formulate the pricing problem as a Stackelberg Game where the Platform (Leade
 \subsubsection{Ambiguity Set Construction}
 We define an ambiguity set $\mathcal{U}_p(\hat{P}_N)$ centered around our empirical reference distribution $\hat{P}_N$ (derived from the generator $\mathcal{G}$). We utilize the Wasserstein distance metric to define the set of plausible demand distributions the agent might face:
 \begin{equation}
-    \mathcal{U}_\epsilon(\hat{P}_N) = \left\{ Q \in \mathcal{P}(\Xi) : W_p(Q, \hat{P}_N) \le \epsilon \right\}
+\mathcal{U}_\epsilon(\hat{P}_N) = \left\{ Q \in \mathcal{P}(\Xi) : W_p(Q, \hat{P}_N) \le \epsilon \right\}
 \end{equation}
 This set captures all distributions that are statistically close to our observed training data but allows for adversarial shifts (e.g., sudden bot spikes).
 
 \subsubsection{The Min-Max Objective}
 The robust policy $\pi^*$ is obtained by solving the maximin problem:
 \begin{equation}
-    \pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}(p) \right]
+\pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}(p) \right]
 \end{equation}
 where $R(p, d)$ is the revenue function and $\lambda$ weighs the penalty for information leakage (COI).
 
@@ -224,3 +224,5 @@ We also need to think about a policy like taxation to the agents Strategy-Proof 
 Steve Burns, superior culliculus (face heuristics) we create this sort of part of the 'brain' + amortized inference.
 
 We could say that a DQN for example is the learnin subsystem and then within our reward mechanism or some other computational method we introduce a steering subsystem which acts as the proposed ``pricing heuristic'' against the given non human transaction data.
+
+\section{}
