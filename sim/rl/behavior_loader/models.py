@@ -85,7 +85,7 @@ class BehaviorModel:
             path.append(curr)
         return path
 
-def visualize_mdp(model: BehaviorModel, threshold: float = 0.05, output: str = "mdp_graph", fmt: str = "svg", view: bool = False):
+def visualize_mdp(model: BehaviorModel, threshold: float = 0.05, output: str = "mdp_graph", fmt: str = "svg", view: bool = False, export_dot: bool = False):
     """visualize MDP as directed graph using graphviz, aggregated by event type"""
     if not model.mdp: raise ValueError("build MDP first")
 
@@ -125,6 +125,13 @@ def visualize_mdp(model: BehaviorModel, threshold: float = 0.05, output: str = "
 
     g.render(output, view=view, cleanup=True)
     print(f"Saved MDP graph to {output}.{fmt}")
+
+    if export_dot:
+        dot_file = f"{output}.dot"
+        with open(dot_file, 'w') as f:
+            f.write(g.source)
+        print(f"Exported DOT source to {dot_file}")
+
     return g
 
 if __name__ == "__main__":
@@ -134,4 +141,4 @@ if __name__ == "__main__":
     if not mdp['states']:
         print("No states found")
         exit(1)
-    visualize_mdp(model, threshold=0.05, output="mdp_viz", fmt="svg")
+    visualize_mdp(model, threshold=0.05, output="mdp_viz", fmt="svg", export_dot=True)
