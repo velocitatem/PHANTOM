@@ -187,6 +187,13 @@ To develop a robust pricing agent, we require a simulation environment capable o
 \subsubsection{GOFAI-Based Separability}
 We employ Good Old-Fashioned AI (GOFAI) heuristics to generate initial weak labels for separability. We define a set of rule-based predicates $\phi_j: \tau \to \{0, 1\}$ to partition the dataset $\mathcal{D}$ into high-confidence sets $\mathcal{D}_H$ and $\mathcal{D}_A$. We construct distinct MDPs per each behavioral profile of humans and agents and from those we establish $D_{KL}$.
 
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{chapters/mdp_human.pdf}
+    \caption{Markov Decision Process visualization illustrating the behavioral transition dynamics for human and agent actor profiles. The state space and transition probabilities are learned from observed session trajectories to enable generative contamination.}
+    \label{fig:mdp_viz}
+\end{figure}
+
 \subsubsection{Transition Probability Estimation}
 For both subsets, we model the session dynamics as a Markov Decision Process (MDP) and estimate the transition kernel $\mathcal{T}$. The probability of transitioning to state $s'$ given state $s$ is estimated via maximum likelihood:
 \begin{equation}
