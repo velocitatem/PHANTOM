@@ -141,4 +141,4 @@ if __name__ == "__main__":
     if not mdp['states']:
         print("No states found")
         exit(1)
-    visualize_mdp(model, threshold=0.05, output="mdp_viz", fmt="svg", export_dot=True)
+    visualize_mdp(model, threshold=0.05, output="mdp_viz", fmt="pdf", export_dot=True)
