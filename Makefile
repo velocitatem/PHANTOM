@@ -11,56 +11,72 @@ PYTEST    := $(VENV)/bin/pytest
 
 .DEFAULT_GOAL := help
 
-all: pdf
-
-run.webapp:
-	@cd web && npm install && npm run dev
+.PHONY: help
+help:
+	@echo "pdf.build pdf.watch pdf.clean | test.backend test.e2e test.all | web.dev | install | stats.lines"
 
 $(BUILDDIR):
 	mkdir -p paper/$(BUILDDIR)
 
-pdf: $(BUILDDIR)
-	@echo "Concatenating source code..."
+.PHONY: pdf.build
+pdf.build: $(BUILDDIR)
 	@bash paper/concat_code.sh
 	@cd $(SRCDIR) && \
 	$(LATEXMK) -pdf -jobname=$(JOBNAME) \
 		-interaction=nonstopmode -file-line-error \
 		-outdir=../$(BUILDDIR) $(TEX)
 
-watch: $(BUILDDIR)
+.PHONY: pdf.watch
+pdf.watch: $(BUILDDIR)
 	@cd $(SRCDIR) && \
 	$(LATEXMK) -pvc -pdf -jobname=$(JOBNAME) \
 		-interaction=nonstopmode -file-line-error \
 		-r ../.latexmkrc \
 		-outdir=../$(BUILDDIR) $(TEX)
 
-clean:
+.PHONY: pdf.clean
+pdf.clean:
 	@cd $(SRCDIR) && \
 	$(LATEXMK) -C -jobname=$(JOBNAME) -outdir=../$(BUILDDIR) || true
 	rm -rf paper/$(BUILDDIR)/*
+
+.PHONY: test.backend
+test.backend: $(VENV)
+	$(PYTEST) -v
+
+.PHONY: test.e2e
+test.e2e:
+	@cd tests/e2e && npm install
+	@cd tests/e2e && npx playwright install chromium
+	@timeout 30 bash -c 'until curl -sf http://localhost:5000/health > /dev/null 2>&1; do sleep 1; done' || (echo "Backend not ready" && exit 1)
+	@timeout 30 bash -c 'until curl -sf http://localhost:3000 > /dev/null 2>&1; do sleep 1; done' || (echo "Web app not ready" && exit 1)
+	@cd tests/e2e && npm test
+
+.PHONY: test.all
+test.all: test.backend test.e2e
+
+.PHONY: web.dev
+web.dev:
+	@cd web && npm install && npm run dev
 
 $(VENV):
 	python3 -m venv $(VENV)
 	$(PIP) install --upgrade pip
 
+.PHONY: install
 install: $(VENV)
 	$(PIP) install -r requirements.txt
 
-test: $(VENV)
-	$(PYTEST) -v
-
-count-lines:
+.PHONY: stats.lines
+stats.lines:
 	@find . \( -path '*/node_modules' -o -path '*/.venv' -o -path '*/venv' \) -prune -o \
 	\( -name "*.ts" -o -name "*.py" \) -type f -print0 | xargs -0 cat | wc -l
 
-test.e2e:
-	@echo "Installing E2E dependencies..."
-	@cd tests/e2e && npm install
-	@cd tests/e2e && npx playwright install chromium --with-deps
-	@echo "Waiting for services..."
-	@timeout 30 bash -c 'until curl -sf http://localhost:5000/health > /dev/null 2>&1; do sleep 1; done' || (echo "Backend not ready" && exit 1)
-	@timeout 30 bash -c 'until curl -sf http://localhost:3000 > /dev/null 2>&1; do sleep 1; done' || (echo "Web app not ready" && exit 1)
-	@echo "Running E2E tests..."
-	@cd tests/e2e && npm test
-
-.PHONY: all pdf clean watch run.webapp install test test.e2e count-lines
+.PHONY: pdf clean watch run.webapp test count-lines all
+pdf: pdf.build
+clean: pdf.clean
+watch: pdf.watch
+run.webapp: web.dev
+test: test.backend
+count-lines: stats.lines
+all: pdf.build
