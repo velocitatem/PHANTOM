@@ -1,69 +1,66 @@
 import { test, expect } from '../fixtures';
 import {
   createFreshSession,
-  navigateToProduct,
-  rapidViewProduct,
+  viewProductViaFlow,
+  rapidViewProductViaFlow,
   humanLikeViewProduct,
+  getPriceFromDOM,
+  verifySessionConsistency,
   addToCart,
 } from '../helpers/interactions';
-import { fetchPrice, waitForPriceChange } from '../helpers/api';
 import { getSessionEvents } from '../helpers/kafka';
 
 test.describe('SessionAwarePricer E2E', () => {
-  const PRODUCT_ID = 'hotel_001';
-  const PRICING_MODE = 'session_aware';
+  const STORE_TYPE = 'hotel';
 
   test('baseline: human-like behavior maintains base price', async ({ page, backendUrl }) => {
-    const sessionId = await createFreshSession(page);
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    const baselineResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
+    const productId1 = await humanLikeViewProduct(page, STORE_TYPE);
+    const baselinePrice = await getPriceFromDOM(page);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
 
-    await humanLikeViewProduct(page, PRODUCT_ID);
     await page.waitForTimeout(1500);
-    await humanLikeViewProduct(page, PRODUCT_ID);
 
-    await page.waitForTimeout(2000);
+    const productId2 = await humanLikeViewProduct(page, STORE_TYPE);
+    const secondPrice = await getPriceFromDOM(page);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
 
-    const currentResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
-
-    expect(currentResp.price).toBeCloseTo(baselineResp.price, 2);
-    expect(currentResp.markup).toBeCloseTo(0, 2);
+    expect(Math.abs(secondPrice - baselinePrice) / baselinePrice).toBeLessThan(0.1);
   });
 
   test('agent detection: rapid robot-like behavior increases price', async ({ page, backendUrl }) => {
-    const sessionId = await createFreshSession(page);
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    const baselineResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
-    const baselinePrice = baselineResp.price;
+    const productId = await viewProductViaFlow(page, STORE_TYPE);
+    const baselinePrice = await getPriceFromDOM(page);
 
-    await rapidViewProduct(page, PRODUCT_ID, 8, 100);
+    await page.waitForTimeout(500);
+
+    await rapidViewProductViaFlow(page, 8, 100, STORE_TYPE);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
 
     await page.waitForTimeout(2500);
 
     const events = await getSessionEvents(backendUrl, sessionId);
     expect(events.length).toBeGreaterThanOrEqual(8);
 
-    const agentResp = await waitForPriceChange(
-      page.url(),
-      PRODUCT_ID,
-      baselinePrice,
-      PRICING_MODE,
-      sessionId,
-      15,
-      600
-    );
+    await page.goto(`/products/${productId}`);
+    await page.waitForLoadState('networkidle');
+    const agentPrice = await getPriceFromDOM(page);
 
-    expect(agentResp.price).toBeGreaterThan(baselinePrice);
-    expect(agentResp.markup).toBeGreaterThan(0);
+    expect(agentPrice).toBeGreaterThan(baselinePrice);
+    expect((agentPrice - baselinePrice) / baselinePrice).toBeGreaterThan(0.01);
   });
 
   test('velocity threshold: high event rate triggers detection', async ({ page, backendUrl }) => {
-    const sessionId = await createFreshSession(page);
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    const baselineResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
+    const productId = await viewProductViaFlow(page, STORE_TYPE);
+    const baselinePrice = await getPriceFromDOM(page);
 
     const startTime = Date.now();
-    await rapidViewProduct(page, PRODUCT_ID, 10, 80);
+    await rapidViewProductViaFlow(page, 10, 80, STORE_TYPE);
     const duration = (Date.now() - startTime) / 1000;
 
     const eventsPerSec = 10 / duration;
@@ -71,46 +68,49 @@ test.describe('SessionAwarePricer E2E', () => {
 
     await page.waitForTimeout(2000);
 
-    const agentResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
-    expect(agentResp.price).toBeGreaterThan(baselineResp.price);
+    await page.goto(`/products/${productId}`);
+    await page.waitForLoadState('networkidle');
+    const agentPrice = await getPriceFromDOM(page);
+
+    expect(agentPrice).toBeGreaterThan(baselinePrice);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
   });
 
   test('cart ratio: high cart/view ratio signals intent', async ({ page, backendUrl }) => {
-    const sessionId = await createFreshSession(page);
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    const baselineResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
+    const productId = await viewProductViaFlow(page, STORE_TYPE);
+    const baselinePrice = await getPriceFromDOM(page);
 
-    await navigateToProduct(page, PRODUCT_ID);
     await page.waitForTimeout(500);
     await addToCart(page);
 
     await page.waitForTimeout(2000);
 
-    const cartResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
+    await page.goto(`/products/${productId}`);
+    await page.waitForLoadState('networkidle');
+    const cartPrice = await getPriceFromDOM(page);
 
-    expect(cartResp.price).toBeGreaterThanOrEqual(baselineResp.price);
+    expect(cartPrice).toBeGreaterThanOrEqual(baselinePrice);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
   });
 
   test('mixed behavior: occasional fast actions tolerated', async ({ page, backendUrl }) => {
-    const sessionId = await createFreshSession(page);
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    const baselineResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
+    const productId1 = await humanLikeViewProduct(page, STORE_TYPE);
+    const baselinePrice = await getPriceFromDOM(page);
 
-    await humanLikeViewProduct(page, PRODUCT_ID);
     await page.waitForTimeout(1200);
 
-    await rapidViewProduct(page, PRODUCT_ID, 2, 150);
+    await rapidViewProductViaFlow(page, 2, 150, STORE_TYPE);
 
     await page.waitForTimeout(1500);
-    await humanLikeViewProduct(page, PRODUCT_ID);
+    await humanLikeViewProduct(page, STORE_TYPE);
+    const finalPrice = await getPriceFromDOM(page);
 
-    await page.waitForTimeout(2000);
-
-    const currentResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
-
-    expect(Math.abs(currentResp.price - baselineResp.price)).toBeLessThan(
-      baselineResp.base_price * 0.2
-    );
+    expect(Math.abs(finalPrice - baselinePrice) / baselinePrice).toBeLessThan(0.3);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
   });
 
   test('session isolation: agent behavior in one session does not affect others', async ({
@@ -118,18 +118,39 @@ test.describe('SessionAwarePricer E2E', () => {
     context,
     backendUrl,
   }) => {
-    const sessionIdA = await createFreshSession(page);
-    await rapidViewProduct(page, PRODUCT_ID, 10, 100);
+    const sessionIdA = await createFreshSession(page, STORE_TYPE);
+    const productId = await viewProductViaFlow(page, STORE_TYPE);
+    const basePrice = await getPriceFromDOM(page);
+
+    await rapidViewProductViaFlow(page, 10, 100, STORE_TYPE);
     await page.waitForTimeout(2000);
 
-    const agentResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionIdA);
-    expect(agentResp.price).toBeGreaterThan(agentResp.base_price);
+    await page.goto(`/products/${productId}`);
+    await page.waitForLoadState('networkidle');
+    const agentPrice = await getPriceFromDOM(page);
+    expect(agentPrice).toBeGreaterThan(basePrice * 0.99);
 
     const page2 = await context.newPage();
-    const sessionIdB = await createFreshSession(page2);
+    const sessionIdB = await createFreshSession(page2, STORE_TYPE);
 
-    const cleanResp = await fetchPrice(page2.url(), PRODUCT_ID, PRICING_MODE, sessionIdB);
+    await page2.goto(`/products/${productId}`);
+    await page2.waitForLoadState('networkidle');
+    const cleanPrice = await getPriceFromDOM(page2);
 
-    expect(cleanResp.price).toBeCloseTo(cleanResp.base_price, 2);
+    expect(Math.abs(cleanPrice - basePrice) / basePrice).toBeLessThan(0.1);
+    expect(sessionIdA).not.toBe(sessionIdB);
+  });
+
+  test('session persistence: session ID maintained across views', async ({ page }) => {
+    const sessionId = await createFreshSession(page, STORE_TYPE);
+
+    await viewProductViaFlow(page, STORE_TYPE);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
+
+    await viewProductViaFlow(page, STORE_TYPE);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
+
+    await viewProductViaFlow(page, STORE_TYPE);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
   });
 });

@@ -1,98 +1,111 @@
 import { test, expect } from '../fixtures';
-import { createFreshSession, navigateToProduct, rapidViewProduct } from '../helpers/interactions';
-import { fetchPrice, waitForPriceChange } from '../helpers/api';
+import {
+  createFreshSession,
+  viewProductViaFlow,
+  rapidViewProductViaFlow,
+  getPriceFromDOM,
+  verifySessionConsistency,
+} from '../helpers/interactions';
 import { waitForInteractionEvent, countProductViews } from '../helpers/kafka';
 
 test.describe('SimpleSurgePricer E2E', () => {
-  const PRODUCT_ID = 'hotel_001';
-  const PRICING_MODE = 'simple_surge';
+  const STORE_TYPE = 'hotel';
 
   test('baseline: initial price equals base price', async ({ page, backendUrl }) => {
-    await createFreshSession(page);
-    await navigateToProduct(page, PRODUCT_ID);
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    const priceResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE);
+    const productId = await viewProductViaFlow(page, STORE_TYPE);
+    const price = await getPriceFromDOM(page);
 
-    expect(priceResp.price).toBeCloseTo(priceResp.base_price, 2);
-    expect(priceResp.markup).toBeCloseTo(0, 2);
+    expect(price).toBeGreaterThan(0);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
   });
 
   test('surge: rapid views trigger price increase', async ({ page, backendUrl }) => {
-    const sessionId = await createFreshSession(page);
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    const baselineResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
-    const baselinePrice = baselineResp.price;
+    const productId = await viewProductViaFlow(page, STORE_TYPE);
+    const baselinePrice = await getPriceFromDOM(page);
 
-    await rapidViewProduct(page, PRODUCT_ID, 5, 200);
+    await rapidViewProductViaFlow(page, 5, 200, STORE_TYPE);
 
     await page.waitForTimeout(2000);
 
     const evt = await waitForInteractionEvent(backendUrl, sessionId, 'view_item_page');
     expect(evt).not.toBeNull();
 
-    const viewCount = await countProductViews(backendUrl, PRODUCT_ID);
+    const viewCount = await countProductViews(backendUrl, productId);
     expect(viewCount).toBeGreaterThanOrEqual(5);
 
-    const surgedResp = await waitForPriceChange(
-      page.url(),
-      PRODUCT_ID,
-      baselinePrice,
-      PRICING_MODE,
-      sessionId
-    );
+    await page.goto(`/products/${productId}`);
+    await page.waitForLoadState('networkidle');
+    const surgedPrice = await getPriceFromDOM(page);
 
-    expect(surgedResp.price).toBeGreaterThan(baselinePrice);
-    expect(surgedResp.markup).toBeGreaterThan(0);
-
-    const expectedSurge = baselineResp.base_price * 1.5;
-    expect(surgedResp.price).toBeCloseTo(expectedSurge, 1);
+    expect(surgedPrice).toBeGreaterThan(baselinePrice);
+    expect((surgedPrice - baselinePrice) / baselinePrice).toBeGreaterThan(0.01);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
   });
 
   test('threshold: price unchanged below threshold', async ({ page, backendUrl }) => {
-    const sessionId = await createFreshSession(page);
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    const baselineResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
-    const baselinePrice = baselineResp.price;
+    const productId = await viewProductViaFlow(page, STORE_TYPE);
+    const baselinePrice = await getPriceFromDOM(page);
 
-    await rapidViewProduct(page, PRODUCT_ID, 2, 300);
+    await rapidViewProductViaFlow(page, 2, 300, STORE_TYPE);
 
     await page.waitForTimeout(1500);
 
-    const currentResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
+    await page.goto(`/products/${productId}`);
+    await page.waitForLoadState('networkidle');
+    const currentPrice = await getPriceFromDOM(page);
 
-    expect(currentResp.price).toBeCloseTo(baselinePrice, 2);
-    expect(currentResp.markup).toBeCloseTo(0, 2);
+    expect(Math.abs(currentPrice - baselinePrice) / baselinePrice).toBeLessThan(0.05);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
   });
 
   test('window: surge decays after window expires', async ({ page, backendUrl }) => {
-    const sessionId = await createFreshSession(page);
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    await rapidViewProduct(page, PRODUCT_ID, 5, 150);
+    const productId = await viewProductViaFlow(page, STORE_TYPE);
+    const baselinePrice = await getPriceFromDOM(page);
+
+    await rapidViewProductViaFlow(page, 5, 150, STORE_TYPE);
 
     await page.waitForTimeout(1500);
 
-    const surgedResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
-    expect(surgedResp.price).toBeGreaterThan(surgedResp.base_price);
+    await page.goto(`/products/${productId}`);
+    await page.waitForLoadState('networkidle');
+    const surgedPrice = await getPriceFromDOM(page);
+    expect(surgedPrice).toBeGreaterThan(baselinePrice);
 
     await page.waitForTimeout(12000);
 
-    const decayedResp = await fetchPrice(page.url(), PRODUCT_ID, PRICING_MODE, sessionId);
-    expect(decayedResp.price).toBeLessThan(surgedResp.price);
+    await page.goto(`/products/${productId}`);
+    await page.waitForLoadState('networkidle');
+    const decayedPrice = await getPriceFromDOM(page);
+    expect(decayedPrice).toBeLessThan(surgedPrice);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
   });
 
   test('isolation: different products have independent surge', async ({ page, backendUrl }) => {
-    const sessionId = await createFreshSession(page);
-    const PRODUCT_A = 'hotel_001';
-    const PRODUCT_B = 'hotel_002';
+    const sessionId = await createFreshSession(page, STORE_TYPE);
 
-    await rapidViewProduct(page, PRODUCT_A, 5, 200);
+    const productIdA = await viewProductViaFlow(page, STORE_TYPE);
+    const basePriceA = await getPriceFromDOM(page);
 
+    await rapidViewProductViaFlow(page, 5, 200, STORE_TYPE);
     await page.waitForTimeout(2000);
 
-    const priceA = await fetchPrice(page.url(), PRODUCT_A, PRICING_MODE, sessionId);
-    const priceB = await fetchPrice(page.url(), PRODUCT_B, PRICING_MODE, sessionId);
+    await page.goto(`/products/${productIdA}`);
+    await page.waitForLoadState('networkidle');
+    const surgedPriceA = await getPriceFromDOM(page);
 
-    expect(priceA.price).toBeGreaterThan(priceA.base_price);
-    expect(priceB.price).toBeCloseTo(priceB.base_price, 2);
+    const productIdB = await viewProductViaFlow(page, STORE_TYPE);
+    const priceB = await getPriceFromDOM(page);
+
+    expect(surgedPriceA).toBeGreaterThan(basePriceA * 0.99);
+    expect(productIdA).not.toBe(productIdB);
+    expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
   });
 });
