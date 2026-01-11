@@ -53,4 +53,14 @@ count-lines:
 	@find . \( -path '*/node_modules' -o -path '*/.venv' -o -path '*/venv' \) -prune -o \
 	\( -name "*.ts" -o -name "*.py" \) -type f -print0 | xargs -0 cat | wc -l
 
-.PHONY: all pdf clean watch run.webapp install test
+test.e2e:
+	@echo "Installing E2E dependencies..."
+	@cd tests/e2e && npm install
+	@cd tests/e2e && npx playwright install chromium --with-deps
+	@echo "Waiting for services..."
+	@timeout 30 bash -c 'until curl -sf http://localhost:5000/health > /dev/null 2>&1; do sleep 1; done' || (echo "Backend not ready" && exit 1)
+	@timeout 30 bash -c 'until curl -sf http://localhost:3000 > /dev/null 2>&1; do sleep 1; done' || (echo "Web app not ready" && exit 1)
+	@echo "Running E2E tests..."
+	@cd tests/e2e && npm test
+
+.PHONY: all pdf clean watch run.webapp install test test.e2e count-lines
