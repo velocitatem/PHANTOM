@@ -178,3 +178,49 @@ class ModelRegistry:
             return True
         except:
             return False
+
+    def set_session_prices(self, session_id: str, prices: Dict[str, float], ttl: int = 1800):
+        """
+        Store prices for a specific session.
+        THIS is the write path for session-aware pricing.
+
+        Args:
+            session_id: session identifier
+            prices: dict of {productId: price}
+            ttl: time-to-live in seconds (default 30min)
+        """
+        if not prices:
+            return
+
+        key = f"session:{session_id}:prices"
+        # use Redis hash for O(1) lookup per product
+        self.redis_client.hset(key, mapping={k: str(v) for k, v in prices.items()})
+        self.redis_client.expire(key, ttl)
+
+    def get_session_price(self, session_id: str, product_id: str) -> Optional[float]:
+        """
+        Lookup price for (sessionId, productId).
+        THIS is the read path for fast provider lookup.
+
+        Returns: price or None if not found
+        """
+        key = f"session:{session_id}:prices"
+        price_str = self.redis_client.hget(key, product_id)
+
+        if price_str is None:
+            return None
+
+        return float(price_str.decode('utf-8') if isinstance(price_str, bytes) else price_str)
+
+    def get_session_all_prices(self, session_id: str) -> Dict[str, float]:
+        """Get all prices for a session."""
+        key = f"session:{session_id}:prices"
+        prices_raw = self.redis_client.hgetall(key)
+
+        if not prices_raw:
+            return {}
+
+        return {
+            (k.decode('utf-8') if isinstance(k, bytes) else k): float(v.decode('utf-8') if isinstance(v, bytes) else v)
+            for k, v in prices_raw.items()
+        }

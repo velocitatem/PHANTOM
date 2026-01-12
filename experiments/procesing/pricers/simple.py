@@ -3,6 +3,46 @@ import pandas as pd
 from procesing.pricers.base import PricingFunction
 
 
+def session_features_to_demand(session_features: pd.DataFrame) -> float:
+    """
+    Map session behavioral features to demand proxy.
+    THIS is the critical θ̂ → D transformation for rule-based pricing.
+
+    Logic:
+      - High velocity → agent behavior → price up (revenue recovery)
+      - High cart ratio → purchase intent → price up
+      - Low activity → discount to convert
+
+    Returns: demand proxy score (0-20 range, higher = more demand)
+    """
+    if session_features.empty:
+        return 1.0
+
+    feat = session_features.iloc[0] if len(session_features) > 0 else {}
+
+    velocity = feat.get('interaction_velocity', 0)
+    cart_ratio = feat.get('cart_to_view_ratio', 0)
+    item_views = feat.get('item_views', 0)
+    cart_adds = feat.get('cart_adds', 0)
+
+    # baseline demand
+    demand = 1.0
+
+    # agent detection: high velocity → treat as high "demand" to price up
+    if velocity > 2.0:
+        demand += 10.0  # strong agent signal
+
+    # conversion intent: cart interaction → price up
+    if cart_ratio > 0.1 or cart_adds > 0:
+        demand += 5.0
+
+    # browsing depth: many views → interest signal
+    if item_views > 3:
+        demand += min(item_views, 5.0)
+
+    return min(demand, 20.0)  # cap at 20
+
+
 class StaticPricer(PricingFunction):
     """Static pricing: always return fixed base prices"""
 
@@ -67,21 +107,24 @@ class SimpleSurgePricer(PricingFunction):
         self.surge_multiplier = surge_multiplier
         self.discount_multiplier = discount_multiplier
 
-    def fit(self, market_data : pd.DataFrame):
+    def fit(self, market_data: pd.DataFrame):
         """Extract base prices from product catalog or historical averages"""
         self.base_prices = market_data['base_price'].to_numpy() if 'base_price' in market_data.columns else market_data['price'].values
-        self.demand_history = market_data['demand'].to_numpy() if 'demand' in market_data.columns else np.zeros_like(self.base_prices)
+        return self
 
-    def predict(self) -> np.ndarray:
+    def predict(self, state_space) -> np.ndarray:
         """
         Adjust prices based on current demand using surge rules.
-        state_space.demand: demand counts per product
-        state_space.prices: current prices (fallback if base_prices not set)
+        state_space.demand: demand proxy per product (from session features)
+        state_space.prices: base prices
         """
-        current_prices = self.base_prices if self.base_prices is not None else np.ones_like(demand_vector) * 99.99
-        demand = self.demand_history if self.demand_history is not None else np.zeros_like(current_prices)
-        new_prices = current_prices.copy()
+        demand = np.asarray(state_space.demand) if state_space and hasattr(state_space, 'demand') else np.array([0])
+        base = np.asarray(state_space.prices) if state_space and hasattr(state_space, 'prices') else self.base_prices
 
+        if base is None:
+            base = np.ones(len(demand)) * 99.99
+
+        new_prices = base.copy()
         high_mask = demand >= self.high_threshold
         new_prices[high_mask] *= self.surge_multiplier
 

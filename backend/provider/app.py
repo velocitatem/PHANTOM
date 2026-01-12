@@ -47,53 +47,52 @@ def health() -> dict:
 
 @app.get("/api/{mode}/price/{productId}", response_model=PriceResponse)
 def get_price(mode: Literal['hotel', 'airline'], productId: str, sessionId: Optional[str] = Query(None), experimentId: Optional[str] = Query(None)):
+    """
+    THIS is the fast lookup service (mechanism).
+    Priority: session-keyed price > global optimal price > base price
+    """
     product = supabase.table(f'{mode}_products').select("metadata").eq('id', productId).execute().data[0]
     if not product: raise HTTPException(404, f"Product {productId} not found")
 
     metadata = product['metadata']
     base_price = metadata.get('base_price', 100.0)
 
-    # fetch pre-computed prices from registry
+    # PRIORITY 1: session-aware price (computed by Airflow worker)
+    if sessionId:
+        session_price = registry.get_session_price(sessionId, productId)
+        if session_price is not None:
+            return PriceResponse(
+                productId=productId,
+                price=session_price,
+                base_price=base_price,
+                markup=session_price/base_price,
+                elasticity=None,
+                model_version='session-aware'
+            )
+
+    # PRIORITY 2: global pre-computed prices (surge pricing)
     prices_df = registry.get_prices('latest')
-    elasticity_df = registry.get_elasticity('latest')
+    if prices_df is not None:
+        product_price_row = prices_df[prices_df['productId'] == productId]
+        if not product_price_row.empty:
+            optimal_price = float(product_price_row['optimal_price'].iloc[0])
+            return PriceResponse(
+                productId=productId,
+                price=optimal_price,
+                base_price=base_price,
+                markup=optimal_price/base_price,
+                elasticity=None,
+                model_version='surge'
+            )
 
-    if prices_df is None:
-        # fallback: no pre-computed prices available
-        return PriceResponse(
-            productId=productId,
-            price=base_price,
-            base_price=base_price,
-            markup=1.0,
-            elasticity=None
-        )
-
-    # lookup pre-computed price for this product
-    product_price_row = prices_df[prices_df['productId'] == productId]
-    if product_price_row.empty:
-        # product not in pre-computed prices, fallback to base
-        return PriceResponse(
-            productId=productId,
-            price=base_price,
-            base_price=base_price,
-            markup=1.0,
-            elasticity=None
-        )
-
-    optimal_price = float(product_price_row['optimal_price'].iloc[0]) # TODO: use optimal_price everywhere as  aresult
-
-    # get elasticity if available
-    product_elasticity = None
-    if elasticity_df is not None:
-        product_elasticity_row = elasticity_df[elasticity_df['productId'] == productId]
-        if not product_elasticity_row.empty:
-            product_elasticity = float(product_elasticity_row['elasticity'].iloc[0])
-
+    # PRIORITY 3: fallback to base price
     return PriceResponse(
         productId=productId,
-        price=optimal_price,
+        price=base_price,
         base_price=base_price,
-        markup=optimal_price/base_price,
-        elasticity=product_elasticity
+        markup=1.0,
+        elasticity=None,
+        model_version='base'
     )
 
 @app.get("/models")
