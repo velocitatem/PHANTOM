@@ -57,3 +57,13 @@ class ElasticityBasedPricer(PricingFunction):
         # enforce bounds
         prices = np.clip(prices, self.price_floor, self.price_ceil)
         return prices
+
+    def _get_features(self, state_space=None) -> np.ndarray:
+        """Extract elasticity, demand, and demand deviation for each product"""
+        if state_space is None or self.elasticity is None:
+            n = len(self.elasticity) if self.elasticity is not None else 0
+            return np.zeros((n, 3))
+
+        demand = np.asarray(state_space.demand)
+        demand_dev = (demand - self.mean_demand) / (self.mean_demand + 1e-6)
+        return np.column_stack([self.elasticity, demand, demand_dev])
