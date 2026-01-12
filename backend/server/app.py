@@ -198,12 +198,16 @@ def dump_logs(
             auto_offset_reset='earliest',
             enable_auto_commit=False,
             value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-            consumer_timeout_ms=5000
+            consumer_timeout_ms=30000,
+            fetch_max_wait_ms=10000,
+            max_poll_records=1000
         )
 
         events = []
         for msg in consumer:
             events.append(msg.value)
+            if last_n and len(events) >= last_n * 2:
+                break
 
         consumer.close()
 

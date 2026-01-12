@@ -9,8 +9,8 @@ interface InteractionEvent {
 const dumpKafkaTopic = async (backendUrl: string, topic: string) => {
   const resp = await fetch(`${backendUrl}/api/kafka/dump?topic=${topic}`);
   if (!resp.ok) throw new Error(`Kafka dump failed: ${resp.status}`);
-  const { messages = [] } = await resp.json();
-  return messages as any[];
+  const { data = [] } = await resp.json();
+  return data as any[];
 };
 
 export const waitForInteractionEvent = async (
