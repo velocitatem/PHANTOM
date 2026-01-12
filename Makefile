@@ -49,8 +49,10 @@ test.backend: $(VENV)
 test.e2e:
 	@cd tests/e2e && npm install
 	@cd tests/e2e && npx playwright install chromium
+	@test -f tests/e2e/.env || cp tests/e2e/.env.example tests/e2e/.env
 	@timeout 30 bash -c 'until curl -sf http://localhost:5000/health > /dev/null 2>&1; do sleep 1; done' || (echo "Backend not ready" && exit 1)
 	@timeout 30 bash -c 'until curl -sf http://localhost:3000 > /dev/null 2>&1; do sleep 1; done' || (echo "Web app not ready" && exit 1)
+	@timeout 30 bash -c 'until curl -sf http://localhost:8085/health > /dev/null 2>&1; do sleep 1; done' || (echo "Airflow not ready" && exit 1)
 	@cd tests/e2e && npm test
 
 .PHONY: test.all

@@ -7,6 +7,7 @@ import {
   verifySessionConsistency,
 } from '../helpers/interactions';
 import { waitForInteractionEvent, countProductViews } from '../helpers/kafka';
+import { runSurgePricing } from '../helpers/airflow';
 
 test.describe('SimpleSurgePricer E2E', () => {
   const STORE_TYPE = 'hotel';
@@ -29,13 +30,15 @@ test.describe('SimpleSurgePricer E2E', () => {
 
     await rapidViewProductViaFlow(page, 5, 200, STORE_TYPE);
 
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1000);
 
     const evt = await waitForInteractionEvent(backendUrl, sessionId, 'view_item_page');
     expect(evt).not.toBeNull();
 
     const viewCount = await countProductViews(backendUrl, productId);
     expect(viewCount).toBeGreaterThanOrEqual(5);
+
+    await runSurgePricing(STORE_TYPE, 3, 1);
 
     await page.goto(`/products/${productId}`);
     await page.waitForLoadState('networkidle');
@@ -72,7 +75,9 @@ test.describe('SimpleSurgePricer E2E', () => {
 
     await rapidViewProductViaFlow(page, 5, 150, STORE_TYPE);
 
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1000);
+
+    await runSurgePricing(STORE_TYPE, 3, 1);
 
     await page.goto(`/products/${productId}`);
     await page.waitForLoadState('networkidle');
@@ -80,6 +85,8 @@ test.describe('SimpleSurgePricer E2E', () => {
     expect(surgedPrice).toBeGreaterThan(baselinePrice);
 
     await page.waitForTimeout(12000);
+
+    await runSurgePricing(STORE_TYPE, 3, 1);
 
     await page.goto(`/products/${productId}`);
     await page.waitForLoadState('networkidle');

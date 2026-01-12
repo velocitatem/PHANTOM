@@ -120,14 +120,30 @@ def apply_surge_pricing(**kwargs):
     # rename demand_score to demand for pricer compatibility
     data = product_features.rename(columns={'demand_score': 'demand'})
 
+    high_thresh = dag_conf.get('high_threshold', 10)
+    low_thresh = dag_conf.get('low_threshold', 2)
+    surge_mult = dag_conf.get('surge_multiplier', 1.2)
+    discount_mult = dag_conf.get('discount_multiplier', 0.9)
+
+    logging.info(f"Surge pricing config: high_thresh={high_thresh}, low_thresh={low_thresh}, surge_mult={surge_mult}, discount_mult={discount_mult}")
+    logging.info(f"Demand stats: min={data['demand'].min():.2f}, max={data['demand'].max():.2f}, mean={data['demand'].mean():.2f}")
+    logging.info(f"Products with high demand (>={high_thresh}): {(data['demand'] >= high_thresh).sum()}")
+    logging.info(f"Products with low demand (<={low_thresh}): {(data['demand'] <= low_thresh).sum()}")
+
     surge_pricer = SimpleSurgePricer(
-        high_threshold=dag_conf.get('high_threshold', 10),
-        low_threshold=dag_conf.get('low_threshold', 2),
-        surge_multiplier=dag_conf.get('surge_multiplier', 1.2),
-        discount_multiplier=dag_conf.get('discount_multiplier', 0.9)
+        high_threshold=high_thresh,
+        low_threshold=low_thresh,
+        surge_multiplier=surge_mult,
+        discount_multiplier=discount_mult
     )
     surge_pricer.fit(data)
     data['optimal_price'] = surge_pricer.predict()
+
+    base_avg = data['base_price'].mean()
+    optimal_avg = data['optimal_price'].mean()
+    price_change_pct = ((optimal_avg - base_avg) / base_avg) * 100
+
+    logging.info(f"Price adjustment: base_avg={base_avg:.2f}, optimal_avg={optimal_avg:.2f}, change={price_change_pct:+.1f}%")
 
     prices_df = data[['productId', 'price', 'base_price', 'optimal_price', 'demand']].rename(columns={
         'price': 'current_price',

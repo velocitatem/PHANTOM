@@ -124,7 +124,8 @@ class SimpleSurgePricer(PricingFunction):
         if base is None:
             base = np.ones(len(demand)) * 99.99
 
-        new_prices = base.copy()
+        # ensure float dtype to allow multiplication by float multipliers
+        new_prices = base.astype(np.float64).copy()
         high_mask = demand >= self.high_threshold
         new_prices[high_mask] *= self.surge_multiplier
 
