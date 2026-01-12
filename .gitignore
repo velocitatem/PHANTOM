@@ -11,3 +11,6 @@ paper/src/bib/auto
 experiments/airflow/logs/*
 experiments/airflow/logs/scheduler/
 experiments/airflow/logs/dag_processor_manager/
+tests/e2e/node_modules/**
+**/auto/*.el
+*.old
