@@ -225,6 +225,14 @@ In our simulation, the "Follower" is implemented as a set of Actors. Each Actor 
 
 As part of our reward engineering we think about the UX factor ($UX \in [0,1]$) whic his our proxy for user experience degradation, this is computed as a mixture of contribution from the separability model metric of $\frac{1}{\text{Specificity}}$.
 
+\begin{figure}[ht]
+  \centering
+  \resizebox{0.5\columnwidth}{!}{%
+    \input{chapters/balance_figure.tex}
+  }
+  \caption{Introducing the UX index allows us to better distinguish the kind of impact different methods have and allows us to compare them on this Pareto-like scale.}
+\end{figure}
+
 We also need to think about a policy like taxation to the agents Strategy-Proof Mechanism Design, specifically the Vickrey-Clarke-Groves (VCG) payment rule. We link and prove that this would create an incentive for the dominant strategy to become truth-telling.
 
 \section{Heuristics as part of neuro-inspired steering systems}
