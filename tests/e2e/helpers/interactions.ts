@@ -32,11 +32,7 @@ interface SearchParams {
   adults?: number;
 }
 
-export async function performSearch(
-  page: Page,
-  params: SearchParams,
-  storeType: 'hotel' | 'airline' = 'hotel'
-): Promise<void> {
+export async function performSearch(page: Page, params: SearchParams, storeType: 'hotel' | 'airline' = 'hotel' ): Promise<void> {
   await page.waitForLoadState('networkidle');
 
   if (storeType === 'hotel') {
@@ -155,20 +151,12 @@ export async function getPriceFromDOM(page: Page): Promise<number> {
   throw new Error('Cannot extract price from DOM');
 }
 
-export async function navigateToProduct(
-  page: Page,
-  productId: string,
-  storeType: 'hotel' | 'airline' = 'hotel'
-): Promise<void> {
+export async function navigateToProduct(page: Page,productId: string,storeType: 'hotel' | 'airline' = 'hotel'): Promise<void> {
   await page.goto(`/products/${productId}`);
   await page.waitForLoadState('networkidle');
 }
 
-export async function viewProductViaFlow(
-  page: Page,
-  storeType: 'hotel' | 'airline' = 'hotel',
-  searchParams?: SearchParams
-): Promise<string> {
+export async function viewProductViaFlow(page: Page, storeType: 'hotel' | 'airline' = 'hotel', searchParams?: SearchParams): Promise<string> {
   const params = new URLSearchParams();
   params.set('dateIndex', '7');
 
@@ -192,12 +180,7 @@ export async function viewProductViaFlow(
   return productId;
 }
 
-export async function rapidViewProductViaFlow(
-  page: Page,
-  count: number,
-  delayMs: number = 100,
-  storeType: 'hotel' | 'airline' = 'hotel'
-): Promise<string[]> {
+export async function rapidViewProductViaFlow(page: Page, count: number, delayMs: number = 100, storeType: 'hotel' | 'airline' = 'hotel'): Promise<string[]> {
   const productIds: string[] = [];
 
   for (let i = 0; i < count; i++) {
@@ -210,9 +193,7 @@ export async function rapidViewProductViaFlow(
   return productIds;
 }
 
-export async function humanLikeViewProduct(
-  page: Page,
-  storeType: 'hotel' | 'airline' = 'hotel'
+export async function humanLikeViewProduct(page: Page, storeType: 'hotel' | 'airline' = 'hotel'
 ): Promise<string> {
   const productId = await viewProductViaFlow(page, storeType);
 
