@@ -31,7 +31,7 @@ export interface Flight {
   availability: number;
 }
 
-const EPOCH = new Date(0);
+import { dateToDaysFromToday, dateToIndex, todayIndex } from './date-utils';
 
 export const transformProduct = (p: AirlineProduct): Flight => {
   const { id, flight_type, date_index, metadata, availability } = p;
@@ -52,24 +52,4 @@ export const transformProduct = (p: AirlineProduct): Flight => {
   };
 };
 
-// convert date string to days from today
-export const dateToDaysFromToday = (dateStr: string): number => {
-  const target = new Date(dateStr);
-  target.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.floor((target.getTime() - today.getTime()) / 86400000);
-};
-
-// convert date string to date_index (days since epoch)
-export const dateToIndex = (dateStr: string): number => {
-  const d = new Date(dateStr);
-  return Math.floor((d.getTime() - EPOCH.getTime()) / 86400000);
-};
-
-// get current date_index
-export const todayIndex = (): number => {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return Math.floor((now.getTime() - EPOCH.getTime()) / 86400000);
-};
+export { dateToDaysFromToday, dateToIndex, todayIndex };

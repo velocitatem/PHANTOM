@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Hotel } from '@/lib/hotel-utils';
+import { getHotelImageUrl } from '@/lib/hotel-utils';
 import PriceDisplay from '@/components/ui/PriceDisplay';
 
 interface HotelDetailsProps {
@@ -43,13 +44,11 @@ const PriceTotalDisplay = ({ productId, nights }: { productId: string; nights: n
 };
 
 export default function HotelDetails({ product, onAddToCart, addedToCart }: HotelDetailsProps) {
-  const imageUrl = `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop`;
-
   return (
     <div className="w-full flex flex-col lg:flex-row gap-12 py-8">
       <div className="w-full lg:w-1/2 rounded-lg aspect-[4/3] overflow-hidden shrink-0">
         <img
-          src={imageUrl}
+          src={getHotelImageUrl(product.id, { w: 800, h: 600 })}
           alt={product.name}
           className="w-full h-full object-cover"
           onError={(e) => {
