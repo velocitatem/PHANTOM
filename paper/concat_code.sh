@@ -43,22 +43,22 @@ EOF
 echo "Concatenating code from source directories..."
 
 # Backend
-find "$PROJECT_ROOT/backend" -type f \( -name "*.py" -o -name "*.js" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" \) | sort | while read -r file; do
+find "$PROJECT_ROOT/backend" -type d \( -name ".venv" -o -name "__pycache__" -o -name "*.egg-info" -o -name "node_modules" -o -name ".pytest_cache" \) -prune -o -type f \( -name "*.py" -o -name "*.js" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" \) ! -name "*.pyc" ! -name "*.pyo" -print | sort | while read -r file; do
     add_file "$file"
 done
 
 # Experiments
-find "$PROJECT_ROOT/experiments" -type f \( -name "*.py" -o -name "*.js" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" \) | sort | while read -r file; do
+find "$PROJECT_ROOT/experiments" -type d \( -name ".venv" -o -name "__pycache__" -o -name "*.egg-info" -o -name "node_modules" -o -name ".pytest_cache" -o -name ".ipynb_checkpoints" \) -prune -o -type f \( -name "*.py" -o -name "*.js" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" \) ! -name "*.pyc" ! -name "*.pyo" -print | sort | while read -r file; do
     add_file "$file"
 done
 
 # Docker
-find "$PROJECT_ROOT/docker" -type f \( -name "*.py" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" -o -name "Dockerfile*" \) | sort | while read -r file; do
+find "$PROJECT_ROOT/docker" -type d \( -name ".venv" -o -name "__pycache__" -o -name "node_modules" \) -prune -o -type f \( -name "*.py" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" -o -name "Dockerfile*" \) ! -name "*.pyc" ! -name "*.pyo" -print | sort | while read -r file; do
     add_file "$file"
 done
 
 # Web/src
-find "$PROJECT_ROOT/web/src" -type f \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" \) | sort | while read -r file; do
+find "$PROJECT_ROOT/web/src" -type d \( -name "node_modules" -o -name ".next" -o -name "dist" -o -name "build" \) -prune -o -type f \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" \) -print | sort | while read -r file; do
     add_file "$file"
 done
 

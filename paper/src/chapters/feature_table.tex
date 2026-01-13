@@ -1,0 +1,65 @@
+\begin{table}[ht]
+\centering
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{p{4.5cm}p{1.5cm}p{6cm}}
+\hline
+\textbf{Feature} & \textbf{Type} & \textbf{Description} \\
+\hline
+\multicolumn{3}{l}{\textit{Session Identifiers}} \\
+sessionId & object & Unique identifier for user session \\
+experimentId & object & Experiment run identifier \\
+\hline
+\multicolumn{3}{l}{\textit{Temporal Features}} \\
+session\_duration\_sec & float & Total session duration in seconds \\
+avg\_time\_between\_events & float & Mean inter-event time \\
+std\_time\_between\_events & float & Standard deviation of inter-event times \\
+min\_time\_between\_events & float & Minimum time between consecutive events \\
+session\_start\_hour & int & Hour of day when session started \\
+\hline
+\multicolumn{3}{l}{\textit{Interaction Metrics}} \\
+total\_interactions & int & Count of all user interactions \\
+total\_events & int & Total number of tracked events \\
+interaction\_velocity & float & Rate of interactions per time unit \\
+max\_velocity\_5min & int & Peak interaction count in any 5-minute window \\
+\hline
+\multicolumn{3}{l}{\textit{Navigation Behavior}} \\
+unique\_pages & int & Number of distinct pages visited \\
+page\_views & int & Total page view events \\
+\hline
+\multicolumn{3}{l}{\textit{Product Engagement}} \\
+item\_views & int & Number of product detail views \\
+unique\_products\_viewed & int & Count of distinct products examined \\
+product\_view\_depth & int & Repeat views of same products \\
+\hline
+\multicolumn{3}{l}{\textit{Conversion Funnel}} \\
+cart\_adds & int & Number of items added to cart \\
+purchases & int & Completed transactions \\
+cart\_to\_view\_ratio & float & Ratio of cart additions to item views \\
+conversion\_rate & float & Purchase to view conversion \\
+\hline
+\multicolumn{3}{l}{\textit{Interaction Quality}} \\
+hover\_events & int & Mouse hover event count \\
+hover\_intensity & float & Hover events per interaction \\
+\hline
+\multicolumn{3}{l}{\textit{Price Behavior}} \\
+avg\_price\_seen & float & Mean price across viewed products \\
+min\_price\_seen & float & Lowest price encountered \\
+max\_price\_seen & float & Highest price encountered \\
+price\_range & float & Difference between max and min prices seen \\
+\hline
+\multicolumn{3}{l}{\textit{Technical Fingerprinting}} \\
+is\_headless & bool & Headless browser detection flag \\
+is\_automation & bool & Automation framework detection flag \\
+browser\_family & object & Browser type classification \\
+\hline
+\multicolumn{3}{l}{\textit{Experimental Labels}} \\
+is\_agent & bool & Ground truth agent classification \\
+xp\_human\_only & bool & Human-only experiment indicator \\
+xp\_market\_mode & object & Market context (hotel/airline) \\
+\hline
+\end{tabular}%
+}
+\caption{Feature matrix schema for session-level behavioral classification (32 features total).}
+\label{tab:features}
+\end{table}

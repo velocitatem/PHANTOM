@@ -19,10 +19,56 @@ jobs:
         with:
           root_file: main.tex
           working_directory: paper/src
-          args: -pdf -interaction=nonstopmode -file-line-error -outdir=../build
+          args: -pdf -f -interaction=nonstopmode -file-line-error -outdir=../build
           pre_compile: bash ../concat_code.sh
       - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:
           name: thesis-pdf
           path: paper/build/main.pdf
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Upload to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT }}
+          DATE: ${{ steps.date.outputs.date }}
+          BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          pip install boto3
+          python3 << 'EOF'
+          import boto3
+          import os
+
+          s3 = boto3.client('s3',
+              endpoint_url=os.environ['AWS_ENDPOINT_URL'],
+              aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+              aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY']
+          )
+
+          date = os.environ['DATE']
+          bucket = os.environ['BUCKET_NAME']
+
+          # upload dated version
+          dated_filename = f"thesis-{date}.pdf"
+          s3.upload_file(
+              'paper/build/main.pdf',
+              bucket,
+              dated_filename,
+              ExtraArgs={'ContentType': 'application/pdf'}
+          )
+          print(f"Uploaded {dated_filename}")
+
+          # upload latest version
+          s3.upload_file(
+              'paper/build/main.pdf',
+              bucket,
+              'thesis-latest.pdf',
+              ExtraArgs={'ContentType': 'application/pdf'}
+          )
+          print(f"Uploaded thesis-latest.pdf")
+          EOF
