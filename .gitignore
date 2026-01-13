@@ -17,3 +17,6 @@ paper/src/auto/*
 lib/
 docs/goals/*.md
 PHANTOM.wiki/
+tests/e2e/node_modules/**
+**/auto/*.el
+*.old
