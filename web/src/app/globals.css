@@ -8,6 +8,9 @@
   --bg-secondary: #f5f5f5;
   --text-primary: #333333;
   --text-secondary: #666666;
+  --accent-primary: #007aff;
+  --accent-primary-hover: #0051d5;
+  --accent-primary-light: #e6f2ff;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 32px;
