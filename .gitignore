@@ -5,12 +5,19 @@
 **/.virtual_documents/
 **/session_*.svg
 **/*graph.svg
-paper/src/bib/auto
+**/auto/*.el
+*.old
+**/package-lock.json
+**/*.parquet
 
-# Airflow logs - exclude DAG run logs
+paper/src/bib/auto
 experiments/airflow/logs/*
 experiments/airflow/logs/scheduler/
 experiments/airflow/logs/dag_processor_manager/
+experiments/collected_data/
+experiments/agents/collected_data/
+sim/rl/behavior_loader/*.dot
+sim/rl/behavior_loader/*.png
+sim/rl/behavior_loader/*.svg
+sim/rl/behavior_loader/*.pdf
 tests/e2e/node_modules/**
-**/auto/*.el
-*.old
