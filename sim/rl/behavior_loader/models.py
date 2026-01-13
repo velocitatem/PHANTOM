@@ -1,10 +1,12 @@
-from loader import Loader
+from experiments.agents.base import Agent
+from loader import Loader, AgentLoader
 from collections import defaultdict
 from typing import Dict, List, Tuple, Set
 import numpy as np
 import graphviz
 
 DIR = "/home/velocitatem/Documents/Projects/PHANTOM/experiments/collected_data/"
+AGENT_DIR = "/home/velocitatem/Documents/Projects/PHANTOM/experiments/agents/collected_data/"
 
 class BehaviorModel:
     def __init__(self, src_dir: str = DIR):
@@ -85,13 +87,32 @@ class BehaviorModel:
             path.append(curr)
         return path
 
-def visualize_mdp(model: BehaviorModel, threshold: float = 0.05, output: str = "mdp_graph", fmt: str = "svg", view: bool = False, export_dot: bool = False):
-    """visualize MDP as directed graph using graphviz, aggregated by event type"""
-    if not model.mdp: raise ValueError("build MDP first")
+class AgentBehaviorModel(BehaviorModel):
+    """behavior model for agent interaction data (simplified PayloadModel schema)"""
 
-    # aggregate transitions by event type
+    def __init__(self, src_dir: str = AGENT_DIR):
+        self.loader = AgentLoader(src_dir)
+        self.data = self.loader.get_data()
+        self.entries, self.num_entries = self.loader.get_entries()
+        self.mdp = None
+
+    def _state_repr(self, evt) -> str:
+        # direct access to PayloadModel fields (no .value.payload nesting)
+        return f"{evt.page or 'unk'}|{evt.productId or 'none'}|{evt.eventName}"
+
+    def _extract_sessions(self):
+        trajectories = []
+        for sid, evts in self.data.items():
+            if len(evts) < 2: continue
+            # sort by timestamp string (ISO format sorts lexicographically)
+            states = [self._state_repr(e) for e in sorted(evts, key=lambda x: x.ts)]
+            trajectories.append(states)
+        return trajectories
+
+def aggregate_event_transitions(mdp: Dict) -> Dict[str, Dict[str, float]]:
+    """aggregate state transitions by event type and normalize"""
     evt_trans = defaultdict(lambda: defaultdict(float))
-    for s, trans in model.mdp['transitions'].items():
+    for s, trans in mdp['transitions'].items():
         evt_src = s.split('|')[2]
         for s_next, prob in trans.items():
             evt_dst = s_next.split('|')[2]
@@ -103,6 +124,13 @@ def visualize_mdp(model: BehaviorModel, threshold: float = 0.05, output: str = "
         if total > 0:
             for evt_dst in evt_trans[evt_src]:
                 evt_trans[evt_src][evt_dst] /= total
+    return dict(evt_trans)
+
+def visualize_mdp(model: BehaviorModel, threshold: float = 0.05, output: str = "mdp_graph", fmt: str = "svg", view: bool = False, export_dot: bool = False):
+    """visualize MDP as directed graph using graphviz, aggregated by event type"""
+    if not model.mdp: raise ValueError("build MDP first")
+
+    evt_trans = aggregate_event_transitions(model.mdp)
 
     g = graphviz.Digraph(format=fmt)
     g.attr(rankdir='LR', size='30')
@@ -134,11 +162,50 @@ def visualize_mdp(model: BehaviorModel, threshold: float = 0.05, output: str = "
 
     return g
 
+
+def kl_divergence(p: Dict[str, float], q: Dict[str, float]) -> float:
+    """Compute KL divergence D_KL(P || Q) for discrete distributions P and Q."""
+    epsilon = 1e-10  # small constant to avoid log(0)
+    kl_div = 0.0
+    for key in p:
+        p_val = p[key] + epsilon
+        q_val = q.get(key, 0.0) + epsilon
+        kl_div += p_val * np.log(p_val / q_val)
+    return kl_div
+
 if __name__ == "__main__":
-    model = BehaviorModel(DIR)
-    mdp = model.build_MDP()
-    print(f"Built MDP: {mdp['num_states']} states, {sum(len(t) for t in mdp['transitions'].values())} transitions")
-    if not mdp['states']:
+    human_model = BehaviorModel(DIR)
+    human_mdp = human_model.build_MDP()
+    print(f"Built MDP: {human_mdp['num_states']} states, {sum(len(t) for t in human_mdp['transitions'].values())} transitions")
+    if not human_mdp['states']:
         print("No states found")
         exit(1)
-    visualize_mdp(model, threshold=0.05, output="mdp_viz", fmt="pdf", export_dot=True)
+    visualize_mdp(human_model, threshold=0.05, output="human_mdp_viz", fmt="pdf", export_dot=True)
+
+    agent_model = AgentBehaviorModel()
+    agent_mdp = agent_model.build_MDP()
+    print(f"AGENT... Built MDP: {agent_mdp['num_states']} states, {sum(len(t) for t in agent_mdp['transitions'].values())} transitions")
+    if not agent_mdp['states']:
+        print("No states found")
+        exit(1)
+    visualize_mdp(agent_model, threshold=0.05, output="agent_mdp_viz", fmt="pdf", export_dot=True)
+
+    # aggregate transitions by event type for both models
+    human_evt_trans = aggregate_event_transitions(human_mdp)
+    agent_evt_trans = aggregate_event_transitions(agent_mdp)
+
+    common_evts = set(human_evt_trans.keys()) & set(agent_evt_trans.keys())
+    if not common_evts: import sys; sys.exit("No common event types for KL divergence analysis")
+
+    kl_divs = []
+    for evt in common_evts:
+        kl = kl_divergence(human_evt_trans[evt], agent_evt_trans[evt])
+        kl_divs.append((evt, kl))
+
+    kl_divs.sort(key=lambda x: x[1], reverse=True)
+    avg_kl = np.mean([kl for _, kl in kl_divs])
+
+    print(f"Average KL divergence: {avg_kl:.4f}")
+    print(f"\nMost divergent event types:")
+    for evt, kl in kl_divs:
+        print(f"  {evt}: {kl:.4f}")
