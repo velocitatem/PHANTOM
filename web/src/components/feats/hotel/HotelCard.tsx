@@ -2,6 +2,7 @@
 
 import type { EventName } from '@/lib/events';
 import type { Hotel } from '@/lib/hotel-utils';
+import { getHotelImageUrl } from '@/lib/hotel-utils';
 import { useHoverTracking } from '@/hooks/useHoverTracking';
 import PriceDisplay from '@/components/ui/PriceDisplay';
 
@@ -47,8 +48,6 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         window.location.href = `/hotel/products/${hotel.id}`;
     };
 
-    const imageUrl = `https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=300&fit=crop`;
-
     return (
         <div
             className="hotel-card cursor-pointer"
@@ -56,7 +55,7 @@ export default function HotelCard({ hotel }: { hotel: Hotel }) {
         >
             <div className="hotel-image relative overflow-hidden">
                 <img
-                    src={imageUrl}
+                    src={getHotelImageUrl(hotel.id, { w: 400, h: 300 })}
                     alt={hotel.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
