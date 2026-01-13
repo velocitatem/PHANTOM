@@ -15,8 +15,7 @@
         fill=mygreenfill,
         line width=1.2pt,
         align=center,
-        minimum height=1cm,
-        font=\sffamily
+        minimum height=1cm
     },
     % Style for Blue Nodes
     bluebox/.style={
@@ -25,8 +24,7 @@
         fill=mybluefill,
         line width=1.2pt,
         align=center,
-        minimum height=1cm,
-        font=\sffamily
+        minimum height=1cm
     },
     % Style for Arrows
     myarrow/.style={
@@ -90,20 +88,20 @@
     \draw[myarrow] (policy.north) to[out=90, in=0] (trainedpricing.east);
 
     % Trained Pricing -> Commerce (Crossing back)
-    \draw[myarrow] (trainedpricing.west) -- node[above, font=\sffamily\small, yshift=2pt] {New Pricing} (commerce.east);
+    \draw[myarrow] (trainedpricing.west) -- node[above, font=\small, yshift=2pt] {New Pricing} (commerce.east);
 
     % --- Text Labels ---
 
     % Loop One Label
-    \node[font=\sffamily, align=center] at (-3.8, 0) {Loop One:\\Data \textit{(Online)}};
+    \node[align=center] at (-3.8, 0) {Loop One:\\Data \textit{(Online)}};
 
     % Loop Two Label
-    \node[font=\sffamily, align=center] at (3.5, 0) {Loop Two:\\Defense Gym \textit{(Offline)}};
+    \node[align=center] at (3.5, 0) {Loop Two:\\Defense Gym \textit{(Offline)}};
 
     % Bottom Legend
-    \node[font=\sffamily\small] (taskA) at (-4, -4) {Dynamic Pricing Task A};
-    \node[font=\sffamily\small] (taskB) at (4, -4) {Dynamic Pricing Task B};
-    \node[font=\sffamily\small] (indep) at (0, -4) {Independent};
+    \node[font=\small] (taskA) at (-4, -4) {Dynamic Pricing Task A};
+    \node[font=\small] (taskB) at (4, -4) {Dynamic Pricing Task B};
+    \node[font=\small] (indep) at (0, -4) {Independent};
 
     % Arrows for bottom legend
     \draw[->, >=Stealth, thick, darkgray] (indep.west) -- (taskA.east);

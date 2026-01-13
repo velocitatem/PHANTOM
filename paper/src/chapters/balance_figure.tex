@@ -4,7 +4,7 @@
     axis/.style={->, >=Stealth, line width=1.2pt, color=black!85},
     curve/.style={color=black, line width=2.5pt},
     point/.style={circle, fill=black, inner sep=0pt, minimum size=6pt},
-    label_text/.style={font=\sffamily\large, align=center, color=black},
+    label_text/.style={font=\large, align=center, color=black},
     annotation_line/.style={thick, -, color=black!60}
 ]
 
@@ -13,8 +13,8 @@
 
     % Draw Axes
     % Extended slightly beyond radius (\R + 1)
-    \draw[axis] (0,0) -- (\R+1.5,0) node[midway, below=10pt, font=\bfseries\sffamily\large] {UX Index};
-    \draw[axis] (0,0) -- (0,\R+1.5) node[midway, left=15pt, rotate=90, font=\bfseries\sffamily\large] {Performance};
+    \draw[axis] (0,0) -- (\R+1.5,0) node[midway, below=10pt, font=\bfseries\large] {UX Index};
+    \draw[axis] (0,0) -- (0,\R+1.5) node[midway, left=15pt, rotate=90, font=\bfseries\large] {Performance};
 
     % Draw Perfect 1/4 Circle
     % Syntax: arc (start_angle : end_angle : radius)
