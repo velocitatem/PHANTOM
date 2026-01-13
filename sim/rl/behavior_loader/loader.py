@@ -71,13 +71,44 @@ class AgentLoader(Loader):
             sessions[entry] = [i for i in ints if not self._is_admin_page_simple(i)]
         return sessions
 
-if __name__ == "__main__":
-    DIR = "/home/velocitatem/Documents/Projects/PHANTOM/experiments/agents/collected_data/"
-    loader = AgentLoader(DIR)
-    _, n = loader.get_entries()
-    print(f"Loaded {n} sessions from {DIR}")
+class JointLoader:
+    """Loader for combined human (Kafka) and agent (direct) data without discrimination"""
 
-    DIR = "/home/velocitatem/Documents/Projects/PHANTOM/experiments/collected_data/"
-    loader = Loader(DIR)
+    def __init__(self, human_dir: str, agent_dir: str):
+        self.human_dir = human_dir
+        self.agent_dir = agent_dir
+        self.human_loader = Loader(human_dir)
+        self.agent_loader = AgentLoader(agent_dir)
+        self.data = self._load_joint_sessions()
+        self.entries = list(self.data.keys())
+
+    def _load_joint_sessions(self) -> dict:
+        sessions = {}
+        # load human sessions (unwrap from Kafka format to PayloadModel)
+        for sid, evts in self.human_loader.get_data().items():
+            sessions[f"human_{sid}"] = [evt.value.payload for evt in evts]
+        # load agent sessions (already PayloadModel)
+        for sid, evts in self.agent_loader.get_data().items():
+            sessions[f"agent_{sid}"] = evts
+        return sessions
+
+    def get_data(self) -> dict:
+        return self.data
+
+    def get_entries(self) -> tuple[list[str], int]:
+        return self.entries, len(self.entries)
+
+if __name__ == "__main__":
+    AGENT_DIR = "/home/velocitatem/Documents/Projects/PHANTOM/experiments/agents/collected_data/"
+    loader = AgentLoader(AGENT_DIR)
     _, n = loader.get_entries()
-    print(f"Loaded {n} sessions from {DIR}")
+    print(f"Loaded {n} agent sessions from {AGENT_DIR}")
+
+    HUMAN_DIR = "/home/velocitatem/Documents/Projects/PHANTOM/experiments/collected_data/"
+    loader = Loader(HUMAN_DIR)
+    _, n = loader.get_entries()
+    print(f"Loaded {n} human sessions from {HUMAN_DIR}")
+
+    joint_loader = JointLoader(HUMAN_DIR, AGENT_DIR)
+    _, n = joint_loader.get_entries()
+    print(f"Loaded {n} total sessions (combined) from joint loader")
