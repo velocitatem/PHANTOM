@@ -28,7 +28,8 @@
 \usepackage{xcolor}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{cleveref}
-
+\usepackage{adjustbox}
+\usetikzlibrary{trees}
 % Configure cleveref for algorithm2e
 \crefname{algocf}{Algorithm}{Algorithms}
 
@@ -49,6 +50,6 @@
     literate={·}{{\textperiodcentered}}1 {−}{{\textminus}}1 {—}{{---}}1 {–}{{--}}1
 }
 
-% Use biblatex with APA style for in-text citations like (Author, Year)
-\usepackage[backend=bibtex,style=apa,natbib=true]{biblatex}
+% Use biblatex with authoryear style for in-text citations like (Author, Year)
+\usepackage[backend=bibtex,style=authoryear,natbib=true,maxcitenames=2]{biblatex}
 \addbibresource{bib/references.bib}
