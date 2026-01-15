@@ -73,7 +73,7 @@ stats.lines:
 	@find . \( -path '*/node_modules' -o -path '*/.venv' -o -path '*/venv' \) -prune -o \
 	\( -name "*.ts" -o -name "*.py" \) -type f -print0 | xargs -0 cat | wc -l
 
-.PHONY wordcount
+.PHONY: wordcount
 wordcount:
 	@echo "Counting words in main text (excluding appendix)..."
 	@texcount -nosub -total -sum -1 \

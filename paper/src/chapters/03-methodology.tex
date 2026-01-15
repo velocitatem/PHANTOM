@@ -230,7 +230,7 @@ We employ Good Old-Fashioned AI (GOFAI) heuristics to generate initial weak labe
 \label{sec:tpe}
 
 
-  For both subsets, we model the session dynamics as a Markov Decision Process (MDP) and estimate the transition kernel $\mathcal{T}$. for each respective actor type we define $\hat{\mathcal{T}}_A$ and $\hat{\mathcal{T}}_H$ which are the general transition kernels subject to clustering into $\hat{\mathcal{T}_y^i}$ where $\forall i \in \text{behavioral clusters of } \hat{\mathcal{T}}_y} $. This is done to avoid a lumping of all actor behavior and allows for more intral-class penalization. The probability of transitioning to state $s'$ given state $s$ is estimated via maximum likelihood:
+  For both subsets, we model the session dynamics as a Markov Decision Process (MDP) and estimate the transition kernel $\mathcal{T}$. for each respective actor type we define $\hat{\mathcal{T}}_A$ and $\hat{\mathcal{T}}_H$ which are the general transition kernels subject to clustering into $\hat{\mathcal{T}_y^i}$ where $\forall i \in \text{behavioral clusters of } \hat{\mathcal{T}}_y $. This is done to avoid a lumping of all actor behavior and allows for more intral-class penalization. The probability of transitioning to state $s'$ given state $s$ is estimated via maximum likelihood:
 \begin{equation}
     \hat{P}(s' \mid s) = \frac{N(s, s')}{\sum_{k \in \mathcal{S}} N(s, k)}
 \end{equation}
