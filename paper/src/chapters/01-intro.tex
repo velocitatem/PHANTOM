@@ -25,6 +25,15 @@ Dynamic pricing systems, as presented by \textcite{mueller_low-rank_2019}, often
 
 We formally define interaction data as coming from some actor which can either be an agent ($A$) or human ($H$). For purposes of this research, an agent is an algorithmic loop with the ability to access a web platform and perform actions such as clicks, scrolls, and input field fills. The loop terminates when the internal large language model judges the provided task definition as complete. A detailed breakdown can be found in \cref{algagent-loop}.
 
+\subsection{Research Questions}
+
+This work addresses three core research questions:
+\begin{enumerate}
+    \item[\textbf{RQ1}] \textit{Separability}: Can agent and human sessions be reliably distinguished from behavioral interaction signals alone, without relying on network-level or device fingerprinting?
+    \item[\textbf{RQ2}] \textit{Theoretical Impact}: What is the formal relationship between agent contamination levels and the erosion of pricing power in dynamic pricing systems?
+    \item[\textbf{RQ3}] \textit{Robust Mitigation}: How can pricing policies be constructed to maintain margin integrity under unknown and non-stationary levels of agent contamination?
+\end{enumerate}
+
 
 \begin{algorithm}[t]
 \DontPrintSemicolon
