@@ -233,7 +233,7 @@ Let $P_e$ and $Q_e$ be categorical distributions over destination states followi
 where $\mathcal{S}_e$ denotes the set of destination events that follow $e$ in the human trajectories.
 \end{definition}
 
-To obtain this statistic we aggregate state transitions by their triggering event $e$ and treat the normalized outgoing probabilities as the categorical distributions $P_e$ (human) and $Q_e$ (agent). The computation intersects the event labels observed in both datasets, then iterates over each label and accumulates the log-ratio score. In practice this is implemented exactly as in \texttt{sim/rl/behavior_loader/models.py}: for each destination $k$ we multiply the human probability by the log of the probability ratio and add the result to the running sum. Large contributions (including the case where $Q_e(k)$ is near zero) point to intents, such as rapid checkout or repeated navigation, that the agent policy fails to reproduce and therefore drive the contamination analysis.
+To obtain this statistic we aggregate state transitions by their triggering event $e$ and treat the normalized outgoing probabilities as the categorical distributions $P_e$ (human) and $Q_e$ (agent). The computation intersects the event labels observed in both datasets, then iterates over each label and accumulates the log-ratio score. In practice this is implemented exactly as in models: for each destination $k$ we multiply the human probability by the log of the probability ratio and add the result to the running sum. Large contributions (including the case where $Q_e(k)$ is near zero) point to intents, such as rapid checkout or repeated navigation, that the agent policy fails to reproduce and therefore drive the contamination analysis.
 
 With this divergence we train a contrastive learning method to estimate a weak probability of a given trajectory being an agent $f(\cdot) \to [0,1]$ which we can use as a leverage for a weighted sum. This is a first attempt at a more informed separability.
 
@@ -242,7 +242,7 @@ With this divergence we train a contrastive learning method to estimate a weak p
 \label{sec:tpe}
 
 
-  For both subsets, we model the session dynamics as a Markov Decision Process (MDP) and estimate the transition kernel $\mathcal{T}$. for each respective actor type we define $\hat{\mathcal{T}}_A$ and $\hat{\mathcal{T}}_H$ which are the general transition kernels subject to clustering into $\hat{\mathcal{T}_y^i}$ where $\forall i \in \text{behavioral clusters of } \hat{\mathcal{T}}_y $. This is done to avoid a lumping of all actor behavior and allows for more intral-class penalization. The probability of transitioning to state $s'$ given state $s$ is estimated via maximum likelihood:
+  For both subsets, we model the session dynamics as a Markov Decision Process (MDP) and estimate the transition kernel $\mathcal{T}$. for each respective actor type we define $\hat{\mathcal{T}}_A$ and $\hat{\mathcal{T}}_H$ which are the general transition kernels subject to clustering into $\hat{\mathcal{T}}_y^i$ where $\forall i \in \text{behavioral clusters of } \hat{\mathcal{T}}_y$. This is done to avoid a lumping of all actor behavior and allows for more intral-class penalization. The probability of transitioning to state $s'$ given state $s$ is estimated via maximum likelihood:
 \begin{equation}
     \hat{P}(s' \mid s) = \frac{N(s, s')}{\sum_{k \in \mathcal{S}} N(s, k)}
 \end{equation}
@@ -264,7 +264,7 @@ where $N(s, s')$ is the count of observed transitions. This allows us to constru
 
 
 \subsection{Stronger Classification}
-We re-map the current event schema semantically to the event schema of another dataset. Our contaminated dataset is then used in another classifier where we can now also apply better feature engineering on other features while assigning correct lables to the entire dataset so the new dataset can be contaminated with $\mathcal{g}$ under some different contamination ration $\alpha$.
+We re-map the current event schema semantically to the event schema of another dataset. Our contaminated dataset is then used in another classifier where we can now also apply better feature engineering on other features while assigning correct lables to the entire dataset so the new dataset can be contaminated with $\mathcal{G}$ under some different contamination ratio $\alpha$.
 
 This new classified can then be used in the reinforcement learning reward structure.
 
