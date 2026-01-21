@@ -1,45 +1,66 @@
 import pandas as pd
 import random
-from sim.rl.behavior_loader import AgentBehaviorModel # TODO: proper import this
+import os
+from pathlib import Path
 
-base_dir = "/home/velocitatem/Documents/Projects/PHANTOM/experiments"
-agent_dir = f"{base_dir}/agents/collected_data/"
+# use relative import when in package context, fallback for standalone
+try:
+    from sim.rl.behavior_loader.models import AgentBehaviorModel
+except ImportError:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent / "sim" / "rl" / "behavior_loader"))
+    from models import AgentBehaviorModel
+
+# paths should be configurable via environment or relative to project root
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+AGENT_DATA_DIR = Path(os.getenv('PHANTOM_AGENT_DATA_DIR', PROJECT_ROOT / "experiments" / "agents" / "collected_data"))
 
 
-
-def remap_schema(df : pd.DataFrame, mapping: dict, on: str = "event_type"):
+def remap_schema(df: pd.DataFrame, mapping: dict, on: str = "event_type") -> pd.DataFrame:
+    """remap column values according to mapping dict, preserving unmapped values"""
     df = df.copy()
     df[on] = df[on].map(mapping).fillna(df[on])
     return df
 
 
-def contaminate_dataset(df : pd.DataFrame, on : str = "event_type",
-                        contamination_rate: float = 0.1) -> pd.DataFrame:
-    model = AgentBehaviorModel(agent_dir)
-    target_df_schema = df[on].unique().tolist()
-    mapping = {
-        'view': 'view_page'
-        # TODO: define properly for the given dataset
-    }
-    # think about replacing with freqdist method from library
-    OG_event_distribution = df[on].value_counts(normalize=True).to_dict()
-    # normalize to weights
-    OG_event_distribution = {k: v / sum(OG_event_distribution.values()) for k, v in OG_event_distribution.items()}
-    mapped_df = remap_schema(df, mapping, on=on)
-    N = len(df)
-    N_final = N / (1 - contamination_rate) # TODO: explain this in paper
-    N_contaminate = int(N_final - N)
-    start_event_types = random.choices(list(OG_event_distribution.keys()),
-                                    weights=list(OG_event_distribution.values()), k=N_contaminate)
-    # it makes sense
-    new_trajectories = []
-    for start_event in start_event_types:
-        # sample from og start
-        start = None # TODO: defin start accoding to dataset (randomly sample with weights of event distr)
-        trajectory = model.sample_trajectory(start) # TODO: explain this method in paper
-        new_trajectories.extend(trajectory)
+def contaminate_dataset(df: pd.DataFrame, on: str = "event_type",
+                        contamination_rate: float = 0.1,
+                        agent_data_dir: Path = None) -> pd.DataFrame:
+    """inject synthetic agent trajectories into a dataset
+    contamination_rate: fraction of final dataset that should be agent data (0.1 = 10% agents)
+    """
+    data_dir = agent_data_dir or AGENT_DATA_DIR
+    model = AgentBehaviorModel(str(data_dir))
+    model.build_MDP()  # ensure MDP is built before sampling
 
-    # TODO: make sure the new trajctories schema conforms with dataset
-    contaminate_df = pd.DataFrame(new_trajectories)
-    df = pd.concat([df, contaminate_df], ignore_index=True)
+    # compute event distribution from original data
+    event_dist = df[on].value_counts(normalize=True).to_dict()
+    total = sum(event_dist.values())
+    event_dist = {k: v / total for k, v in event_dist.items()}
+
+    # calculate how many synthetic events to add
+    N = len(df)
+    N_final = N / (1 - contamination_rate)
+    N_contaminate = int(N_final - N)
+
+    # sample start states weighted by original distribution
+    start_events = random.choices(list(event_dist.keys()), weights=list(event_dist.values()), k=N_contaminate)
+
+    # generate synthetic trajectories
+    new_rows = []
+    for start_event in start_events:
+        # sample trajectory from agent model, using a state that contains the event type
+        mdp_states = model.mdp.get('states', []) if model.mdp else []
+        matching_starts = [s for s in mdp_states if start_event in s]
+        if not matching_starts:
+            continue  # skip if no matching start state
+        start_state = random.choice(matching_starts)
+        trajectory = model.sample_traj(start_state, max_len=20)
+        for state in trajectory:
+            parts = state.split('|')  # page|productId|eventName format
+            new_rows.append({on: parts[-1] if parts else start_event, 'source': 'synthetic_agent'})
+
+    if new_rows:
+        contaminate_df = pd.DataFrame(new_rows)
+        df = pd.concat([df, contaminate_df], ignore_index=True)
     return df
