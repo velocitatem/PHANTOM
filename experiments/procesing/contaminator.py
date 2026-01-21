@@ -1,9 +1,9 @@
 import pandas as pd
 import random
-from sim.rl.behavior_loader import AgentBehaviorModel
+from sim.rl.behavior_loader import AgentBehaviorModel # TODO: proper import this
 
 base_dir = "/home/velocitatem/Documents/Projects/PHANTOM/experiments"
-human_dir, agent_dir = f"{base_dir}/collected_data/", f"{base_dir}/agents/collected_data/"
+agent_dir = f"{base_dir}/agents/collected_data/"
 
 
 
@@ -21,6 +21,7 @@ def contaminate_dataset(df : pd.DataFrame, on : str = "event_type",
         'view': 'view_page'
         # TODO: define properly for the given dataset
     }
+    # think about replacing with freqdist method from library
     OG_event_distribution = df[on].value_counts(normalize=True).to_dict()
     # normalize to weights
     OG_event_distribution = {k: v / sum(OG_event_distribution.values()) for k, v in OG_event_distribution.items()}
