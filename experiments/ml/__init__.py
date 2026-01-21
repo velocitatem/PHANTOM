@@ -1,11 +1,21 @@
 from .evals import evaluate
 from .arch import (
     XGBoostAgentClassifier,
-    LightGBMAgentClassifier
+    LightGBMAgentClassifier,
+    ContrastiveWeakClassifier,
+    TrajectoryEncoder,
+    WeakClassifier,
+    contrastive_loss,
+    featurize_trajectory,
 )
 
-__all__ =[
+__all__ = [
     'evaluate',
     'XGBoostAgentClassifier',
-    'LightGBMAgentClassifier'
+    'LightGBMAgentClassifier',
+    'ContrastiveWeakClassifier',
+    'TrajectoryEncoder',
+    'WeakClassifier',
+    'contrastive_loss',
+    'featurize_trajectory',
 ]
