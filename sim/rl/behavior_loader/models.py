@@ -6,6 +6,18 @@ from collections import defaultdict
 from typing import Dict, List, Tuple, Set
 import numpy as np
 import graphviz
+import sys
+from pathlib import Path
+
+# import lib utilities for optional use - models keep their own _state_repr for backwards compat
+# with the specific event structure (evt.value.payload)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'lib'))
+try:
+    from lib.state import make_state_repr as lib_make_state_repr
+    from lib.features import transition_histogram as lib_transition_histogram
+except ImportError:
+    lib_make_state_repr = None
+    lib_transition_histogram = None
 
 class BehaviorModel:
     def __init__(self, src_dir: str, loader_cls=Loader):

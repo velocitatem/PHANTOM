@@ -8,6 +8,20 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import sys
+from pathlib import Path
+
+# add lib to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'lib'))
+from lib.features import (
+    transition_histogram as _lib_transition_histogram,
+    temporal_signature as _lib_temporal_signature,
+    state_coverage as _lib_state_coverage,
+    transition_entropy as _lib_transition_entropy,
+    featurize_trajectory as _lib_featurize_trajectory,
+    parse_timestamp
+)
+from lib.state import event_to_state, get_event_name, get_timestamp
 
 TASK = 'classification'
 LABELS = ['human', 'agent']
@@ -101,91 +115,40 @@ def nt_xent_loss(z_i: torch.Tensor, z_j: torch.Tensor, temperature: float = 0.5)
     return F.cross_entropy(sim, labels)
 
 
-# feature extraction utilities for trajectory -> feature vector
+# feature extraction utilities - delegating to lib.features for unified implementation
+# these wrappers maintain backwards compatibility for existing imports
+
 def transition_histogram(events: List, state_fn, max_states: int = 50) -> np.ndarray:
     """Compute normalized histogram of state transitions in trajectory"""
-    if len(events) < 2:
-        return np.zeros(max_states)
-    states = [state_fn(e) for e in events]
-    trans_counts = defaultdict(int)
-    for s, s_next in zip(states, states[1:]):
-        trans_counts[(s, s_next)] += 1
-    total = sum(trans_counts.values())
-    hist = np.array(list(trans_counts.values())[:max_states], dtype=np.float32)
-    hist = np.pad(hist, (0, max(0, max_states - len(hist))))
-    return hist / (total + 1e-10)
+    return _lib_transition_histogram(events, state_fn, max_states)
 
 
 def temporal_signature(events: List, ts_fn) -> np.ndarray:
     """Extract temporal features: mean/std/skew of inter-event times"""
-    if len(events) < 2:
-        return np.zeros(4, dtype=np.float32)
-    times = sorted([ts_fn(e) for e in events])
-    diffs = np.diff(times).astype(np.float32)
-    if len(diffs) == 0:
-        return np.zeros(4, dtype=np.float32)
-    mean_dt, std_dt = np.mean(diffs), np.std(diffs) + 1e-10
-    skew = np.mean(((diffs - mean_dt) / std_dt) ** 3) if std_dt > 1e-8 else 0.0
-    return np.array([mean_dt, std_dt, skew, len(diffs)], dtype=np.float32)
+    return _lib_temporal_signature(events, ts_fn)
 
 
 def state_coverage(events: List, state_fn, mdp_states: set) -> float:
     """Fraction of MDP states visited by trajectory"""
-    if not mdp_states:
-        return 0.0
-    visited = set(state_fn(e) for e in events)
-    return len(visited & mdp_states) / len(mdp_states)
+    return _lib_state_coverage(events, state_fn, mdp_states)
 
 
 def transition_entropy(events: List, state_fn) -> float:
     """Compute entropy of transition distribution (randomness of navigation)"""
-    if len(events) < 2:
-        return 0.0
-    states = [state_fn(e) for e in events]
-    trans_counts = defaultdict(int)
-    for s, s_next in zip(states, states[1:]):
-        trans_counts[(s, s_next)] += 1
-    total = sum(trans_counts.values())
-    probs = [c / total for c in trans_counts.values()]
-    return -sum(p * np.log(p + 1e-10) for p in probs)
+    return _lib_transition_entropy(events, state_fn)
 
 
 def featurize_trajectory(events: List, mdp: Optional[Dict] = None, input_dim: int = 64) -> np.ndarray:
-    """Convert trajectory to fixed-dim feature vector"""
-    def _state_repr(e):
-        return f"{getattr(e, 'page', None) or 'unk'}|{getattr(e, 'productId', None) or 'none'}|{e.eventName}"
+    """Convert trajectory to fixed-dim feature vector - uses lib.features implementation"""
+    mdp_states = set(mdp.get('states', [])) if mdp else set()
 
     def _ts_fn(e):
-        ts = getattr(e, 'ts', None)
-        if isinstance(ts, str):
-            from datetime import datetime
-            try:
-                return datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp()
-            except:
-                return 0.0
-        return float(ts) if ts else 0.0
+        return parse_timestamp(get_timestamp(e))
 
-    feats = []
-    feats.extend(transition_histogram(events, _state_repr, max_states=40))  # 40 dims
-    feats.extend(temporal_signature(events, _ts_fn))  # 4 dims
-    mdp_states = set(mdp.get('states', [])) if mdp else set()
-    feats.append(state_coverage(events, _state_repr, mdp_states))  # 1 dim
-    feats.append(transition_entropy(events, _state_repr))  # 1 dim
-    feats.append(len(events))  # trajectory length
-    feats.append(len(set(_state_repr(e) for e in events)))  # unique states
+    def _event_name_fn(e):
+        return get_event_name(e)
 
-    # event type distribution (page_view, hover, cart, purchase indicators)
-    event_names = [e.eventName for e in events]
-    feats.append(sum(1 for n in event_names if 'page' in n.lower()) / (len(events) + 1))
-    feats.append(sum(1 for n in event_names if 'hover' in n.lower()) / (len(events) + 1))
-    feats.append(sum(1 for n in event_names if 'cart' in n.lower()) / (len(events) + 1))
-    feats.append(sum(1 for n in event_names if 'purchase' in n.lower() or 'checkout' in n.lower()) / (len(events) + 1))
-
-    # pad/truncate to input_dim
-    feats = np.array(feats[:input_dim], dtype=np.float32)
-    if len(feats) < input_dim:
-        feats = np.pad(feats, (0, input_dim - len(feats)))
-    return feats
+    return _lib_featurize_trajectory(events, event_to_state, _ts_fn, _event_name_fn, mdp_states, input_dim)
 
 
 # gradient boosting classifiers for comparison baselines
