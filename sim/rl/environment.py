@@ -291,6 +291,7 @@ class CommercePlatform:
                 "mean_sale_price": 0.0,
                 "look_to_book": 0.0,
                 "coi": 0.0,
+                "expected_premium": 0.0,
             }
 
         purchases = interaction_df[interaction_df["eventName"] == "purchase_complete"]
@@ -330,7 +331,7 @@ class CommercePlatform:
         }
 
     def _session_feature_table(self, df: pd.DataFrame) -> pd.DataFrame:
-        # TODO: adapt this
+        """Extract per-session behavioral features for separability analysis."""
         if df.empty:
             return pd.DataFrame()
         g = df.groupby("session_id", sort=False)
@@ -341,8 +342,13 @@ class CommercePlatform:
         views = g.apply(lambda x: int((x["eventName"] == "view_item_page").sum()), include_groups=False)
         cart_adds = g.apply(lambda x: int((x["eventName"] == "add_item_to_cart").sum()), include_groups=False)
         purchases = g.apply(lambda x: int((x["eventName"] == "purchase_complete").sum()), include_groups=False)
+        learn_more = g.apply(lambda x: int((x["eventName"] == "learn_more_about_item").sum()), include_groups=False)
         conversion_rate = purchases / (views + 1e-6)
         is_agent = g["actor"].apply(lambda s: bool((s == "agent").any()), include_groups=False)
+        # price sensitivity features
+        price_variance = g["price_offered"].var().fillna(0.0)
+        avg_price_seen = g["price_offered"].mean().fillna(0.0)
+        products_viewed = g["product_idx"].nunique()
 
         return pd.DataFrame({
             "session_duration_sec": session_duration.astype(float),
@@ -352,7 +358,11 @@ class CommercePlatform:
             "item_views": views.astype(int),
             "cart_adds": cart_adds.astype(int),
             "purchases": purchases.astype(int),
+            "learn_more_clicks": learn_more.astype(int),
             "conversion_rate": conversion_rate.astype(float),
+            "price_variance": price_variance.astype(float),
+            "avg_price_seen": avg_price_seen.astype(float),
+            "products_viewed": products_viewed.astype(int),
             "is_agent": is_agent.astype(bool),
         }).reset_index()
 
@@ -371,18 +381,25 @@ class PHANTOMEnv(gym.Env):
         self.action_space = spaces.Box(low=-self.constraints.max_price_adjustment,
                                        high=self.constraints.max_price_adjustment,
                                        shape=(self.constraints.product_catalogue_size,), dtype=np.float32)
+        n_products = self.constraints.product_catalogue_size
         self.observation_space = spaces.Dict({
             "elasticity": spaces.Dict({
                 "price": spaces.Box(
-                    low=np.full((self.constraints.product_catalogue_size,), self.constraints.system_min_price, dtype=np.float32),
-                    high=np.full((self.constraints.product_catalogue_size,), self.constraints.system_max_price, dtype=np.float32),
+                    low=np.full((n_products,), self.constraints.system_min_price, dtype=np.float32),
+                    high=np.full((n_products,), self.constraints.system_max_price, dtype=np.float32),
                     dtype=np.float32),
                 "demand": spaces.Box(
-                    low=np.zeros((self.constraints.product_catalogue_size,), dtype=np.float32),
-                    high=np.full((self.constraints.product_catalogue_size,), 1e6, dtype=np.float32),
+                    low=np.zeros((n_products,), dtype=np.float32),
+                    high=np.full((n_products,), 1e6, dtype=np.float32),
                     dtype=np.float32),
-            })
-            # TODO: define more features that we compute from the interaction data
+            }),
+            "market": spaces.Dict({
+                "alpha_hat": spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float32),  # estimated agent share
+                "revenue_rate": spaces.Box(low=0.0, high=1e6, shape=(1,), dtype=np.float32),  # recent revenue
+                "conversion_rate": spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float32),
+                "price_volatility": spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float32),
+            }),
+            "cost": spaces.Box(low=0.0, high=self.constraints.system_max_price, shape=(n_products,), dtype=np.float32),
         })
         self.commerce_platform = CommercePlatform(
             product_catalogue_size=self.constraints.product_catalogue_size,
