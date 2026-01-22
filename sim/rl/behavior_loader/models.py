@@ -18,6 +18,9 @@ try:
 except ImportError:
     lib_make_state_repr = None
     lib_transition_histogram = None
+    print("lib no includable")
+
+
 
 class BehaviorModel:
     def __init__(self, src_dir: str, loader_cls=Loader):
@@ -206,6 +209,7 @@ def visualize_mdp(model: BehaviorModel, threshold: float = 0.05, output: str = "
 
 def kl_divergence(p: Dict[str, float], q: Dict[str, float]) -> float:
     eps = 1e-10
+    # p + log(p / q) summed over all keys in P
     return sum((p[k] + eps) * np.log((p[k] + eps) / (q.get(k, 0.0) + eps)) for k in p)
 
 if __name__ == "__main__":
