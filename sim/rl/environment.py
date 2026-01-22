@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Optional, Dict, Any, List, Tuple
 
 from lib.separability import load_artifacts, score_session, estimate_alpha
-from sim.rl.behavior_loader.models import AgentBehaviorModel, BehaviorModel
+from sim.rl.behavior_loader.models import AgentBehaviorModel, BehaviorModel, aggregate_event_transitions
 
 # "learner" agent learning to optimize pricing
 # "agent" part of environment creating demand signals that learner processes
@@ -52,8 +52,8 @@ EVENT_PAGE_MAP = {
 
 
 class BehavioralProfile:
-    """Synthetic Markov profile used to generate interaction sessions."""
-    # TODO: a lot of this is duplicated from models.py - refactor to share code better
+    """Synthetic Markov profile used to generate interaction sessions.
+    Uses aggregate_event_transitions from models.py to build transition kernels from real data."""
 
     def __init__(self, actor: str, purchase_probs: np.ndarray):
         self.actor = actor
@@ -66,11 +66,31 @@ class BehavioralProfile:
             "purchase_complete",
             "session_end",
         ]
-        # base transition structure (human default)
-        self.transitions : Dict[str, Dict[str, float]];
-
         model = AgentBehaviorModel(agent_dir) if actor == "agents" else BehaviorModel(human_dir)
-        self.transitions = # TODO similarly to model.build_MDP_event_transitions() in models.py buidl the dict
+        mdp = model.build_MDP()
+        self.transitions = aggregate_event_transitions(mdp) if mdp.get("transitions") else self._fallback_transitions()
+        self.dwell_params = self._extract_dwell_params(mdp)
+
+    def _fallback_transitions(self) -> Dict[str, Dict[str, float]]:
+        # sensible defaults if no data available
+        return {
+            "session_start": {"view_item_page": 0.85, "session_end": 0.15},
+            "view_item_page": {"learn_more_about_item": 0.4, "add_item_to_cart": 0.3, "view_item_page": 0.2, "session_end": 0.1},
+            "learn_more_about_item": {"add_item_to_cart": 0.5, "view_item_page": 0.3, "session_end": 0.2},
+            "add_item_to_cart": {"purchase_complete": 0.6, "view_item_page": 0.25, "session_end": 0.15},
+            "purchase_complete": {"session_end": 1.0},
+        }
+
+    def _extract_dwell_params(self, mdp: Dict) -> Dict[str, Tuple[float, float]]:
+        # derive gamma params (shape, scale) from state_rewards which encode temporal progression
+        state_vals = mdp.get("state_values", {})
+        params = {}
+        for state in self.states:
+            val = state_vals.get(state, 0.5)
+            shape = 1.5 + val * 2.0  # higher progression -> longer dwell
+            scale = 0.8 + (1.0 - val) * 1.2
+            params[state] = (shape, scale)
+        return params
 
     def _transition_probs(self, state: str, product_idx: int) -> Dict[str, float]:
         probs = dict(self.transitions.get(state, {"session_end": 1.0}))
@@ -100,11 +120,7 @@ class BehavioralProfile:
         prices: np.ndarray,
         unit_cost: np.ndarray,
     ) -> Tuple[List[Dict[str, Any]], List[SimpleNamespace]]:
-        """Generate a single session trajectory."""
-        # TODO: this is similar to the sample trajectory method in models.
-        # we also have to respect business constraints which constrain the lipshitz continuity of the transitions and prices
-        # we must apply constraints on purcahses not to let the platform offer prices under the cost of a productid
-
+        """Generate a single session trajectory respecting business constraints."""
         events: List[Dict[str, Any]] = []
         feature_events: List[SimpleNamespace] = []
         state = "session_start"
@@ -112,25 +128,30 @@ class BehavioralProfile:
         product_idx = int(rng.integers(0, len(prices)))
         product_id = f"product-{product_idx:04d}"
 
+
+        # enforce price >= cost constraint (lipschitz bound on pricing)
+        # This is a sort of last resort to not let an pricing learner go rogue
+        cost = float(unit_cost[product_idx])
+        constrained_price = max(float(prices[product_idx]), cost * 1.05)  # 5% min margin
+
         while state != "session_end" and len(events) < 40:
             if state != "session_start":
-                price = float(prices[product_idx])
                 row = {
                     "session_id": session_id,
                     "actor": "agent" if self.actor == "agents" else "human",
                     "eventName": state,
                     "product_idx": product_idx,
                     "productId": product_id,
-                    "price_offered": price,
+                    "price_offered": constrained_price,
                     "price_paid": 0.0,
                     "page": EVENT_PAGE_MAP.get(state, "/"),
                     "ts": t,
-                    "unit_cost": float(unit_cost[product_idx]),
+                    "unit_cost": cost,
                     "base_price": float(prices[product_idx]),
                 }
                 if state == "purchase_complete":
                     noise = float(rng.normal(0.0, 0.015))
-                    row["price_paid"] = max(price * (1.0 + noise), row["unit_cost"])
+                    row["price_paid"] = max(constrained_price * (1.0 + noise), cost)
                 events.append(row)
                 feature_events.append(
                     SimpleNamespace(
@@ -143,7 +164,8 @@ class BehavioralProfile:
 
             transitions = self._transition_probs(state, product_idx)
             next_state = rng.choice(list(transitions.keys()), p=list(transitions.values()))
-            dwell = max(0.5, rng.gamma(shape=2.0, scale=1.0)) # TODO: should use params from the profile data
+            shape, scale = self.dwell_params.get(state, (2.0, 1.0))
+            dwell = max(0.3, rng.gamma(shape=shape, scale=scale))
             t += dwell
             state = next_state
 
@@ -287,11 +309,13 @@ class CommercePlatform:
 
         human_prices = human_purchases["price_offered"] if not human_purchases.empty else pd.Series(dtype=float)
         human_costs = human_purchases["unit_cost"] if not human_purchases.empty else pd.Series(dtype=float)
+        human_base = human_purchases["base_price"] if not human_purchases.empty else pd.Series(dtype=float)
         coi = 0.0
         if not human_prices.empty and not human_costs.empty:
-            # of the purchased items, what is the margin between the price and cost
-            # TODO: this should take into account the expected price we could have charged also
-            coi = float(np.maximum(0.0, human_prices.mean() - human_costs.mean()))
+            # COI = E[P] - p_min where p_min is cost, accounting for expected premium (base - realized)
+            margin = human_prices.mean() - human_costs.mean()
+            expected_premium = human_base.mean() - human_prices.mean() if not human_base.empty else 0.0
+            coi = float(np.maximum(0.0, margin - expected_premium * 0.5))
 
         return {
             "revenue_observed": revenue_observed,
@@ -302,6 +326,7 @@ class CommercePlatform:
             "mean_sale_price": mean_sale_price,
             "look_to_book": look_to_book,
             "coi": coi,
+            "expected_premium": float(expected_premium) if not human_base.empty else 0.0,
         }
 
     def _session_feature_table(self, df: pd.DataFrame) -> pd.DataFrame:
