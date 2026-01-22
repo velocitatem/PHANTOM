@@ -1,4 +1,9 @@
-import os, requests, py7zr
+import os
+import requests
+try:
+    import py7zr  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    py7zr = None
 import pandas as pd
 from typing import Generator
 try:
@@ -22,12 +27,16 @@ class YooChooseLoader(Loader):
         self.entries = list(self.data.keys())
 
     def _setup(self):
+        if py7zr is None:
+            raise RuntimeError("py7zr is required to unpack YooChoose dataset. Install py7zr first.")
         os.makedirs(self.root, exist_ok=True)
         zip_path = f"{self.root}/temp.7z"
         with requests.get(self.URL, stream=True) as r:
             with open(zip_path, 'wb') as f:
-                for chunk in r.iter_content(8192): f.write(chunk)
-        with py7zr.SevenZipFile(zip_path, 'r') as z: z.extractall(self.root)
+                for chunk in r.iter_content(8192):
+                    f.write(chunk)
+        with py7zr.SevenZipFile(zip_path, 'r') as z:
+            z.extractall(self.root)
         os.remove(zip_path)
 
     def _make_interaction(self, sid: str, ts: str, item_id: str, event: str, page: str, meta: dict) -> InteractionModel:
