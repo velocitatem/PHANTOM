@@ -9,6 +9,7 @@
 *.old
 **/package-lock.json
 **/*.parquet
+**/_build/
 
 paper/src/bib/auto
 experiments/airflow/logs/*
