@@ -19,8 +19,19 @@ try:
 except ImportError:
     HAS_GYM = False
 
-from .simplified import (System, Session, Event, Limbo, put_prices_to_market,
-                         compute_demand, estimate_alpha, coi_erosion, TRANS_H, TRANS_A)
+from .simplified import (
+    System,
+    Session,
+    Event,
+    Limbo,
+    put_prices_to_market,
+    compute_coi_window,
+    compute_demand,
+    estimate_alpha,
+    coi_erosion,
+    TRANS_H,
+    TRANS_A,
+)
 
 
 @dataclass
@@ -116,9 +127,19 @@ class PricingEnv(gym.Env if HAS_GYM else object):
                 agg[pidx] += q
         self._demand_agg = agg
 
-        revenue = float(np.dot(prices, agg))
-        cost = float(np.dot(sys.costs, np.clip(agg, 0, 1)))  # simplified cost model
-        profit = revenue - cost
+        revenue = 0.0
+        cost = 0.0
+        purchases = np.zeros(self.n, dtype=float)
+        for sess in sys._last_sessions:
+            for e in sess.events:
+                if e.action != "purchase":
+                    continue
+                pidx = int(e.product_idx)
+                if 0 <= pidx < self.n:
+                    purchases[pidx] += 1.0
+                    revenue += float(e.price_seen)
+                    cost += float(sys.costs[pidx])
+        profit = float(revenue - cost)
 
         # volatility penalty (price changes)
         vol_penalty = 0.0
@@ -126,9 +147,8 @@ class PricingEnv(gym.Env if HAS_GYM else object):
             price_change = np.abs(prices - self._last_prices) / (sys.refs + 1e-6)
             vol_penalty = cfg.lambda_vol * float(np.mean(price_change))
 
-        # COI leakage penalty
-        avg_margin = float(np.mean(prices - sys.costs))
-        coi_leak = sys.alpha * avg_margin
+        coi = compute_coi_window(sys._last_sessions, sys.costs, demand_mapping=demand)
+        coi_leak = float(coi.leak)
 
         if cfg.reward_mode == "revenue":
             r = revenue
@@ -181,11 +201,11 @@ class PricingEnv(gym.Env if HAS_GYM else object):
         prices = self._sys.refs * action.astype(np.float64)
         prices = np.clip(prices, self._sys.costs * 1.01, self._sys.refs * 2.0)
 
-        # drift contamination
-        if self.cfg.alpha_drift != 0:
-            self._alpha = np.clip(
-                self._alpha + self.cfg.alpha_drift * self._sys.rng.normal(),
-                *self.cfg.alpha_bounds)
+        # # drift contamination
+        # if self.cfg.alpha_drift != 0:
+        #     self._alpha = np.clip(
+        #         self._alpha + self.cfg.alpha_drift * self._sys.rng.normal(),
+        #         *self.cfg.alpha_bounds)
 
         # observe demand
         demand = self._sys.observe_demand(prices, alpha_true=self._alpha, n_sessions=self.cfg.sessions_per_step)
@@ -205,25 +225,38 @@ class PricingEnv(gym.Env if HAS_GYM else object):
         truncated = False
 
         # compute metrics for tracking
-        revenue = float(np.dot(prices, self._demand_agg))
-        cost = float(np.dot(self._sys.costs, np.clip(self._demand_agg, 0, 1)))
-        profit = revenue - cost
+        revenue = 0.0
+        cost = 0.0
+        n_purchases = 0
+        for sess in self._sys._last_sessions:
+            for e in sess.events:
+                if e.action != "purchase":
+                    continue
+                n_purchases += 1
+                revenue += float(e.price_seen)
+                cost += float(self._sys.costs[int(e.product_idx)])
+        profit = float(revenue - cost)
         n_agents = int(self._alpha * self.cfg.sessions_per_step)
         price_std = float(np.std(prices))
+        coi = compute_coi_window(self._sys._last_sessions, self._sys.costs, demand_mapping=demand)
 
         info = {
             "alpha_true": self._alpha,
             "alpha_est": self._sys.alpha,
             "alpha_error": abs(self._alpha - self._sys.alpha),
-            "revenue": revenue,
-            "profit": profit,
-            "cost": cost,
+            "revenue": float(revenue),
+            "profit": float(profit),
+            "cost": float(cost),
+            "n_purchases": int(n_purchases),
             "avg_margin": float(np.mean((prices - self._sys.costs) / self._sys.costs)),
             "n_sessions": len(demand),
             "n_agents": n_agents,
             "price_std": price_std,
             "coi_erosion": coi_erosion(max(1, n_agents), price_std),
-            "coi_leakage": self._sys.alpha * float(np.mean(prices - self._sys.costs)),
+            "coi_policy": float(coi.policy),
+            "coi_agent": float(coi.agent),
+            "coi_leakage": float(coi.leak),
+            "coi_survival": float(coi.survival_ratio),
             "cumulative_reward": sum(self._episode_rewards),
             "step": self._t,
         }
