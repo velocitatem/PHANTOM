@@ -93,15 +93,15 @@ def sample_trajectory(rng: np.random.Generator, trans: Dict, prices: np.ndarray,
 
 
 def put_prices_to_market(prices: np.ndarray, alpha: float = 0.2, n_sessions: int = 50,
-                         seed: int | None = None) -> Tuple[Dict[str, float], Dict[str, str]]:
+                         seed: int | None = None) -> Tuple[List[Session], Dict[str, float]]:
     """Generate sessions from mixture model Q(p) = (1-α)E[d_H] + αE[d_A] (Eq 3).
 
     Returns:
+        sessions: list of Session objects with events and product attribution
         demand_mapping: session_id -> demand proxy q̂
-        hidden_labels: session_id -> actor class (H or A)
     """
     rng = np.random.default_rng(seed)
-    demand_mapping, hidden_labels = {}, {}
+    sessions, demand_mapping = [], {}
 
     for i in range(n_sessions):
         sid = f"s{i:04d}"
@@ -110,10 +110,10 @@ def put_prices_to_market(prices: np.ndarray, alpha: float = 0.2, n_sessions: int
         theta = {"price_sens": rng.uniform(0.05, 0.2), "base_conv": 0.01} if is_agent else {"price_sens": rng.uniform(1.5, 4.0), "base_conv": rng.uniform(0.2, 0.5)}
         events, _ = sample_trajectory(rng, trans, prices, is_agent)
         session = Session(sid=sid, events=events, actor="A" if is_agent else "H", theta=theta)
+        sessions.append(session)
         demand_mapping[sid] = compute_demand(session)
-        hidden_labels[sid] = session.actor
 
-    return demand_mapping, hidden_labels
+    return sessions, demand_mapping
 
 
 @dataclass
@@ -190,9 +190,16 @@ class System:
                     agg_demand[pidx] += q
         return float(np.dot(prices, agg_demand))
 
-    def _coi_leakage(self, prices: np.ndarray) -> float:
-        """COI_leak = α · InfoValue (query-tax surrogate)."""
-        return self._alpha_est * 1.0
+    def _coi_leakage(self, prices: np.ndarray, n_agents: int = 1) -> float:
+        """COI leakage tied to Theorem 1: erosion from order statistic collapse.
+
+        As N agents query, min(p_1..p_N) → p_min and COI → 0.
+        Leakage = erosion_rate × margin_at_risk
+        """
+        price_std = float(np.std(prices))
+        erosion = coi_erosion(max(1, n_agents), price_std)
+        margin_at_risk = float(np.mean(prices - self.costs))
+        return erosion * margin_at_risk
 
     def _objective(self, prices: np.ndarray, demand: Dict[str, float]) -> float:
         """Robust objective: R(p,d) - λ·COI_leak (Eq 23 simplified)."""
@@ -223,13 +230,8 @@ class System:
 
     def observe_demand(self, prices: np.ndarray, alpha_true: float = 0.2, n_sessions: int = 50) -> Dict[str, float]:
         """Observe market response to prices."""
-        demand_map, labels = put_prices_to_market(prices, alpha=alpha_true, n_sessions=n_sessions, seed=int(self.rng.integers(0, 10000)))
-
-        # reconstruct sessions for α estimation
-        for sid, actor in labels.items():
-            events, _ = sample_trajectory(self.rng, TRANS_A if actor == "A" else TRANS_H, prices, actor == "A")
-            self._sessions.append(Session(sid=sid, events=events, actor=actor))
-
+        sessions, demand_map = put_prices_to_market(prices, alpha=alpha_true, n_sessions=n_sessions, seed=int(self.rng.integers(0, 10000)))
+        self._sessions.extend(sessions)  # store actual sessions for correct product attribution
         self.limbo.add_update("demand", demand_map)
         return demand_map
 
@@ -269,8 +271,8 @@ if __name__ == "__main__":
     print(f"avg reward: {np.mean(traj['rewards']):.2f}, final α̂: {traj['alpha_est'][-1]:.3f}")
 
     prices = np.array([20.0, 35.0, 50.0, 25.0, 40.0])
-    demand, labels = put_prices_to_market(prices, alpha=0.3, n_sessions=20, seed=123)
-    print(f'sessions: {len(demand)}, agents: {sum(1 for l in labels.values() if l=="A")}')
+    sessions, demand = put_prices_to_market(prices, alpha=0.3, n_sessions=20, seed=123)
+    print(f'sessions: {len(sessions)}, agents: {sum(1 for s in sessions if s.actor=="A")}')
 
     for n in [1, 5, 10, 50, 100]:
         ero = coi_erosion(n, price_std=5.0)
