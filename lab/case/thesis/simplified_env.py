@@ -19,58 +19,45 @@ try:
 except ImportError:
     HAS_GYM = False
 
-from .simplified import (
-    System,
-    Session,
-    Event,
-    Limbo,
-    put_prices_to_market,
-    compute_coi_window,
-    compute_demand,
-    estimate_alpha,
-    coi_erosion,
-    TRANS_H,
-    TRANS_A,
-)
+from .simplified import System, Session, Event, Limbo, put_prices_to_market, compute_demand, estimate_alpha
+from .coi import COIWindow, compute_coi_window, coi_erosion
 
 
 @dataclass
 class EnvConfig:
-    """Configuration for pricing environment."""
     n_products: int = 5
     max_steps: int = 200
     sessions_per_step: int = 30
-    alpha_true: float = 0.2           # true contamination level
-    alpha_drift: float = 0.0          # per-step drift in α
+    alpha_true: float = 0.2
+    alpha_drift: float = 0.0
     alpha_bounds: Tuple[float, float] = (0.0, 0.6)
-    lambda_coi: float = 0.5           # COI penalty weight
-    lambda_vol: float = 0.1           # volatility penalty weight
-    reward_mode: str = "robust"       # revenue | profit | robust | coi_aware
+    lambda_coi: float = 0.5
+    lambda_vol: float = 0.1
+    reward_mode: str = "robust"  # revenue | profit | robust | coi_aware
     normalize_reward: bool = True
     seed: int | None = 42
+
+
+def aggregate_purchases(sessions: list[Session], n_products: int, costs: np.ndarray) -> Tuple[np.ndarray, float, float]:
+    """Aggregate purchases from sessions, returns (counts, revenue, cost)."""
+    purchases = np.zeros(n_products, dtype=float)
+    revenue, cost = 0.0, 0.0
+    for sess in sessions:
+        for e in sess.events:
+            if e.action == "purchase" and 0 <= e.product_idx < n_products:
+                purchases[e.product_idx] += 1.0
+                revenue += float(e.price_seen)
+                cost += float(costs[e.product_idx])
+    return purchases, revenue, cost
 
 
 class PricingEnv(gym.Env if HAS_GYM else object):
     """RL environment for dynamic pricing under agent contamination.
 
-    Implements the thesis formulation where:
-    - Platform sets prices p_t
-    - Market responds with mixture demand Q(p) = (1-α)D_H + αD_A
-    - Agent estimates contamination α̂ from behavioral signals
-    - Reward balances profit vs COI leakage
-
-    Observation space (normalized):
-        [0:n]     - current prices / ref_prices
-        [n:2n]    - aggregated demand per product
-        [2n]      - estimated contamination α̂
-        [2n+1]    - true contamination α (if observable, else 0)
-        [2n+2:3n+2] - current margins (prices - costs) / costs
-        [3n+2]    - step / max_steps
-
-    Action space:
-        price multipliers in [0.5, 1.5] applied to reference prices
+    Platform sets prices p_t, market responds with mixture demand Q(p) = (1-alpha)*D_H + alpha*D_A.
+    Agent estimates contamination alpha_hat from behavioral signals.
+    Reward balances profit vs COI leakage.
     """
-
     metadata = {"render_modes": ["human", "ansi"]}
 
     def __init__(self, cfg: EnvConfig | None = None):
@@ -86,34 +73,23 @@ class PricingEnv(gym.Env if HAS_GYM else object):
         self._episode_rewards: list[float] = []
         self._demand_agg = np.zeros(self.n)
 
-        # gymnasium spaces
         self.action_space = spaces.Box(low=0.5, high=1.5, shape=(self.n,), dtype=np.float32)
-        obs_dim = self.n + self.n + 1 + 1 + self.n + 1  # prices + demand + α̂ + α + margins + t
+        obs_dim = self.n + self.n + 1 + 1 + self.n + 1  # prices + demand + alpha_hat + alpha + margins + t
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(obs_dim,), dtype=np.float32)
 
     def _build_obs(self) -> np.ndarray:
-        """Construct observation vector."""
         if self._sys is None:
             return np.zeros(self.observation_space.shape[0], dtype=np.float32)
-
         prices = self._last_prices if self._last_prices is not None else self._sys.refs
-        price_ratio = prices / (self._sys.refs + 1e-6)
-        demand_norm = self._demand_agg / (np.sum(self._demand_agg) + 1e-6)
-        margins = (prices - self._sys.costs) / (self._sys.costs + 1e-6)
-        t_norm = self._t / self.cfg.max_steps
-
-        obs = np.concatenate([
-            price_ratio,                          # [0:n]
-            demand_norm,                          # [n:2n]
-            [self._sys.alpha],                    # [2n] estimated α̂
-            [self._alpha],                        # [2n+1] true α
-            margins,                              # [2n+2:3n+2]
-            [t_norm],                             # [3n+2]
-        ])
-        return obs.astype(np.float32)
+        return np.concatenate([
+            prices / (self._sys.refs + 1e-6),
+            self._demand_agg / (np.sum(self._demand_agg) + 1e-6),
+            [self._sys.alpha, self._alpha],
+            (prices - self._sys.costs) / (self._sys.costs + 1e-6),
+            [self._t / self.cfg.max_steps],
+        ]).astype(np.float32)
 
     def _compute_reward(self, prices: np.ndarray, demand: Dict[str, float]) -> float:
-        """Compute reward based on configured mode."""
         cfg, sys = self.cfg, self._sys
         if sys is None:
             return 0.0
@@ -123,159 +99,77 @@ class PricingEnv(gym.Env if HAS_GYM else object):
         for sid, q in demand.items():
             sess = next((s for s in sys._sessions if s.sid == sid), None)
             if sess and sess.events:
-                pidx = sess.events[0].product_idx
-                agg[pidx] += q
+                agg[sess.events[0].product_idx] += q
         self._demand_agg = agg
 
-        revenue = 0.0
-        cost = 0.0
-        purchases = np.zeros(self.n, dtype=float)
-        for sess in sys._last_sessions:
-            for e in sess.events:
-                if e.action != "purchase":
-                    continue
-                pidx = int(e.product_idx)
-                if 0 <= pidx < self.n:
-                    purchases[pidx] += 1.0
-                    revenue += float(e.price_seen)
-                    cost += float(sys.costs[pidx])
-        profit = float(revenue - cost)
+        _, revenue, cost = aggregate_purchases(sys._last_sessions, self.n, sys.costs)
+        profit = revenue - cost
 
-        # volatility penalty (price changes)
         vol_penalty = 0.0
         if self._last_prices is not None:
-            price_change = np.abs(prices - self._last_prices) / (sys.refs + 1e-6)
-            vol_penalty = cfg.lambda_vol * float(np.mean(price_change))
+            vol_penalty = cfg.lambda_vol * float(np.mean(np.abs(prices - self._last_prices) / (sys.refs + 1e-6)))
 
         coi = compute_coi_window(sys._last_sessions, sys.costs, demand_mapping=demand)
-        coi_leak = float(coi.leak)
+        leak = float(coi.leak)
 
-        if cfg.reward_mode == "revenue":
-            r = revenue
-        elif cfg.reward_mode == "profit":
-            r = profit
-        elif cfg.reward_mode == "robust":
-            # robust objective: profit - λ_coi * COI_leak - λ_vol * volatility
-            r = profit - cfg.lambda_coi * coi_leak - vol_penalty
-        elif cfg.reward_mode == "coi_aware":
-            # adaptive: heavier penalty at high contamination
-            adaptive_lambda = cfg.lambda_coi * (1 + 2 * sys.alpha)
-            r = profit - adaptive_lambda * coi_leak - vol_penalty
-        else:
-            r = profit
-
-        if cfg.normalize_reward:
-            r = r / (float(np.sum(sys.refs)) + 1e-6)  # normalize by potential revenue
-
-        return float(r)
+        reward_fns = {
+            "revenue": lambda: revenue,
+            "profit": lambda: profit,
+            "robust": lambda: profit - cfg.lambda_coi * leak - vol_penalty,
+            "coi_aware": lambda: profit - cfg.lambda_coi * (1 + 2 * sys.alpha) * leak - vol_penalty,
+        }
+        r = reward_fns.get(cfg.reward_mode, lambda: profit)()
+        return float(r / (float(np.sum(sys.refs)) + 1e-6)) if cfg.normalize_reward else float(r)
 
     def reset(self, seed: int | None = None, options: dict | None = None) -> Tuple[np.ndarray, dict]:
-        """Reset environment to initial state."""
         seed = seed if seed is not None else self.cfg.seed
         self._sys = System(n_products=self.n, lambda_coi=self.cfg.lambda_coi, seed=seed)
-        self._t = 0
-        self._alpha = self.cfg.alpha_true
-        self._last_prices = None
-        self._last_demand = None
-        self._episode_rewards = []
-        self._demand_agg = np.zeros(self.n)
-
-        info = {"alpha_true": self._alpha, "alpha_est": self._sys.alpha,
-                "costs": self._sys.costs.copy(), "refs": self._sys.refs.copy()}
-        return self._build_obs(), info
+        self._t, self._alpha = 0, self.cfg.alpha_true
+        self._last_prices, self._last_demand = None, None
+        self._episode_rewards, self._demand_agg = [], np.zeros(self.n)
+        return self._build_obs(), {"alpha_true": self._alpha, "alpha_est": self._sys.alpha,
+                                   "costs": self._sys.costs.copy(), "refs": self._sys.refs.copy()}
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, dict]:
-        """Execute one environment step.
-
-        Args:
-            action: price multipliers in [0.5, 1.5]
-
-        Returns:
-            obs, reward, terminated, truncated, info
-        """
         if self._sys is None:
             raise RuntimeError("call reset() first")
 
-        # convert action to prices
         action = np.clip(action, 0.5, 1.5)
-        prices = self._sys.refs * action.astype(np.float64)
-        prices = np.clip(prices, self._sys.costs * 1.01, self._sys.refs * 2.0)
-
-        # # drift contamination
-        # if self.cfg.alpha_drift != 0:
-        #     self._alpha = np.clip(
-        #         self._alpha + self.cfg.alpha_drift * self._sys.rng.normal(),
-        #         *self.cfg.alpha_bounds)
-
-        # observe demand
+        prices = np.clip(self._sys.refs * action.astype(np.float64), self._sys.costs * 1.01, self._sys.refs * 2.0)
         demand = self._sys.observe_demand(prices, alpha_true=self._alpha, n_sessions=self.cfg.sessions_per_step)
         self._sys.limbo.add_update("prices", prices)
-
-        # update α estimate
         self._sys._alpha_est = self._sys._estimate_alpha_from_sessions()
 
         reward = self._compute_reward(prices, demand)
         self._episode_rewards.append(reward)
-
-        self._last_prices = prices.copy()
-        self._last_demand = demand
+        self._last_prices, self._last_demand = prices.copy(), demand
         self._t += 1
 
-        terminated = self._t >= self.cfg.max_steps
-        truncated = False
-
-        # compute metrics for tracking
-        revenue = 0.0
-        cost = 0.0
-        n_purchases = 0
-        for sess in self._sys._last_sessions:
-            for e in sess.events:
-                if e.action != "purchase":
-                    continue
-                n_purchases += 1
-                revenue += float(e.price_seen)
-                cost += float(self._sys.costs[int(e.product_idx)])
-        profit = float(revenue - cost)
+        # compute info metrics using shared helper
+        purchases, revenue, cost = aggregate_purchases(self._sys._last_sessions, self.n, self._sys.costs)
         n_agents = int(self._alpha * self.cfg.sessions_per_step)
-        price_std = float(np.std(prices))
         coi = compute_coi_window(self._sys._last_sessions, self._sys.costs, demand_mapping=demand)
 
         info = {
-            "alpha_true": self._alpha,
-            "alpha_est": self._sys.alpha,
+            "alpha_true": self._alpha, "alpha_est": self._sys.alpha,
             "alpha_error": abs(self._alpha - self._sys.alpha),
-            "revenue": float(revenue),
-            "profit": float(profit),
-            "cost": float(cost),
-            "n_purchases": int(n_purchases),
+            "revenue": float(revenue), "profit": float(revenue - cost), "cost": float(cost),
+            "n_purchases": int(np.sum(purchases)),
             "avg_margin": float(np.mean((prices - self._sys.costs) / self._sys.costs)),
-            "n_sessions": len(demand),
-            "n_agents": n_agents,
-            "price_std": price_std,
-            "coi_erosion": coi_erosion(max(1, n_agents), price_std),
-            "coi_policy": float(coi.policy),
-            "coi_agent": float(coi.agent),
-            "coi_leakage": float(coi.leak),
-            "coi_survival": float(coi.survival_ratio),
-            "cumulative_reward": sum(self._episode_rewards),
-            "step": self._t,
+            "n_sessions": len(demand), "n_agents": n_agents, "price_std": float(np.std(prices)),
+            "coi_erosion": coi_erosion(max(1, n_agents), float(np.std(prices))),
+            "coi_policy": float(coi.policy), "coi_agent": float(coi.agent),
+            "coi_leakage": float(coi.leak), "coi_survival": float(coi.survival_ratio),
+            "cumulative_reward": sum(self._episode_rewards), "step": self._t,
         }
-
-        return self._build_obs(), reward, terminated, truncated, info
+        return self._build_obs(), reward, self._t >= self.cfg.max_steps, False, info
 
     def render(self, mode: str = "human") -> str | None:
-        """Render environment state."""
         if self._sys is None or self._last_prices is None:
             return None
-
-        lines = [
-            f"t={self._t}/{self.cfg.max_steps}",
-            f"α_true={self._alpha:.3f} α̂={self._sys.alpha:.3f}",
-            f"prices: {self._last_prices.round(1)}",
-            f"demand: {self._demand_agg.round(2)}",
-            f"reward: {self._episode_rewards[-1] if self._episode_rewards else 0:.3f}",
-        ]
-        out = " | ".join(lines)
+        out = f"t={self._t}/{self.cfg.max_steps} | alpha_true={self._alpha:.3f} alpha_hat={self._sys.alpha:.3f} | " \
+              f"prices: {self._last_prices.round(1)} | demand: {self._demand_agg.round(2)} | " \
+              f"reward: {self._episode_rewards[-1] if self._episode_rewards else 0:.3f}"
         if mode == "human":
             print(out)
         return out
@@ -285,10 +179,7 @@ class PricingEnv(gym.Env if HAS_GYM else object):
 
 
 class ContaminationSweepEnv(PricingEnv):
-    """Environment that sweeps through contamination levels during training.
-
-    Useful for curriculum learning: start with low α, gradually increase.
-    """
+    """Environment that sweeps through contamination levels during training."""
 
     def __init__(self, cfg: EnvConfig | None = None, alpha_schedule: list[float] | None = None):
         super().__init__(cfg)
@@ -296,7 +187,6 @@ class ContaminationSweepEnv(PricingEnv):
         self._schedule_idx = 0
 
     def reset(self, seed: int | None = None, options: dict | None = None) -> Tuple[np.ndarray, dict]:
-        # advance schedule on reset
         if options and options.get("advance_schedule", False):
             self._schedule_idx = (self._schedule_idx + 1) % len(self._schedule)
         self.cfg.alpha_true = self._schedule[self._schedule_idx]
@@ -306,8 +196,7 @@ class ContaminationSweepEnv(PricingEnv):
 class AdversarialEnv(PricingEnv):
     """Environment with adversarial contamination dynamics.
 
-    The contamination level responds to pricing policy: if prices are too predictable,
-    agents learn to exploit and α increases.
+    Contamination increases when prices are predictable (agents exploit).
     """
 
     def __init__(self, cfg: EnvConfig | None = None, exploitation_rate: float = 0.02):
@@ -317,20 +206,13 @@ class AdversarialEnv(PricingEnv):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, dict]:
         obs, reward, term, trunc, info = super().step(action)
-
-        # track price history for predictability
         if self._last_prices is not None:
             self._price_history.append(self._last_prices.copy())
-
-        # increase α if prices are predictable (low variance over recent history)
+        predictability = 0.0
         if len(self._price_history) > 10:
-            recent = np.array(self._price_history[-10:])
-            predictability = 1.0 / (float(np.std(recent)) + 0.1)
-            self._alpha = np.clip(
-                self._alpha + self._exploit_rate * predictability * self._sys.rng.random(),
-                *self.cfg.alpha_bounds)
-
-        info["predictability"] = predictability if len(self._price_history) > 10 else 0.0
+            predictability = 1.0 / (float(np.std(self._price_history[-10:])) + 0.1)
+            self._alpha = np.clip(self._alpha + self._exploit_rate * predictability * self._sys.rng.random(), *self.cfg.alpha_bounds)
+        info["predictability"] = predictability
         return obs, reward, term, trunc, info
 
     def reset(self, seed: int | None = None, options: dict | None = None) -> Tuple[np.ndarray, dict]:
@@ -339,39 +221,20 @@ class AdversarialEnv(PricingEnv):
 
 
 def make_env(cfg: EnvConfig | None = None, env_type: str = "standard") -> PricingEnv:
-    """Factory for creating pricing environments."""
-    if env_type == "sweep":
-        return ContaminationSweepEnv(cfg)
-    elif env_type == "adversarial":
-        return AdversarialEnv(cfg)
-    return PricingEnv(cfg)
+    return {"sweep": ContaminationSweepEnv, "adversarial": AdversarialEnv}.get(env_type, PricingEnv)(cfg)
 
 
-# simple baseline policies for benchmarking
-def fixed_price_policy(refs: np.ndarray, margin: float = 0.0) -> np.ndarray:
-    """Fixed markup policy: always return ref * (1 + margin)."""
-    return np.ones(len(refs), dtype=np.float32) * (1.0 + margin)
-
-
-def random_policy(n: int, rng: np.random.Generator | None = None) -> np.ndarray:
-    """Random policy for exploration baseline."""
-    rng = rng or np.random.default_rng()
-    return rng.uniform(0.7, 1.3, n).astype(np.float32)
-
-
-def adaptive_policy(obs: np.ndarray, n: int, base_margin: float = 0.1) -> np.ndarray:
-    """Simple adaptive policy: reduce margins when α̂ is high."""
-    alpha_est = obs[2 * n]  # α̂ is at position 2n in observation
-    margin_scale = 1.0 - 0.4 * alpha_est  # defensive when α̂ high
-    return np.ones(n, dtype=np.float32) * (1.0 + base_margin * margin_scale)
+# baseline policies
+fixed_price_policy = lambda refs, margin=0.0: np.ones(len(refs), dtype=np.float32) * (1.0 + margin)
+random_policy = lambda n, rng=None: (rng or np.random.default_rng()).uniform(0.7, 1.3, n).astype(np.float32)
+adaptive_policy = lambda obs, n, base=0.1: np.ones(n, dtype=np.float32) * (1.0 + base * (1.0 - 0.4 * obs[2 * n]))
 
 
 if __name__ == "__main__":
-    # demo run
     cfg = EnvConfig(n_products=100, max_steps=100, alpha_true=0.25, reward_mode="robust")
     env = make_env(cfg)
     obs, info = env.reset()
-    print(f"initial: α={info['alpha_true']:.2f}")
+    print(f"initial: alpha={info['alpha_true']:.2f}")
 
     total_reward = 0.0
     for t in range(cfg.max_steps):
@@ -383,4 +246,4 @@ if __name__ == "__main__":
         if done:
             break
 
-    print(f"\ntotal reward: {total_reward:.2f}, final α̂: {info['alpha_est']:.3f}")
+    print(f"\ntotal reward: {total_reward:.2f}, final alpha_hat: {info['alpha_est']:.3f}")
