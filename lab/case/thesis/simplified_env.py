@@ -39,7 +39,7 @@ class EnvConfig:
     seed: int | None = 42
 
 
-class PricingEnv:
+class PricingEnv(gym.Env if HAS_GYM else object):
     """RL environment for dynamic pricing under agent contamination.
 
     Implements the thesis formulation where:
@@ -204,13 +204,28 @@ class PricingEnv:
         terminated = self._t >= self.cfg.max_steps
         truncated = False
 
+        # compute metrics for tracking
+        revenue = float(np.dot(prices, self._demand_agg))
+        cost = float(np.dot(self._sys.costs, np.clip(self._demand_agg, 0, 1)))
+        profit = revenue - cost
+        n_agents = int(self._alpha * self.cfg.sessions_per_step)
+        price_std = float(np.std(prices))
+
         info = {
             "alpha_true": self._alpha,
             "alpha_est": self._sys.alpha,
-            "revenue": float(np.dot(prices, self._demand_agg)),
+            "alpha_error": abs(self._alpha - self._sys.alpha),
+            "revenue": revenue,
+            "profit": profit,
+            "cost": cost,
             "avg_margin": float(np.mean((prices - self._sys.costs) / self._sys.costs)),
             "n_sessions": len(demand),
-            "coi_erosion": coi_erosion(int(self._alpha * self.cfg.sessions_per_step), float(np.std(prices))),
+            "n_agents": n_agents,
+            "price_std": price_std,
+            "coi_erosion": coi_erosion(max(1, n_agents), price_std),
+            "coi_leakage": self._sys.alpha * float(np.mean(prices - self._sys.costs)),
+            "cumulative_reward": sum(self._episode_rewards),
+            "step": self._t,
         }
 
         return self._build_obs(), reward, terminated, truncated, info
