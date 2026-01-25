@@ -157,7 +157,7 @@ class PricingEnv(gym.Env if HAS_GYM else object):
             "n_purchases": int(np.sum(purchases)),
             "avg_margin": float(np.mean((prices - self._sys.costs) / self._sys.costs)),
             "n_sessions": len(demand), "n_agents": n_agents, "price_std": float(np.std(prices)),
-            "coi_erosion": coi_erosion(max(1, n_agents), float(np.std(prices))),
+            "coi_erosion": coi_erosion(coi.policy, coi.agent),
             "coi_policy": float(coi.policy), "coi_agent": float(coi.agent),
             "coi_leakage": float(coi.leak), "coi_survival": float(coi.survival_ratio),
             "cumulative_reward": sum(self._episode_rewards), "step": self._t,

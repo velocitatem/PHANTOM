@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 import numpy as np
 
-from .coi import COIWindow, compute_coi_window, coi_erosion
+from .coi import COIWindow, compute_coi_window
 from .separability import TRANS_H, TRANS_A, kl_div, build_kernel, compute_divergence, estimate_alpha
 
 ACTION_WEIGHTS = {"add_to_cart": 0.8, "checkout": 0.9, "purchase": 1.0, "view": 0.15, "detail": 0.25, "hover": 0.3, "start": 0.05, "end": 0.0}
@@ -209,7 +209,8 @@ if __name__ == "__main__":
     print(f'sessions: {len(sessions)}, agents: {sum(1 for s in sessions if s.actor=="A")}')
 
     for n in [1, 5, 10, 50, 100]:
-        print(f'N={n:3d} agents -> COI erosion: {coi_erosion(n, price_std=5.0):.3f}')
+        # theoretical: erosion = 1 - 2/(N+1) for uniform order statistic
+        print(f'N={n:3d} agents -> COI erosion: {1.0 - 2.0/(n+1):.3f}')
 
     events = [Event('view', 0, 20.0, 0.1), Event('detail', 0, 20.0, 0.5), Event('cart', 0, 20.0, 1.0), Event('purchase', 0, 20.0, 2.0)]
     print(f'human-like session alpha_hat: {estimate_alpha(Session(sid="test", events=events, actor="H")):.3f}')
