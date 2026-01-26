@@ -1,6 +1,11 @@
+% Encoding
+\usepackage[utf8]{inputenc}
+
 % Math packages (load before fonts to avoid conflicts)
 \usepackage{amsmath}
 \usepackage{amsthm}
+\usepackage{appendix}
+\usepackage[inline]{enumitem}
 
 % Define theorem environments
 \newtheorem{theorem}{Theorem}
@@ -28,7 +33,8 @@
 \usepackage{xcolor}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{cleveref}
-
+\usepackage{adjustbox}
+\usetikzlibrary{trees}
 % Configure cleveref for algorithm2e
 \crefname{algocf}{Algorithm}{Algorithms}
 
@@ -49,6 +55,16 @@
     literate={·}{{\textperiodcentered}}1 {−}{{\textminus}}1 {—}{{---}}1 {–}{{--}}1
 }
 
-% Use biblatex instead of natbib (acmart default)
-\usepackage[backend=bibtex,style=numeric]{biblatex}
+% Use biblatex with authoryear style for in-text citations like (Author, Year)
+\usepackage[backend=bibtex,style=authoryear,natbib=true,maxcitenames=2]{biblatex}
 \addbibresource{bib/references.bib}
+
+% Page headers (SciTech format)
+\usepackage{fancyhdr}
+\setlength{\headheight}{14.5pt}
+\addtolength{\topmargin}{-2.5pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{PHANTOM}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}

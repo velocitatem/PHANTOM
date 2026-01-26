@@ -19,13 +19,15 @@ where:
 
 The platform does not directly observe the true underlying demand function $d(p)$. Instead, it observes a behavioral proxy $\hat{q}_t$, which is a composite signal derived from the mixture of actor types. We define the demand proxy for product $i$ at epoch $t$ as a weighted aggregation of events:
 \begin{equation}
+\label{eq:qhat}
 \hat{q}_{t,i} = \sum_{s \in \mathcal{S}_t} \sum_{k=1}^{L_s} \omega(a_{s,k}) \cdot \mathbb{1}[i_{s,k} = i]
 \end{equation}
 where $\omega: \mathcal{A} \to \mathbb{R}_+$ assigns weights to actions based on their signal strength regarding willingness to pay.
 
 \subsubsection{Actor Types and Demand Curves}
-We formalize the heterogeneity of actors by introducing a type space $\Theta$. An actor of class $Y_s$ is further parameterized by a type $\theta \sim \mathcal{D}_{Y}$. This type determines the actor's demand response function $d(p; \theta)$, sampled from a distribution of possible demand curves. The total observed demand is a stochastic process governed by the mixture:
+We formalize the heterogeneity of actors by introducing a type space $\Theta$. An actor of class $Y_s$ is further parameterized by a type $\theta \sim \mathcal{D}_{Y}$. This type determines the actor's demand response function $d(p; \theta)$, sampled from a distribution of possible demand curves. The total observed demand is a stochastic process governed by the naively defined mixture:
 \begin{equation}
+\label{eq:mixture_demand}
 Q(p) = (1-\alpha) \cdot \mathbb{E}_{\theta \sim \mathcal{D}_H}[d(p; \theta)] + \alpha \cdot \mathbb{E}_{\theta \sim \mathcal{D}_A}[d(p; \theta)] + \epsilon_t
 \end{equation}
 where $\alpha \in [0, 1]$ represents the contamination parameter (proportion of agents) and $\epsilon_t$ is non-stationary market noise.
@@ -164,7 +166,6 @@ The experimentation begins with the design of goals, with careful consideration 
 
 The purpose of this effort to gather data on interactions, is the first half of our research. With this collected data on behavioral characteristics, enhanced by our feature augmentation, we can create distribution separation into two bins $y \in \{A,H\}$ with a certain probability $p$ dependent on the session-specific features. To address the second loop of our system, we use this gained capability of discrimination to enhance the learner design involved in our surrogate dynamic pricing task which simulates an independent dynamic pricing scenario under which we can train a more controlled policy with the ability to account for true demand signals under conditions of contamination from non-human actors.
 
-
 Our approach can be well summarized by a three-stage division, first we intend to observe and \textit{vectorize} the behavioral interaction data from our experiments, we then develop the separability which helps us deepen the semantic understanding of the behavioral patterns. Finally we use our newly gained learner to leverage a defensive mechanism within the simulation stage of a controlled dynamic pricing loop.
 
 \begin{figure}[ht]
@@ -174,18 +175,78 @@ Our approach can be well summarized by a three-stage division, first we intend t
   \caption{Overview of the Dynamic Pricing Tasks.}
 \end{figure}
 
+Our web platform (developed in similar patterns as the RecSim by \textcite{ie_recsim_2019}) allows us to setup a controled environment in which we assign tasks to human and agentic actors which are then carried out. Each actor gets a browser assigned experiment identification which is persistent across possibly multiple session identifiers. We then group by experiments and extract all the session interactions (trajectories) which follow the schema formalized below.
 
-Study methodology and approach. Data acquisition strategy. Defined objectives and success criteria. Observable metrics and KPIs.
+\subsubsection{Interaction Schema}
+
+We extend the basic event tuple $e_{s,k}$ to capture the full observational signal available to the platform. An interaction event is defined as the extended tuple:
+\begin{equation}
+e_{s,k} = \left( a_{s,k}, \, i_{s,k}, \, t_{s,k}, \, \mu_{s,k}, \, \delta_{s,k} \right)
+\end{equation}
+where $\mu_{s,k} \in \mathcal{M}$ is a metadata record containing action-specific context (e.g., price observed, filter parameters, element text), and $\delta_{s,k} \in \mathbb{R}_+$ is the dwell time in milliseconds for attention-based actions.
+
+A session $s$ is itself a structured record:
+\begin{equation}
+s = \left( \text{sid}, \, \text{eid}, \, t_0, \, \phi, \, \mathcal{U}, \, \tau_s \right)
+\end{equation}
+where $\text{sid}$ is a unique session identifier (UUID), $\text{eid}$ optionally links to an experiment, $t_0$ is the session start timestamp, $\phi \in \{\texttt{hotel}, \texttt{airline}\}$ denotes the platform mode, $\mathcal{U}$ is the user-agent string, and $\tau_s$ is the trajectory of events.
+
+The action space $\mathcal{A}$ is partitioned into four semantic categories based on the behavioral signal each action conveys:
+
+\begin{table}[ht]
+\centering
+\caption{Action space partition $\mathcal{A} = \mathcal{A}_{\text{nav}} \cup \mathcal{A}_{\text{cart}} \cup \mathcal{A}_{\text{filter}} \cup \mathcal{A}_{\text{dwell}}$ with signal interpretation.}
+\label{tab:action_space}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Category} & \textbf{Actions} & \textbf{Signal} & $\boldsymbol{\omega}$ \\
+\midrule
+$\mathcal{A}_{\text{cart}}$ & \texttt{add\_item}, \texttt{remove}, \texttt{checkout}, \texttt{purchase} & Purchase intent & High \\
+$\mathcal{A}_{\text{dwell}}$ & \texttt{hover\_title}, \texttt{hover\_paragraph}, \texttt{hover\_link} & Sustained attention & Medium \\
+$\mathcal{A}_{\text{nav}}$ & \texttt{page\_view}, \texttt{view\_item}, \texttt{learn\_more} & Discovery & Low \\
+$\mathcal{A}_{\text{filter}}$ & \texttt{search}, \texttt{filter\_date}, \texttt{filter\_price}, \texttt{sort} & Preference refinement & Lowest \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This partition enables the weight function $\omega$ from Eq.~\ref{eq:qhat} to assign category-specific signal strengths, with $\omega(\mathcal{A}_{\text{cart}}) > \omega(\mathcal{A}_{\text{dwell}}) > \omega(\mathcal{A}_{\text{nav}}) > \omega(\mathcal{A}_{\text{filter}})$ reflecting decreasing commitment.
+
+The metadata record $\mu$ varies by action type. For product views, $\mu$ contains the observed price $p_{\text{obs}}$ and product attributes. For dwell events, $\mu$ includes the element text and accumulated hover duration. This heterogeneous structure is captured via a schema-on-read approach in our Kafka ingestion pipeline, where events are validated against type-specific schemas before storage.
+
+In addition to behavioral events, the platform logs price observations to a separate Kafka topic. Each price query generates a record $(i, p, \text{sid}, \phi, t)$ associating the product, displayed price, requesting session, platform mode, and timestamp. This dual-stream architecture enables joint analysis of price exposure and behavioral response.
 
 
 \subsection{Generative Contamination and Separability}
 
-To develop a robust pricing agent, we require a simulation environment capable of generating realistic, contaminated interaction data. We achieve this by learning from our Phantom platform data using a two-stage approach.
+To develop a robust pricing learner, we require a simulation environment capable of generating realistic, contaminated interaction data. We achieve this by learning from our Phantom platform data using a two-stage approach.
 
 
 
 \subsubsection{GOFAI-Based Separability}
 We employ Good Old-Fashioned AI (GOFAI) heuristics to generate initial weak labels for separability. We define a set of rule-based predicates $\phi_j: \tau \to \{0, 1\}$ to partition the dataset $\mathcal{D}$ into high-confidence sets $\mathcal{D}_H$ and $\mathcal{D}_A$. We construct distinct MDPs per each behavioral profile of humans and agents and from those we establish $D_{KL}$. From initial findings we compute a KL divergence of $\approx 2.0236$ across transition probabilities between states which can be seen in \ref{fig:human_mdp_viz} and \ref{fig:agent_mdp_viz}.
+
+\begin{definition}[Kullback-Leibler Divergence for Transition Distributions]
+Let $P_e$ and $Q_e$ be categorical distributions over destination states following event $e$, derived from human and agent trajectories respectively. The KL divergence between these distributions is:
+\begin{equation}
+  D_{\mathrm{KL}}(P_e \parallel Q_e) = \sum_{k \in \mathcal{S}_e} P_e(k) \log \frac{P_e(k)}{Q_e(k)}
+\end{equation}
+where $\mathcal{S}_e$ denotes the set of destination events that follow $e$ in the human trajectories.
+\end{definition}
+
+To obtain this statistic we aggregate state transitions by their triggering event $e$ and treat the normalized outgoing probabilities as the categorical distributions $P_e$ (human) and $Q_e$ (agent). The computation intersects the event labels observed in both datasets, then iterates over each label and accumulates the log-ratio score. In practice this is implemented exactly as in models: for each destination $k$ we multiply the human probability by the log of the probability ratio and add the result to the running sum. Large contributions (including the case where $Q_e(k)$ is near zero) point to intents, such as rapid checkout or repeated navigation, that the agent policy fails to reproduce and therefore drive the contamination analysis.
+
+With this divergence we train a contrastive learning method to estimate a weak probability of a given trajectory being an agent $f(\cdot) \to [0,1]$ which we can use as a leverage for a weighted sum. This is a first attempt at a more informed separability.
+
+
+\subsubsection{Transition Probability Estimation}
+\label{sec:tpe}
+
+
+  For both subsets, we model the session dynamics as a Markov Decision Process (MDP) and estimate the transition kernel $\mathcal{T}$. for each respective actor type we define $\hat{\mathcal{T}}_A$ and $\hat{\mathcal{T}}_H$ which are the general transition kernels subject to clustering into $\hat{\mathcal{T}}_y^i$ where $\forall i \in \text{behavioral clusters of } \hat{\mathcal{T}}_y$. This is done to avoid a lumping of all actor behavior and allows for more intral-class penalization. The probability of transitioning to state $s'$ given state $s$ is estimated via maximum likelihood:
+\begin{equation}
+    \hat{P}(s' \mid s) = \frac{N(s, s')}{\sum_{k \in \mathcal{S}} N(s, k)}
+\end{equation}
+where $N(s, s')$ is the count of observed transitions. This allows us to construct a \textit{Contamination Generator} $\mathcal{G}(\alpha)$. In addition, given a clean trajectory dataset, $\mathcal{G}$ injects synthetic agent trajectories sampled from the learned transition matrix $\hat{P}_A$ until the effective mixing ratio reaches $\alpha$. From these transition probabilities we can observe an important feature which contributes to a differentiating assumption, which is that the mouse-behavior of an agent is almost non existent and therefore not utilized as a distinguishing factor both in the prior separability nor in any feature engineering.
 
 \begin{figure}[ht]
     \centering
@@ -201,30 +262,42 @@ We employ Good Old-Fashioned AI (GOFAI) heuristics to generate initial weak labe
     \label{fig:agent_mdp_viz}
   \end{figure}
 
-\subsubsection{Transition Probability Estimation}
-For both subsets, we model the session dynamics as a Markov Decision Process (MDP) and estimate the transition kernel $\mathcal{T}$. The probability of transitioning to state $s'$ given state $s$ is estimated via maximum likelihood:
-\begin{equation}
-    \hat{P}(s' \mid s) = \frac{N(s, s')}{\sum_{k \in \mathcal{S}} N(s, k)}
-\end{equation}
-where $N(s, s')$ is the count of observed transitions. This allows us to construct a \textit{Contamination Generator} $\mathcal{G}(\alpha)$. Given a clean trajectory dataset, $\mathcal{G}$ injects synthetic agent trajectories sampled from the learned transition matrix $\hat{P}_A$ until the effective mixing ratio reaches $\alpha$.
+
+\subsection{Stronger Classification}
+We re-map the current event schema semantically to the event schema of another dataset. Our contaminated dataset is then used in another classifier where we can now also apply better feature engineering on other features while assigning correct lables to the entire dataset so the new dataset can be contaminated with $\mathcal{G}$ under some different contamination ratio $\alpha$.
+
+This new classified can then be used in the reinforcement learning reward structure.
+
 
 \subsection{Distributionally Robust Reinforcement Learning (DR-RL)}
 
-We formulate the pricing problem as a Stackelberg Game where the Platform (Leader) sets prices $p_t$ and the Aggregate Demand (Follower) responds. However, the exact mixing parameter $\alpha$ and the demand distribution shift are non-stationary and unknown in online settings. Relying on a simple error term $\epsilon$ is insufficient. Instead, we adopt a Distributionally Robust Optimization (DRO) objective.
+We formulate the pricing problem as a Stackelberg Game where the Platform (Leader) sets prices $p_t$ and the Aggregate Demand (Follower) responds. However, the exact mixing parameter $\alpha$ and the demand distribution shift are non-stationary and unknown in online settings. Relying on a simple error term $\epsilon$ is insufficient. Instead, we adopt a Distributionally Robust Optimization (DRO) objective. To formulate the entire dependency chain from the trajctory $\tau^\prime$ which is a newly observed trajectory observed by the platform and generated by an unknown actor type (sampled over a behavioral profile defined in section \ref{sec:tpe}). As part of the dynamic pricing we need a mapping of demand parameterized by a trajectory and a price $\hat{Q}(p, \tau^\prime)$. For an observed trajectory we compute a new $\hat{\mathcal{T}}^\prime$ and using a baseline controlled observations of both $\bar{\mathcal{T}}_H$ and $\bar{\mathcal{T}}_A$ we can compute during inference time the following:
+
+\begin{align}
+  \label{eq:delta_H}
+  \Delta_H &= D_{KL}(\hat{\mathcal{T}}^\prime \parallel \bar{\mathcal{T}}_H) \\
+  \label{eq:delta_A}
+  \Delta_A &= D_{KL}(\hat{\mathcal{T}}^\prime \parallel \bar{\mathcal{T}}_A)
+\end{align}
+
+This creates two centroid-like heuristics which can on a per-session granularity basis guide our mixing paramtere $\alpha$.
 
 \subsubsection{Ambiguity Set Construction}
 We define an ambiguity set $\mathcal{U}_p(\hat{P}_N)$ centered around our empirical reference distribution $\hat{P}_N$ (derived from the generator $\mathcal{G}$). We utilize the Wasserstein distance metric to define the set of plausible demand distributions the agent might face:
 \begin{equation}
 \mathcal{U}_\epsilon(\hat{P}_N) = \left\{ Q \in \mathcal{P}(\Xi) : W_p(Q, \hat{P}_N) \le \epsilon \right\}
 \end{equation}
-This set captures all distributions that are statistically close to our observed training data but allows for adversarial shifts (e.g., sudden bot spikes).
+This set captures all distributions that are statistically close to our observed training data but allows for adversarial shifts.
 
 \subsubsection{The Min-Max Objective}
 The robust policy $\pi^*$ is obtained by solving the maximin problem:
 \begin{equation}
+\label{eq:robust_policy}
 \pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}(p) \right]
 \end{equation}
-where $R(p, d)$ is the revenue function and $\lambda$ weighs the penalty for information leakage (COI).
+where $R(p, d)$ is the revenue function and $\lambda$ weighs the penalty for information leakage (COI). We previously defined $\text{COI}$, however to properly connect this concept into the reward structure we need to define a parametrized version which informs us of the leakage of said structure with $\text{COI}(p)$.
+
+Another proposed formulation of the optimal policy would be to adjust the ambiguity set dyanmically over the live computed divergence where $\epsilon(\Delta_H)$ to adjust the ball around or estimator according to each behavioral signal emited through a given trajctory. We state this as a possibility but do not peruse it due to literature suggesting that wesserstine methods do not require absolute continuity and are better with ``black swans'' \parencite{kuhn_wasserstein_2024}.
 
 \subsubsection{Actor Implementation}
 In our simulation, the "Follower" is implemented as a set of Actors. Each Actor is initialized with a type $\theta$ which samples a specific demand curve $d(p; \theta)$ from the latent distribution. This formalization ensures that our DR-RL agent does not overfit to a single deterministic demand function but learns a policy robust to the distributional uncertainty defined by $\mathcal{U}_\epsilon$.
@@ -241,6 +314,47 @@ As part of our reward engineering we think about the UX factor ($UX \in [0,1]$) 
 \end{figure}
 
 We also need to think about a policy like taxation to the agents Strategy-Proof Mechanism Design, specifically the Vickrey-Clarke-Groves (VCG) payment rule. We link and prove that this would create an incentive for the dominant strategy to become truth-telling.
+
+\subsubsection{Pricing Mechanism Summary}
+
+We now present the complete pricing mechanism that integrates the behavioral separability, contamination estimation, and robust optimization components developed in the preceding sections. Algorithm~\ref{alg:phantom_pricing_loop} formalizes the defensive pricing loop as a Stackelberg game where the platform (leader) sets prices and the aggregate demand (follower) responds through observed session trajectories.
+
+\begin{algorithm}[t]
+\caption{PHANTOM defensive pricing loop (bachelor-thesis level)}
+\label{alg:phantom_loop_clean}
+\DontPrintSemicolon
+\SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+
+\Input{catalog size \(N\); costs \(c\); reference prices \(p^{ref}\); behavior models \(\bar T_H,\bar T_A\);
+action weights \(\omega\); penalty \(\lambda\); horizon \(T\); sessions per step \(M\)}
+\Output{price/demand trajectory \(\{(p_t,\hat Q_t,\hat\alpha_t)\}_{t=0}^{T-1}\)}
+
+Initialize contamination estimate \(\hat\alpha \leftarrow 0.2\)\;
+
+\For{\(t \leftarrow 0\) \KwTo \(T-1\)}{
+
+  set \(p_t \leftarrow \pi(\cdot) \) %c + (1 - \kappa \hat\alpha)\,(p^{ref}-c)\)\;
+  and clip \(p_t\) to a feasible range (e.g., near cost up to a max margin)\;
+
+
+  \(\hat Q_t \leftarrow 0\), \(\mathcal S_t \leftarrow \emptyset\); \tcp{Observe sessions and compute demand proxy (Eq.~2)}
+  \For{\(m \leftarrow 1\) \KwTo \(M\)}{
+    sample a session trajectory \(\tau_m\) using \(\bar T_H\) or \(\bar T_A\)\;
+    \(\hat Q_t \leftarrow \hat Q_t + \sum_{k}\omega(a_{m,k})\)\;
+    \(\mathcal S_t \leftarrow \mathcal S_t \cup \{\tau_m\}\)\;
+  }
+
+  \tcp{Estimate contamination from behavioral separability}
+  compute \(\hat\alpha \leftarrow \frac{1}{M}\sum_{\tau\in\mathcal S_t} \Big[\sigma\big(\beta(\Delta_H(\tau)-\Delta_A(\tau))\big)\Big]\)\;
+
+  compute \(J_t \leftarrow \text{Revenue}(p_t,\hat Q_t) - \lambda\cdot \text{COILeak}(\hat\alpha)\)\;
+}
+\end{algorithm}
+
+
+The algorithm operates in discrete epochs indexed by $t$. At each epoch, the platform publishes prices (leader move), observes the resulting session trajectories (follower response), and updates its contamination estimate based on behavioral divergence from the learned human and agent transition kernels $\bar{\mathcal{T}}_H$ and $\bar{\mathcal{T}}_A$. The history buffer $\mathcal{L}$ (termed ``Limbo'' in our implementation) enforces the alternating Stackelberg structure by maintaining the temporal sequence of price publications and demand observations.
+
+%The defensive price update in Line 24 implements a contamination-aware margin shrinkage: as the estimated agent contamination $\hat{\alpha}_t$ increases, the margin $(p^{\mathrm{ref}} - c)$ is proportionally reduced by factor $\kappa \in [0,1]$, with projection $\Pi_{\mathcal{P}}$ ensuring prices remain within the feasible set $\mathcal{P}$. In subsequent experiments, this heuristic update is replaced by the DR-RL policy $\pi^*$ from Eq.~\ref{eq:robust_policy}, which optimizes against the Wasserstein ambiguity set $\mathcal{U}_\epsilon$ rather than relying on a fixed margin adjustment rule.
 
 \section{Heuristics as part of neuro-inspired steering systems}
 
