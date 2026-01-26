@@ -175,8 +175,7 @@ Our approach can be well summarized by a three-stage division, first we intend t
   \caption{Overview of the Dynamic Pricing Tasks.}
 \end{figure}
 
-% TODO: cite google recism here
-Our web platform (developed in similar patterns as the RecSim by Google) allows us to setup a controled environment in which we assign tasks to human and agentic actors which are then carried out. Each actor gets a browser assigned experiment identification which is persistent across possibly multiple session identifiers. We then group by experiments and extract all the session interactions (trajectories) which follow the schema formalized below.
+Our web platform (developed in similar patterns as the RecSim by \textcite{ie_recsim_2019}) allows us to setup a controled environment in which we assign tasks to human and agentic actors which are then carried out. Each actor gets a browser assigned experiment identification which is persistent across possibly multiple session identifiers. We then group by experiments and extract all the session interactions (trajectories) which follow the schema formalized below.
 
 \subsubsection{Interaction Schema}
 
@@ -298,7 +297,7 @@ The robust policy $\pi^*$ is obtained by solving the maximin problem:
 \end{equation}
 where $R(p, d)$ is the revenue function and $\lambda$ weighs the penalty for information leakage (COI). We previously defined $\text{COI}$, however to properly connect this concept into the reward structure we need to define a parametrized version which informs us of the leakage of said structure with $\text{COI}(p)$.
 
-Another proposed formulation of the optimal policy would be to adjust the ambiguity set dyanmically over the live computed divergence where $\epsilon(\Delta_H)$ to adjust the ball around or estimator according to each behavioral signal emited through a given trajctory. We state this as a possibility but do not peruse it due to literature suggesting that wesserstine methods do not require absolute continuity and are better with ``black swans'' ( Kuhn et al. - 2024 - Wasserstein Distributionally Robust Optimization Theory and Applications in Machine Learning.pdf ). % TODO: cite this properly
+Another proposed formulation of the optimal policy would be to adjust the ambiguity set dyanmically over the live computed divergence where $\epsilon(\Delta_H)$ to adjust the ball around or estimator according to each behavioral signal emited through a given trajctory. We state this as a possibility but do not peruse it due to literature suggesting that wesserstine methods do not require absolute continuity and are better with ``black swans'' \parencite{kuhn_wasserstein_2024}.
 
 \subsubsection{Actor Implementation}
 In our simulation, the "Follower" is implemented as a set of Actors. Each Actor is initialized with a type $\theta$ which samples a specific demand curve $d(p; \theta)$ from the latent distribution. This formalization ensures that our DR-RL agent does not overfit to a single deterministic demand function but learns a policy robust to the distributional uncertainty defined by $\mathcal{U}_\epsilon$.
