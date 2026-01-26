@@ -8,6 +8,14 @@ Objects:
 - Demand proxy q_hat via weighted action aggregation
 - COI leakage penalty for agent reconnaissance
 - Limbo: alternating price/demand history for trajectory analysis
+
+COI Correction (Jan 2026):
+The fundamental COI formulation is:
+    COI = E[p_start] - p_transaction
+
+This measures price erosion over time, not instantaneous margin × alpha.
+Agents use multiple sessions to gather information and find minimum prices.
+The price path from episode start to transaction captures information leakage.
 """
 from __future__ import annotations
 from dataclasses import dataclass, field

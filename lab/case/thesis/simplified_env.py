@@ -6,6 +6,14 @@ Supports multiple reward modes and contamination scenarios.
 Action: price multipliers [0.5, 1.5] applied to reference prices
 Observation: [prices, demand_agg, alpha_est, margins, position_proxy]
 Reward: configurable objective (revenue, profit, robust, coi-aware)
+
+COI Correction (Jan 2026):
+The fundamental COI formulation is now:
+    COI = E[p_start] - p_transaction
+
+This measures price erosion over time, not instantaneous margin × alpha.
+Agents using different sessions gather information and drive prices down.
+The COITracker now tracks prices over windows to capture this effect.
 """
 from __future__ import annotations
 from dataclasses import dataclass
@@ -20,7 +28,7 @@ except ImportError:
     HAS_GYM = False
 
 from .simplified import System, Session, Event, Limbo, put_prices_to_market, compute_demand, estimate_alpha
-from .coi import COIWindow, compute_coi_window, coi_erosion
+from .coi import COIWindow, compute_coi_window, coi_erosion, COITracker, compute_multi_session_coi
 
 
 @dataclass
@@ -73,6 +81,12 @@ class PricingEnv(gym.Env if HAS_GYM else object):
         self._episode_rewards: list[float] = []
         self._demand_agg = np.zeros(self.n)
 
+        # COI tracking: store initial prices for E[p] calculation
+        self._initial_prices: np.ndarray | None = None
+        self._coi_tracker = COITracker(window_size=10)
+        self._last_coi_metrics: Dict[str, float] = {}
+        self._last_window_coi: float = 0.0
+
         self.action_space = spaces.Box(low=0.5, high=1.5, shape=(self.n,), dtype=np.float32)
         obs_dim = self.n + self.n + 1 + 1 + self.n + 1  # prices + demand + alpha_hat + alpha + margins + t
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(obs_dim,), dtype=np.float32)
@@ -109,8 +123,29 @@ class PricingEnv(gym.Env if HAS_GYM else object):
         if self._last_prices is not None:
             vol_penalty = cfg.lambda_vol * float(np.mean(np.abs(prices - self._last_prices) / (sys.refs + 1e-6)))
 
+        # Track prices for windowed COI calculation
+        self._coi_tracker.add_step(prices)
+
+        # CORRECTED COI CALCULATION:
+        # COI = E[p_start] - p_transaction (price erosion over time)
+        # Use initial prices as E[p] and compute multi-session COI
+        coi_metrics = compute_multi_session_coi(
+            sessions=sys._last_sessions,
+            costs=sys.costs,
+            alpha=self._alpha,
+            initial_prices=self._initial_prices,
+        )
+        leak = float(coi_metrics['leak'])
+
+        # Also compute window-based COI for trend analysis
+        window_coi = self._coi_tracker.compute_window_coi(sys.costs)
+
+        # Store both for info dict
+        self._last_coi_metrics = coi_metrics
+        self._last_window_coi = window_coi
+
+        # For backward compatibility, also compute the old-style COI
         coi = compute_coi_window(sys._last_sessions, sys.costs, demand_mapping=demand)
-        leak = float(coi.leak)
 
         reward_fns = {
             "revenue": lambda: revenue,
@@ -127,6 +162,11 @@ class PricingEnv(gym.Env if HAS_GYM else object):
         self._t, self._alpha = 0, self.cfg.alpha_true
         self._last_prices, self._last_demand = None, None
         self._episode_rewards, self._demand_agg = [], np.zeros(self.n)
+
+        # COI tracking: store initial prices as E[p] for COI = E[p] - p calculation
+        self._initial_prices = self._sys.refs.copy()
+        self._coi_tracker.reset()
+
         return self._build_obs(), {"alpha_true": self._alpha, "alpha_est": self._sys.alpha,
                                    "costs": self._sys.costs.copy(), "refs": self._sys.refs.copy()}
 
@@ -150,6 +190,9 @@ class PricingEnv(gym.Env if HAS_GYM else object):
         n_agents = int(self._alpha * self.cfg.sessions_per_step)
         coi = compute_coi_window(self._sys._last_sessions, self._sys.costs, demand_mapping=demand)
 
+        # Corrected COI metrics (price erosion over time)
+        coi_m = self._last_coi_metrics
+
         info = {
             "alpha_true": self._alpha, "alpha_est": self._sys.alpha,
             "alpha_error": abs(self._alpha - self._sys.alpha),
@@ -157,9 +200,19 @@ class PricingEnv(gym.Env if HAS_GYM else object):
             "n_purchases": int(np.sum(purchases)),
             "avg_margin": float(np.mean((prices - self._sys.costs) / self._sys.costs)),
             "n_sessions": len(demand), "n_agents": n_agents, "price_std": float(np.std(prices)),
+            # Legacy COI metrics (for backward compatibility)
             "coi_erosion": coi_erosion(coi.policy, coi.agent),
             "coi_policy": float(coi.policy), "coi_agent": float(coi.agent),
             "coi_leakage": float(coi.leak), "coi_survival": float(coi.survival_ratio),
+            # CORRECTED COI metrics: E[p] - p (price erosion)
+            "coi_policy_corrected": float(coi_m.get('policy_coi', 0)),
+            "coi_agent_corrected": float(coi_m.get('agent_coi', 0)),
+            "coi_human_corrected": float(coi_m.get('human_coi', 0)),
+            "coi_realized": float(coi_m.get('realized_coi', 0)),
+            "coi_leak_corrected": float(coi_m.get('leak', 0)),
+            "coi_order_stat_erosion": float(coi_m.get('order_stat_erosion', 0)),
+            "coi_survival_corrected": float(coi_m.get('survival_ratio', 1.0)),
+            "coi_window": float(self._last_window_coi),
             "cumulative_reward": sum(self._episode_rewards), "step": self._t,
         }
         return self._build_obs(), reward, self._t >= self.cfg.max_steps, False, info
