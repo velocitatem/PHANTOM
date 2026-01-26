@@ -2,6 +2,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 from dataclasses import dataclass
+from pathlib import Path
 import pandas as pd
 from types import SimpleNamespace
 from typing import Optional, Dict, Any, List, Tuple
@@ -19,8 +20,6 @@ except ImportError:
 # "learner" agent learning to optimize pricing
 # "agent" part of environment creating demand signals that learner processes
 
-base_dir = "/home/velocitatem/Documents/Projects/PHANTOM/experiments"
-human_dir, agent_dir = f"{base_dir}/collected_data/", f"{base_dir}/agents/collected_data/"
 @dataclass
 class BusinessLogicConstraints():
     max_price_adjustment: float = 0.30
@@ -43,6 +42,17 @@ class BusinessLogicConstraints():
     w_volatility: float = 5.0
     w_estimation_error: float = 0.25
     seed: int = 7
+    human_data_dir: str | None = None
+    agent_data_dir: str | None = None
+
+
+def _resolve_behavior_data_dirs(constraints: BusinessLogicConstraints) -> tuple[str, str]:
+    base = Path(__file__).resolve().parents[2] / "experiments"
+    human_default = str(base / "collected_data")
+    agent_default = str(base / "agents" / "collected_data")
+    human = constraints.human_data_dir or human_default
+    agent = constraints.agent_data_dir or agent_default
+    return human, agent
 
 
 def _sigmoid(x: np.ndarray) -> np.ndarray:
@@ -94,7 +104,7 @@ class BehavioralProfile:
     """Synthetic Markov profile used to generate interaction sessions.
     Uses aggregate_event_transitions from models.py to build transition kernels from real data."""
 
-    def __init__(self, actor: str, purchase_probs: np.ndarray):
+    def __init__(self, actor: str, purchase_probs: np.ndarray, *, human_data_dir: str, agent_data_dir: str):
         self.actor = actor
         self.purchase_probs = np.clip(purchase_probs, 0.0, 0.95)
         self.states = [
@@ -105,7 +115,7 @@ class BehavioralProfile:
             "purchase_complete",
             "session_end",
         ]
-        model = AgentBehaviorModel(agent_dir) if actor == "agents" else BehaviorModel(human_dir)
+        model = AgentBehaviorModel(agent_data_dir) if actor == "agents" else BehaviorModel(human_data_dir)
         mdp = model.build_MDP()
         raw_trans = aggregate_event_transitions(mdp) if mdp.get("transitions") else {}
         self.transitions = _canonicalize_transitions(raw_trans) if raw_trans else self._fallback_transitions()
@@ -227,12 +237,18 @@ class BehavioralProfile:
         return events, feature_events
 
 
-def _load_behavioral_profile(actor: str, demand_forcing: np.ndarray) -> BehavioralProfile:
+def _load_behavioral_profile(
+    actor: str,
+    demand_forcing: np.ndarray,
+    *,
+    human_data_dir: str,
+    agent_data_dir: str,
+) -> BehavioralProfile:
     """returns a behavioral profile for generating synthetic sessions
     actor: 'humans' or 'agents'
     demand_forcing: per-product purchase probabilities used to weight interactions
     """
-    return BehavioralProfile(actor, demand_forcing)
+    return BehavioralProfile(actor, demand_forcing, human_data_dir=human_data_dir, agent_data_dir=agent_data_dir)
 
 
 class CommercePlatform:
@@ -248,6 +264,7 @@ class CommercePlatform:
         self.unit_cost = np.random.uniform(low=15.0, high=60.0, size=(self.product_catalogue_size,)).astype(np.float32)
         self.base_price = np.random.uniform(low=60.0, high=140.0, size=(self.product_catalogue_size,)).astype(np.float32)
         self.alpha_hat = constraints.agent_share
+        self._human_data_dir, self._agent_data_dir = _resolve_behavior_data_dirs(constraints)
         try:
             self.separability_artifacts = load_artifacts()
         except FileNotFoundError:
@@ -287,7 +304,12 @@ class CommercePlatform:
         demand_agent = np.zeros_like(prices, dtype=np.float32)
 
         for actor, n_sessions in session_map.items():
-            profile = _load_behavioral_profile(actor, pprob_map[actor])
+            profile = _load_behavioral_profile(
+                actor,
+                pprob_map[actor],
+                human_data_dir=self._human_data_dir,
+                agent_data_dir=self._agent_data_dir,
+            )
             for idx in range(n_sessions):
                 session_id = f"{actor}_{idx:06d}"
                 session_rows, feature_events = profile.sample_session(
@@ -474,8 +496,19 @@ class PHANTOMEnv(gym.Env):
 
     def _init_jax_transitions(self):
         try:
-            human_profile = _load_behavioral_profile("humans", np.ones(self.constraints.product_catalogue_size) * 0.1)
-            agent_profile = _load_behavioral_profile("agents", np.ones(self.constraints.product_catalogue_size) * 0.1)
+            human_dir, agent_dir = _resolve_behavior_data_dirs(self.constraints)
+            human_profile = _load_behavioral_profile(
+                "humans",
+                np.ones(self.constraints.product_catalogue_size) * 0.1,
+                human_data_dir=human_dir,
+                agent_data_dir=agent_dir,
+            )
+            agent_profile = _load_behavioral_profile(
+                "agents",
+                np.ones(self.constraints.product_catalogue_size) * 0.1,
+                human_data_dir=human_dir,
+                agent_data_dir=agent_dir,
+            )
             self._jax_trans = compile_transitions(human_profile, agent_profile).to_jax()
         except Exception:
             self._jax_trans = fallback_transitions().to_jax()

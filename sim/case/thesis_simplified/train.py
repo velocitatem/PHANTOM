@@ -65,7 +65,7 @@ class ExperimentConfig:
     n_envs: int = 4
     eval_freq: int = 5000
     n_eval_episodes: int = 10
-    log_dir: str = "lab/case/thesis/runs"
+    log_dir: str = "sim/case/thesis_simplified/runs"
     seed: int = 42
     n_products: int = 10
     max_steps: int = 200
@@ -312,7 +312,7 @@ def main():
     parser.add_argument("--n-products", type=int, default=10)
     parser.add_argument("--n-envs", type=int, default=4)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--log-dir", default="lab/case/thesis/runs")
+    parser.add_argument("--log-dir", default="sim/case/thesis_simplified/runs")
     parser.add_argument("--sweep", action="store_true", help="run contamination sweep")
     parser.add_argument("--compare", action="store_true", help="compare all baselines")
     parser.add_argument("--workers", type=int, default=None, help="max parallel workers for sweep (None=auto, 1=sequential)")
