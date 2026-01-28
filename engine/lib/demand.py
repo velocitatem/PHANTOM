@@ -1,11 +1,15 @@
+import logging
 import numpy as np
+from logging import getLogger
+logger = getLogger(__name__)
 
-def generate_demand(prices):
+def generate_demand(prices, distribution_method = np.random.normal, distribution_params = (50.0, 10.0)):
     # assumption 1: each product has an intrinsic valuation drawn from a normal distribution centered at 50
-    product_valuations = np.random.normal(loc=50.0, scale=10.0, size=len(prices))
+    product_valuations = distribution_method(*distribution_params, size=len(prices))
     # assumption 2: demand decreases as price increases, following a simple linear model
     demand = np.maximum(0, product_valuations - prices) # demand cannot be negative
     demand = demand / np.sum(demand) * 100  # normalize to total demand of 1000 units so demand output is within [0, 100]
+    logger.info(f"Generated demand for prices {prices}: {demand} with valuations from distribution {distribution_params}")
     return demand
 
 def estimate_demand(trajectories):
