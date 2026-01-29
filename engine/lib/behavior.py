@@ -6,33 +6,32 @@ from .demand import generate_demand
 base_dir = "/home/velocitatem/Documents/Projects/PHANTOM/experiments"
 human_dir, agent_dir = f"{base_dir}/collected_data/", f"{base_dir}/agents/collected_data/"
 
+_cache = {}  # lazy cache for models and base pivots
+
+def _get_base_pivot(human: bool):
+    key = 'human' if human else 'agent'
+    if key not in _cache:
+        model = BehaviorModel(human_dir) if human else AgentBehaviorModel(agent_dir)
+        mdp = model.build_MDP()
+        _cache[key] = pd.DataFrame(aggregate_event_transitions(mdp)).fillna(0.0)
+    return _cache[key]
 
 def adjust_behavior_to_condition(condition, transition_matrix):
-    # transition matrix just maps probability of eventA to eventB
-    # we enhance this that eventA-productI to eventB-productJ... based on the condition of interest
-    # this is to simulate the impact of demand onto the behavior
-    # NxN -> (N*(P + 1))x(N*(P + 1)) where P is number of products
-    new_transitions = transition_matrix.copy()
-    for col in new_transitions.columns:
-        for product in range(len(condition)):
-            # adjust the transition probability based on the demand condition
-            newname = f"{col}_product{product}"
-            new_transitions[newname] = new_transitions[col] * (condition[product] / np.sum(condition))
-    for row in transition_matrix.index:
-        for product in range(len(condition)):
-            newname = f"{row}_product{product}"
-            new_transitions.loc[newname] = new_transitions.loc[row] * (condition[product] / np.sum(condition))
+    # expand NxN transition matrix to (N*P)x(N*P) weighted by demand condition
+    cond_norm = condition / np.sum(condition)
+    n_products = len(condition)
+    base_vals = transition_matrix.values
+    base_cols, base_rows = transition_matrix.columns.tolist(), transition_matrix.index.tolist()
 
-    return new_transitions.fillna(0.0)
+    # expand via kronecker-like tiling: each cell becomes a P*P block weighted by outer product of cond_norm
+    expanded = np.kron(base_vals, np.outer(cond_norm, cond_norm))
+    new_cols = [f"{c}_product{p}" for c in base_cols for p in range(n_products)]
+    new_rows = [f"{r}_product{p}" for r in base_rows for p in range(n_products)]
+    return pd.DataFrame(expanded, index=new_rows, columns=new_cols)
 
 def sample_behavior(condition, human=True, max_len=40):
-    model = BehaviorModel(human_dir) if human else AgentBehaviorModel(agent_dir)
-    mdp = model.build_MDP()
-    raw_events = aggregate_event_transitions(mdp) # this gets us transtition between events (blind to products or prices)
-    # staet: {state: p} is raw_events we needc a matrix a pivot table
-    events_pivot = pd.DataFrame(raw_events).fillna(0.0)
-    # now adjust the transition matrix based on the condition to get a more informed transition matrix
-    adjusted_transitions = adjust_behavior_to_condition(condition, events_pivot)
+    base_pivot = _get_base_pivot(human)
+    adjusted_transitions = adjust_behavior_to_condition(condition, base_pivot)
 
     trajectory = [np.random.choice(adjusted_transitions.index)]
     while len(trajectory) < max_len or 'checkout' in trajectory[-1]:
