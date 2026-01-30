@@ -226,6 +226,7 @@ if __name__ == "__main__":
 
     agent_model = AgentBehaviorModel(agent_dir)
     agent_mdp = agent_model.build_MDP()
+    print(agent_mdp)
     print(f"AGENT... Built MDP: {agent_mdp['num_states']} states, "
           f"{sum(len(t) for t in agent_mdp['transitions'].values())} transitions")
     if not agent_mdp['states']:
@@ -234,6 +235,9 @@ if __name__ == "__main__":
 
     human_evt = aggregate_event_transitions(human_mdp)
     agent_evt = aggregate_event_transitions(agent_mdp)
+    print(agent_evt)
+
+
     common = set(human_evt.keys()) & set(agent_evt.keys())
 
     if not common:
