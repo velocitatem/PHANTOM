@@ -32,7 +32,8 @@ export default function CartPage() {
                     {itemCount > 0 && (
                         <button
                             onClick={clearCart}
-                            className="text-sm text-red-600 hover:underline"
+                            className="text-sm hover:underline"
+                            style={{ color: 'var(--accent-warning)' }}
                         >
                             Clear cart
                         </button>
@@ -42,7 +43,7 @@ export default function CartPage() {
                 {itemCount === 0 ? (
                     <div className="text-center py-12">
                         <p className="text-gray-500 mb-4">Your cart is empty</p>
-                        <a href="/" className="text-blue-600 hover:underline">Browse our selection</a>
+                        <a href="/" className="hover:underline" style={{ color: 'var(--text-accent)' }}>Browse our selection</a>
                     </div>
                 ) : (
                     <>
@@ -54,15 +55,11 @@ export default function CartPage() {
                                 >
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">
-                                                {item.type}
-                                            </span>
                                             <h3 className="font-semibold">{item.name}</h3>
                                         </div>
 
                                         {item.type === 'hotel' && (
                                             <div className="text-sm text-gray-600">
-                                                <p>{String(item.metadata.roomType)}</p>
                                                 <p>{String(item.metadata.checkIn)} - {String(item.metadata.checkOut)}</p>
                                                 <p>{String(item.metadata.nights)} night{Number(item.metadata.nights) > 1 ? 's' : ''}</p>
                                             </div>
@@ -81,7 +78,8 @@ export default function CartPage() {
                                         <p className="text-xl font-bold mb-2">${item.price}</p>
                                         <button
                                             onClick={() => handleRemove(item.id, item.type)}
-                                            className="text-sm text-red-600 hover:underline"
+                                            className="text-sm hover:underline"
+                                            style={{ color: 'var(--accent-warning)' }}
                                         >
                                             Remove
                                         </button>
@@ -100,7 +98,7 @@ export default function CartPage() {
                                     dispatchInteraction('checkout_start', undefined, { total, itemCount });
                                     window.location.href = '/checkout';
                                 }}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                                className="btn-primary w-full"
                             >
                                 Proceed to Checkout
                             </button>

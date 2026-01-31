@@ -9,6 +9,7 @@ import {
   addToCart,
 } from '../helpers/interactions';
 import { getSessionEvents } from '../helpers/kafka';
+import { runSessionPricing } from '../helpers/airflow';
 
 test.describe('SessionAwarePricer E2E', () => {
   const STORE_TYPE = 'hotel';
@@ -23,6 +24,9 @@ test.describe('SessionAwarePricer E2E', () => {
     await page.waitForTimeout(1500);
 
     const productId2 = await humanLikeViewProduct(page, STORE_TYPE);
+
+    await runSessionPricing(STORE_TYPE);
+
     const secondPrice = await getPriceFromDOM(page);
     expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
 
@@ -40,10 +44,12 @@ test.describe('SessionAwarePricer E2E', () => {
     await rapidViewProductViaFlow(page, 8, 100, STORE_TYPE);
     expect(await verifySessionConsistency(page, sessionId)).toBeTruthy();
 
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(1000);
 
     const events = await getSessionEvents(backendUrl, sessionId);
     expect(events.length).toBeGreaterThanOrEqual(8);
+
+    await runSessionPricing(STORE_TYPE);
 
     await page.goto(`/products/${productId}`);
     await page.waitForLoadState('networkidle');
@@ -59,14 +65,12 @@ test.describe('SessionAwarePricer E2E', () => {
     const productId = await viewProductViaFlow(page, STORE_TYPE);
     const baselinePrice = await getPriceFromDOM(page);
 
-    const startTime = Date.now();
     await rapidViewProductViaFlow(page, 10, 80, STORE_TYPE);
-    const duration = (Date.now() - startTime) / 1000;
 
-    const eventsPerSec = 10 / duration;
-    expect(eventsPerSec).toBeGreaterThan(2.0);
+    const events = await getSessionEvents(backendUrl, sessionId);
+    expect(events.length).toBeGreaterThanOrEqual(10);
 
-    await page.waitForTimeout(2000);
+    await runSessionPricing(STORE_TYPE);
 
     await page.goto(`/products/${productId}`);
     await page.waitForLoadState('networkidle');
@@ -105,8 +109,11 @@ test.describe('SessionAwarePricer E2E', () => {
 
     await rapidViewProductViaFlow(page, 2, 150, STORE_TYPE);
 
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1000);
     await humanLikeViewProduct(page, STORE_TYPE);
+
+    await runSessionPricing(STORE_TYPE);
+
     const finalPrice = await getPriceFromDOM(page);
 
     expect(Math.abs(finalPrice - baselinePrice) / baselinePrice).toBeLessThan(0.3);

@@ -112,11 +112,14 @@ services:
     depends_on:
       - postgres
     environment:
-      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
+      - AIRFLOW__CORE__PARALLELISM=16
+      - AIRFLOW__CORE__DAG_CONCURRENCY=8
+      - AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG=4
       - _AIRFLOW_DB_MIGRATE=true
       - _AIRFLOW_WWW_USER_CREATE=true
       - _AIRFLOW_WWW_USER_USERNAME=admin
@@ -136,14 +139,20 @@ services:
       - airflow-init
       - redis
     environment:
-      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
+      - AIRFLOW__CORE__PARALLELISM=16
+      - AIRFLOW__CORE__DAG_CONCURRENCY=8
+      - AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG=4
+      - AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL=30
+      - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=60
       - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=true
       - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW_SECRET_KEY}
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
       - KAFKA_HOST=kafka
       - KAFKA_PORT=29092
       - BACKEND_URL=http://backend:5000
@@ -173,13 +182,20 @@ services:
       redis:
         condition: service_started
     environment:
-      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
       - AIRFLOW__CORE__LOAD_EXAMPLES=false
       - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=true
+      - AIRFLOW__CORE__PARALLELISM=16
+      - AIRFLOW__CORE__DAG_CONCURRENCY=8
+      - AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG=4
+      - AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL=30
+      - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=60
+      - AIRFLOW__SCHEDULER__PARSING_PROCESSES=2
       - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW_SECRET_KEY}
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
       - KAFKA_HOST=kafka
       - KAFKA_PORT=29092
       - BACKEND_URL=http://backend:5000

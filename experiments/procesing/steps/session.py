@@ -135,6 +135,7 @@ class ExtractSessionFeaturesStep(BaseContextStep):
     Vectorized session feature extraction - replaces O(n^2) per-row loop.
     Input: interactions_df
     Output: session-level feature matrix
+    THIS is our main mapping from tau (trajectory) to some features vector theta - we need to do this very well. This is what will go into demand esimation.
     """
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:

@@ -30,6 +30,8 @@ export async function GET(req: NextRequest) {
     const providerUrl = process.env.PRICING_PROVIDER_URL || 'http://localhost:5001';
     try {
         const queryParams = new URLSearchParams();
+        // THIS is our entry point into the dynamic pricing where we reference the context of the sesion and experiment and ask for a price to assign to the trajectory which is expressed
+        // The whole pipeline gets triggered from here.
         if (sessionId) queryParams.append('sessionId', sessionId);
         if (experimentId) queryParams.append('experimentId', experimentId);
 
@@ -55,25 +57,26 @@ export async function GET(req: NextRequest) {
         price = Math.round(randomBase * 100) / 100;
     }
 
-    // log price to kafka for elasticity computation
+    // log price to kafka asynchronously (non-blocking)
     if (sessionId) {
         const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-        try {
-            await fetch(`${backendUrl}/api/kafka/price-log`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    productId,
-                    price,
-                    sessionId,
-                    experimentId: experimentId || undefined,
-                    storeMode,
-                    ts: timestamp,
-                }),
-            });
-        } catch (err) {
-            console.error('[price-log-error]', err);
-        }
+        // fire and forget - don't await to avoid blocking response
+        fetch(`${backendUrl}/api/kafka/price-log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                productId,
+                price,
+                sessionId,
+                experimentId: experimentId || undefined,
+                storeMode,
+                ts: timestamp,
+            }),
+        }).catch(err => {
+            if (process.env.NODE_ENV === 'development') {
+                console.error('[price-log-error]', err);
+            }
+        });
     }
 
     if (process.env.NODE_ENV === 'development') {

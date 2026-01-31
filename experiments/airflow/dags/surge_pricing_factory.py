@@ -1,3 +1,4 @@
+from pandas.core.algorithms import factorize_array
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
@@ -208,3 +209,12 @@ def create_surge_pricing_dag(store_mode: str) -> DAG:
 # instantiate DAGs for Airflow to discover
 dag_airline = create_surge_pricing_dag('airline')
 dag_hotel = create_surge_pricing_dag('hotel')
+
+# TODO: Refactor this factory from a surge pricing factory to a general pricing factory
+# We will do this by passing a pricing strategy class to the factory, since the generic pipeline is:
+# take all interaction data, group by sessionId and assign a new price vector to each session
+# in the grouping we get a subset of the interactions per sessionId and we can map that to some Features
+# we define a custom _get_features(interactions .) methodin the strategy class
+# we then run only the inference which is the .predict(trajectory) per-session which will give us a new price vector
+# this we then publish for each sessionId group
+# this might include no deleting most of the pricers we have defined and starting with a super simple surge-pricing algorithm that is no-fit only predict. This we can then test end-to-end and observe changes to prices according to a desired strategy - we have to define this one as a very short term strategy because we run sessions that take only a few minutes.

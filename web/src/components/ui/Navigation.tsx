@@ -20,7 +20,7 @@ const NavLink = ({ href, children }: { href: string; children: React.ReactNode }
       href={href}
       className={`px-4 py-2 rounded-md transition-colors ${
         isActive
-          ? 'bg-[var(--accent-primary)] font-semibold'
+          ? 'bg-[var(--accent-primary)] text-white font-semibold'
           : 'hover:bg-[var(--accent-primary-light)] text-[var(--text-primary)]'
       }`}
     >
