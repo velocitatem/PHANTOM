@@ -12,3 +12,4 @@ uv
 scikit-learn
 supabase
 pymc
+wandb
