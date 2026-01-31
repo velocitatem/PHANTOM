@@ -9,7 +9,11 @@
 *.old
 **/package-lock.json
 **/*.parquet
+**/_build/
 
+paper/src/bib/auto
+=======
+**/_build/
 paper/src/auto/*
 paper/src/bib/auto
 docs/goals/*.md
@@ -24,3 +28,5 @@ sim/rl/behavior_loader/*.png
 sim/rl/behavior_loader/*.svg
 sim/rl/behavior_loader/*.pdf
 tests/e2e/node_modules/**
+lab/case/thesis/runs*/
+sim/case/thesis_simplified/runs*/

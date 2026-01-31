@@ -6,6 +6,7 @@ from procesing.steps import (
 )
 
 def test_compute_demand(pipeline_context):
+    random.seed(42)  # deterministic test
     step = ComputeDemandStep(context=pipeline_context)
 
     # Test with normal interaction data
@@ -26,6 +27,7 @@ def test_compute_demand(pipeline_context):
 
 
 def test_compute_demand_skewed(pipeline_context):
+    random.seed(42)  # deterministic test
     step = ComputeDemandStep(context=pipeline_context)
 
     # Test with normal interaction data

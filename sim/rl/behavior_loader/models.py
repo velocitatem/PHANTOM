@@ -19,6 +19,7 @@ except ImportError:
     lib_make_state_repr = None
     lib_transition_histogram = None
 
+
 class BehaviorModel:
     def __init__(self, src_dir: str, loader_cls=Loader):
         self.loader = loader_cls(src_dir)
@@ -206,6 +207,7 @@ def visualize_mdp(model: BehaviorModel, threshold: float = 0.05, output: str = "
 
 def kl_divergence(p: Dict[str, float], q: Dict[str, float]) -> float:
     eps = 1e-10
+    # p + log(p / q) summed over all keys in P
     return sum((p[k] + eps) * np.log((p[k] + eps) / (q.get(k, 0.0) + eps)) for k in p)
 
 if __name__ == "__main__":
@@ -222,6 +224,7 @@ if __name__ == "__main__":
 
     agent_model = AgentBehaviorModel(agent_dir)
     agent_mdp = agent_model.build_MDP()
+
     print(f"AGENT... Built MDP: {agent_mdp['num_states']} states, "
           f"{sum(len(t) for t in agent_mdp['transitions'].values())} transitions")
     if not agent_mdp['states']:
@@ -230,6 +233,7 @@ if __name__ == "__main__":
 
     human_evt = aggregate_event_transitions(human_mdp)
     agent_evt = aggregate_event_transitions(agent_mdp)
+
     common = set(human_evt.keys()) & set(agent_evt.keys())
 
     if not common:
