@@ -56,7 +56,7 @@ def run_single(cfg: dict) -> dict:
         "id": cfg["id"],
         "config": cfg,
         "total_reward": total_reward,
-        "avg_reward": total_reward / steps,
+        "avg_reward": total_reward / steps if steps > 0 else 0.0,
         "steps": steps,
     }
 

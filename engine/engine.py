@@ -21,7 +21,7 @@ class MarketEngine():
     def act(self, prices):
         demand = generate_demand(prices, *self.demand)
         sample_n = lambda n, human: [sample_behavior(demand, human=human) for _ in range(n)]
-        human_t, agent_t = sample_n(100, True), sample_n(100, False)
+        human_t, agent_t = sample_n(self.Nhumans, True), sample_n(self.Nagents, False)
         trajectories = human_t + agent_t
         demand_estimate = estimate_demand(trajectories)
         return demand_estimate
