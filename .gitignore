@@ -12,10 +12,10 @@
 **/_build/
 
 paper/src/bib/auto
-=======
 **/_build/
 paper/src/auto/*
 paper/src/bib/auto
+paper/template/*
 docs/goals/*.md
 PHANTOM.wiki/
 experiments/airflow/logs/*

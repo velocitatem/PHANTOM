@@ -12,6 +12,10 @@
     "preamble"
     "chapters/01-intro"
     "chapters/02-literature-review"
+    "chapters/03-methodology"
+    "chapters/04-results"
+    "chapters/05-discussion"
+    "chapters/06-conclusion"
     "article"
     "art12"))
  :latex)
