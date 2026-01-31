@@ -1,0 +1,38 @@
+
+\begin{tikzpicture}[
+    % Styles for consistency
+    axis/.style={->, >=Stealth, line width=1.2pt, color=black!85},
+    curve/.style={color=black, line width=2.5pt},
+    point/.style={circle, fill=black, inner sep=0pt, minimum size=6pt},
+    label_text/.style={font=\large, align=center, color=black},
+    annotation_line/.style={thick, -, color=black!60}
+]
+
+    % Define Radius
+    \def\R{5}
+
+    % Draw Axes
+    % Extended slightly beyond radius (\R + 1)
+    \draw[axis] (0,0) -- (\R+1.5,0) node[midway, below=10pt, font=\bfseries\large] {UX Index};
+    \draw[axis] (0,0) -- (0,\R+1.5) node[midway, left=15pt, rotate=90, font=\bfseries\large] {Performance};
+
+    % Draw Perfect 1/4 Circle
+    % Syntax: arc (start_angle : end_angle : radius)
+    \draw[curve] (0,\R) arc (90:0:\R);
+
+    % 1. Paranoid (High Performance side) -> Angle 67.5 degrees
+    \node[point] (p1) at (75:\R) {};
+    \node[label_text, above right=0.1cm and 0.1cm of p1] (l1) {Paranoid};
+    \draw[annotation_line] (l1) -- (p1);
+
+    % 2. Perfect Detection (Exact Middle) -> Angle 45 degrees
+    \node[point] (p2) at (45:\R) {};
+    \node[label_text, above right=0.2cm and 0.2cm of p2] (l2) {Perfect Detection};
+    \draw[annotation_line] (l2) -- (p2);
+
+    % 3. No Detection (High UX side) -> Angle 22.5 degrees
+    \node[point] (p3) at (15:\R) {};
+    \node[label_text, right=0.5cm of p3] (l3) {No Detection};
+    \draw[annotation_line] (l3) -- (p3);
+
+\end{tikzpicture}

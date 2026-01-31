@@ -12,6 +12,12 @@
 **/_build/
 
 paper/src/bib/auto
+=======
+**/_build/
+paper/src/auto/*
+paper/src/bib/auto
+docs/goals/*.md
+PHANTOM.wiki/
 experiments/airflow/logs/*
 experiments/airflow/logs/scheduler/
 experiments/airflow/logs/dag_processor_manager/

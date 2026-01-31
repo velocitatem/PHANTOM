@@ -9,6 +9,7 @@ import pandas as pd
 
 from lib.separability import estimate_alpha, load_artifacts, score_session
 
+
 # use relative import when in package context, fallback for standalone
 try:
     from sim.rl.behavior_loader.models import AgentBehaviorModel
@@ -51,7 +52,6 @@ def _states_to_events(states: list[str]) -> list[SimpleNamespace]:
         )
     return events
 
-
 def contaminate_dataset(df: pd.DataFrame, on: str = "event_type",
                         contamination_rate: float = 0.1,
                         agent_data_dir: Path = None) -> pd.DataFrame:
@@ -78,6 +78,7 @@ def contaminate_dataset(df: pd.DataFrame, on: str = "event_type",
     # generate synthetic trajectories
     new_rows = []
     alpha_estimates = []
+
     for start_event in start_events:
         # sample trajectory from agent model, using a state that contains the event type
         mdp_states = model.mdp.get('states', []) if model.mdp else []

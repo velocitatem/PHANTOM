@@ -1,6 +1,25 @@
-% acmart already includes: graphicx, hyperref, booktabs, amsmath, natbib
-% Only load packages not included in acmart
+% Math packages (load before fonts to avoid conflicts)
+\usepackage{amsmath}
+\usepackage{amsthm}
 
+% Define theorem environments
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+% Font and spacing
+\usepackage{newtxtext,newtxmath}
+\usepackage{setspace}
+\doublespacing
+
+% Page geometry
+\usepackage[margin=1in]{geometry}
+
+% Essential packages
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
 \usepackage{csquotes}
 \usepackage{subcaption}
 \usepackage{siunitx}
@@ -8,6 +27,10 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage[ruled,vlined]{algorithm2e}
+\usepackage{cleveref}
+
+% Configure cleveref for algorithm2e
+\crefname{algocf}{Algorithm}{Algorithms}
 
 \usetikzlibrary{positioning, shapes, arrows.meta, fit, backgrounds}
 \lstset{

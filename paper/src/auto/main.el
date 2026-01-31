@@ -6,7 +6,7 @@
    (setq TeX-command-extra-options
          "-file-line-error -interaction=nonstopmode")
    (TeX-add-to-alist 'LaTeX-provided-class-options
-                     '(("report" "12pt") ("article" "12pt") ("acmart" "sigconf" "nonacm" "natbib=false")))
+                     '(("report" "12pt") ("acmart" "sigconf" "nonacm" "natbib=false" "manuscript") ("article" "12pt" "letterpaper")))
    (TeX-run-style-hooks
     "latex2e"
     "preamble"
@@ -17,8 +17,7 @@
     "chapters/05-discussion"
     "chapters/06-conclusion"
     "../build/concatenated_code"
-    "acmart"
-    "acmart10")
-   (TeX-add-symbols
-    '("footnotetextcopyrightpermission" 1)))
+    "article"
+    "art12"))
  :latex)
+

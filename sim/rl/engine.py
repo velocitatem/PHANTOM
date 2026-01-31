@@ -1,9 +1,9 @@
+from os import kill
 import numpy as np
 import pandas as pd
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 from sim.rl.environment import BusinessLogicConstraints
-
 
 """
 An angine by default should have its own demand estimation mechanism from the observed observations whihc are the computer feature.
@@ -39,6 +39,7 @@ class BasePricingEngine(ABC):
 
 
 
+
     def reset(self):
         """reset engine state for new episode"""
         self.step_count = 0
@@ -68,15 +69,16 @@ class WildPricingEngine(BasePricingEngine):
 
     def reset(self):
         super().reset()
-        self.e_hat = np.full((self.c.product_catalogue_size,), -1.3, dtype=np.float32)
-        self.mu_logp = np.zeros(self.c.product_catalogue_size, dtype=np.float32)
-        self.mu_logq = np.zeros(self.c.product_catalogue_size, dtype=np.float32)
-        self.cov_pq = np.zeros(self.c.product_catalogue_size, dtype=np.float32)
-        self.var_p = np.ones(self.c.product_catalogue_size, dtype=np.float32)
+        self.e_hat = np.full((self.c.product_catelogue_size,), -1.3, dtype=np.float32)
+        self.mu_logp = np.zeros(self.c.product_catelogue_size, dtype=np.float32)
+        self.mu_logq = np.zeros(self.c.product_catelogue_size, dtype=np.float32)
+        self.cov_pq = np.zeros(self.c.product_catelogue_size, dtype=np.float32)
+        self.var_p = np.ones(self.c.product_catelogue_size, dtype=np.float32)
 
     def compute_prices(self, current_prices: np.ndarray, observation: Dict[str, Any]) -> np.ndarray:
         self.step_count += 1
-        demand = _extract_demand(observation, self.c.product_catalogue_size)
+        # extract demand signal (from env observation) as proxy for sales
+        demand = observation.get('demand', np.zeros(self.c.product_catelogue_size, dtype=np.float32))
         return self._update_from_demand(current_prices, demand)
 
     def _update_from_demand(self, prices: np.ndarray, sold: np.ndarray) -> np.ndarray:

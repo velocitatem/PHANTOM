@@ -1,0 +1,110 @@
+\definecolor{mygreenfill}{RGB}{169, 234, 186}
+\definecolor{mygreenborder}{RGB}{29, 145, 61}
+\definecolor{mybluefill}{RGB}{204, 222, 255}
+\definecolor{myblueborder}{RGB}{66, 106, 189}
+\definecolor{mygray}{RGB}{150, 150, 150}
+
+
+
+\begin{tikzpicture}[
+    node distance=2cm,
+    % Style for Green Nodes
+    greenbox/.style={
+        rectangle,
+        draw=mygreenborder,
+        fill=mygreenfill,
+        line width=1.2pt,
+        align=center,
+        minimum height=1cm
+    },
+    % Style for Blue Nodes
+    bluebox/.style={
+        rectangle,
+        draw=myblueborder,
+        fill=mybluefill,
+        line width=1.2pt,
+        align=center,
+        minimum height=1cm
+    },
+    % Style for Arrows
+    myarrow/.style={
+        ->,
+        >={Stealth[length=3mm, width=2mm]},
+        draw=black!80,
+        line width=1.2pt,
+        rounded corners=5pt
+    },
+    % Style for Background Dashed Circles
+    dashedloop/.style={
+        dashed,
+        draw=mygray,
+        line width=1pt
+    }
+]
+
+    % --- Coordinate Layout ---
+    % Defining a grid relative to the center
+
+    % Left Loop (Green) Nodes
+    \node[greenbox, minimum width=3.5cm] (commerce) at (-3.5, 2) {Commerce Experiment};
+    \node[greenbox, minimum width=1.5cm] (raw) at (-6.5, 0) {Raw\\Logs};
+    \node[greenbox, minimum width=1.5cm] (features) at (-4, -2.5) {Features};
+    \node[greenbox, minimum width=2.5cm] (classification) at (-1, -0.5) {Classification\\Training A/H};
+
+    % Right Loop (Blue) Nodes
+    \node[bluebox, minimum width=2.5cm] (trainedpricing) at (3.2, 2) {Trained Pricing};
+    \node[bluebox, minimum width=2.5cm] (policy) at (6.5, 0) {Trained Pricing\\Policy};
+    \node[bluebox, minimum width=2.5cm] (rlgym) at (3.2, -2.2) {RL Gym\\Training};
+
+    % --- Background Dashed Loops ---
+    \begin{scope}[on background layer]
+        % Left Loop Circle
+        \draw[dashedloop] (-3.5, 0) ellipse (3.5cm and 2.8cm);
+        % Right Loop Circle
+        \draw[dashedloop] (3.5, 0) ellipse (3.5cm and 2.8cm);
+    \end{scope}
+
+    % --- Arrows: Loop One (Green) ---
+    % Commerce -> Raw Logs
+    \draw[myarrow] (commerce.west) to[out=180, in=90] (raw.north);
+
+    % Raw Logs -> Features
+    \draw[myarrow] (raw.south) to[out=270, in=180] (features.west);
+
+    % Features -> Classification
+    \draw[myarrow] (features.east) to[out=0, in=250] (classification.south);
+
+    % Classification -> Commerce (Closing the loop)
+    \draw[myarrow] (classification.north) to[out=110, in=0] (commerce.east);
+
+    % --- Arrows: Loop Two (Blue) ---
+    % Classification (Green) -> RL Gym (Blue) - Crossing over
+    \draw[myarrow] (classification.east) to[out=0, in=180] (rlgym.west);
+
+    % RL Gym -> Policy
+    \draw[myarrow] (rlgym.east) to[out=0, in=270] (policy.south);
+
+    % Policy -> Trained Pricing
+    \draw[myarrow] (policy.north) to[out=90, in=0] (trainedpricing.east);
+
+    % Trained Pricing -> Commerce (Crossing back)
+    \draw[myarrow] (trainedpricing.west) -- node[above, font=\small, yshift=2pt] {New Pricing} (commerce.east);
+
+    % --- Text Labels ---
+
+    % Loop One Label
+    \node[align=center] at (-3.8, 0) {Loop One:\\Data \textit{(Online)}};
+
+    % Loop Two Label
+    \node[align=center] at (3.5, 0) {Loop Two:\\Defense Gym \textit{(Offline)}};
+
+    % Bottom Legend
+    \node[font=\small] (taskA) at (-4, -4) {Dynamic Pricing Task A};
+    \node[font=\small] (taskB) at (4, -4) {Dynamic Pricing Task B};
+    \node[font=\small] (indep) at (0, -4) {Independent};
+
+    % Arrows for bottom legend
+    \draw[->, >=Stealth, thick, darkgray] (indep.west) -- (taskA.east);
+    \draw[->, >=Stealth, thick, darkgray] (indep.east) -- (taskB.west);
+
+\end{tikzpicture}

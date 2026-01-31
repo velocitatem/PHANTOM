@@ -22,14 +22,15 @@ $(BUILDDIR):
 pdf.build: $(BUILDDIR)
 	@bash paper/concat_code.sh
 	@cd $(SRCDIR) && \
-	$(LATEXMK) -pdf -jobname=$(JOBNAME) \
+	$(LATEXMK) -pdf -jobname=$(JOBNAME) -f \
 		-interaction=nonstopmode -file-line-error \
+		-r ../.latexmkrc \
 		-outdir=../$(BUILDDIR) $(TEX)
 
 .PHONY: pdf.watch
 pdf.watch: $(BUILDDIR)
 	@cd $(SRCDIR) && \
-	$(LATEXMK) -pvc -pdf -jobname=$(JOBNAME) \
+	$(LATEXMK) -pvc -pdf -jobname=$(JOBNAME) -f \
 		-interaction=nonstopmode -file-line-error \
 		-r ../.latexmkrc \
 		-outdir=../$(BUILDDIR) $(TEX)
@@ -73,6 +74,18 @@ install: $(VENV)
 stats.lines:
 	@find . \( -path '*/node_modules' -o -path '*/.venv' -o -path '*/venv' \) -prune -o \
 	\( -name "*.ts" -o -name "*.py" \) -type f -print0 | xargs -0 cat | wc -l
+
+.PHONY wordcount
+wordcount:
+	@echo "Counting words in main text (excluding appendix)..."
+	@texcount -nosub -total -sum -1 \
+		$(SRCDIR)/chapters/01-intro.tex \
+		$(SRCDIR)/chapters/02-literature-review.tex \
+		$(SRCDIR)/chapters/03-methodology.tex \
+		$(SRCDIR)/chapters/04-results.tex \
+		$(SRCDIR)/chapters/05-discussion.tex \
+		$(SRCDIR)/chapters/06-conclusion.tex
+
 
 .PHONY: pdf clean watch run.webapp test count-lines all
 pdf: pdf.build
