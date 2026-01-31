@@ -1,7 +1,7 @@
 from sim.rl.behavior_loader.models import BehaviorModel, AgentBehaviorModel, aggregate_event_transitions
 import pandas as pd
 import numpy as np
-from .demand import generate_demand
+from .demand import generate_demand_for_actor
 
 base_dir = "/home/velocitatem/Documents/Projects/PHANTOM/experiments"
 human_dir, agent_dir = f"{base_dir}/collected_data/", f"{base_dir}/agents/collected_data/"
@@ -41,7 +41,7 @@ def sample_behavior(condition, human=True, max_len=40):
     return trajectory
 
 if __name__ == "__main__":
-    t=sample_behavior(generate_demand(np.array([10,20,30])), human=True)
+    t=sample_behavior(generate_demand_for_actor(np.array([10,20,30])), human=True)
     print(t)
-    t=sample_behavior(generate_demand(np.array([10,20,30])), human=False)
+    t=sample_behavior(generate_demand_for_actor(np.array([10,20,30])), human=False)
     print(t)

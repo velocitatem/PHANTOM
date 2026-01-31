@@ -14,6 +14,9 @@ class PHANTOM(gym.Env):
                  n_products: int = 10,
                  alpha: float = 0.3,
                  N: int = 100,
+                 human_params: tuple = (50.0, 10.0),
+                 agent_params: tuple = (45.0, 15.0),
+                 noise_std: float = 1.0,
                  price_bounds: tuple = (10.0, 150.0),
                  lambda_coi: float = 0.1,
                  coi_window: int = 10,
@@ -26,8 +29,13 @@ class PHANTOM(gym.Env):
         self.render_mode = render_mode
         self.alpha = alpha
         self.N = N
+        self.human_params = human_params
+        self.agent_params = agent_params
 
-        self.market = MarketEngine(alpha=alpha, N=N)
+        self.market = MarketEngine(
+            alpha=alpha, N=N,
+            human_params=human_params, agent_params=agent_params, noise_std=noise_std
+        )
         self._platform_stub = PricingEngine()
         self._limbo = Limbo(self._platform_stub, self.market)
 

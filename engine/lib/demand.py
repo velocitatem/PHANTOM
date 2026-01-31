@@ -3,15 +3,15 @@ import numpy as np
 from logging import getLogger
 logger = getLogger(__name__)
 
-def generate_demand(prices, distribution_method = np.random.normal, distribution_params = (50.0, 10.0)):
-    # assumption 1: each product has an intrinsic valuation drawn from a normal distribution centered at 50
-    product_valuations = distribution_method(*distribution_params, size=len(prices))
-    # assumption 2: demand decreases as price increases, following a simple linear model
-    demand = np.maximum(0, product_valuations - prices) # demand cannot be negative
+def generate_demand_for_actor(prices: np.ndarray, params: tuple, noise_std: float = 1.0, distribution_method=np.random.normal) -> np.ndarray:
+    """d(p;0) = max(0, valuation - price) + epsi for single actor type
+    params: (mean, std) for valuation distribution D_H or D_A"""
+    val = distribution_method(*params, size=len(prices))
+    noise = distribution_method(0, noise_std, len(prices))
+    demand = np.maximum(0, val - prices + noise)
     total = np.sum(demand)
-    demand = demand / total * 100 if total > 0 else demand  # normalize to percentage, avoid div by zero
-    logger.info(f"Generated demand for prices {prices}: {demand} with valuations from distribution {distribution_params}")
-    return demand
+    return demand / total * 100 if total > 0 else demand
+
 
 def estimate_demand(trajectories):
     demand_estimate = {}
@@ -29,17 +29,16 @@ def estimate_demand(trajectories):
 if __name__ == "__main__":
     np.random.seed(42)
     prices = np.array([20.0, 35.0, 50.0, 65.0])
-    demand = generate_demand(prices)
-    print("Generated Demand:", demand)
+    # demo actor-specific demands
+    human_params, agent_params = (50, 10), (45, 15)
+    demand_h = generate_demand_for_actor(prices, human_params)
+    demand_a = generate_demand_for_actor(prices, agent_params)
+    print("Human Demand:", demand_h)
+    print("Agent Demand:", demand_a)
     from .behavior import sample_behavior
-    N, alphat =200, 0.1
-    trajectories = []
-    for _ in range(int(N*(1 - alphat))):
-        trajectories.append(sample_behavior(demand, human=True))
-    for _ in range(int(N*alphat)):
-        trajectories.append(sample_behavior(demand, human=False))
-    demand_estimate = estimate_demand(trajectories)
+    N, alpha = 200, 0.3
+    n_h, n_a = int(N * (1 - alpha)), int(N * alpha)
+    human_t = [sample_behavior(demand_h, human=True) for _ in range(n_h)]
+    agent_t = [sample_behavior(demand_a, human=False) for _ in range(n_a)]
+    demand_estimate = estimate_demand(human_t + agent_t)
     print("Estimated Demand from Behavior:", demand_estimate)
-    delta = {k: demand_estimate.get(k, 0) - demand[i] for i, k in enumerate(range(len(prices)))}
-    delta = np.mean([np.abs(v) for v in delta.values()])
-    print("Demand Delta:", delta)
