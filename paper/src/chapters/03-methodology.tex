@@ -300,7 +300,7 @@ where $R(p, d)$ is the revenue function and $\lambda$ weighs the penalty for inf
 Another proposed formulation of the optimal policy would be to adjust the ambiguity set dyanmically over the live computed divergence where $\epsilon(\Delta_H)$ to adjust the ball around or estimator according to each behavioral signal emited through a given trajctory. We state this as a possibility but do not peruse it due to literature suggesting that wesserstine methods do not require absolute continuity and are better with ``black swans'' \parencite{kuhn_wasserstein_2024}.
 
 \subsubsection{Actor Implementation}
-In our simulation, the "Follower" is implemented as a set of Actors. Each Actor is initialized with a type $\theta$ which samples a specific demand curve $d(p; \theta)$ from the latent distribution. This formalization ensures that our DR-RL agent does not overfit to a single deterministic demand function but learns a policy robust to the distributional uncertainty defined by $\mathcal{U}_\epsilon$.
+In our simulation, the ``follower'' is implemented as a set of Actors. Each Actor is initialized with a type $\theta$ which samples a specific demand curve $d(p; \theta)$ from the latent distribution. This formalization ensures that our DR-RL agent does not overfit to a single deterministic demand function but learns a policy robust to the distributional uncertainty defined by $\mathcal{U}_\epsilon$.
 
 
 As part of our reward engineering we think about the UX factor ($UX \in [0,1]$) whic his our proxy for user experience degradation, this is computed as a mixture of contribution from the separability model metric of $\frac{1}{\text{Specificity}}$.
@@ -320,7 +320,7 @@ We also need to think about a policy like taxation to the agents Strategy-Proof 
 We now present the complete pricing mechanism that integrates the behavioral separability, contamination estimation, and robust optimization components developed in the preceding sections. Algorithm~\ref{alg:phantom_loop_clean} formalizes the defensive pricing loop as a Stackelberg game where the platform (leader) sets prices and the aggregate demand (follower) responds through observed session trajectories.
 
 \begin{algorithm}[t]
-\caption{PHANTOM defensive pricing loop (bachelor-thesis level)}
+\caption{PHANTOM defensive pricing loop}
 \label{alg:phantom_loop_clean}
 \DontPrintSemicolon
 \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
