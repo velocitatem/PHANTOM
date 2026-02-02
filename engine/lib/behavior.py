@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parents[2]))
+
 from sim.rl.behavior_loader.models import (
     BehaviorModel,
     AgentBehaviorModel,
@@ -7,11 +12,9 @@ import pandas as pd
 import numpy as np
 from .demand import generate_demand_for_actor
 
-base_dir = "/home/velocitatem/Documents/Projects/PHANTOM/experiments"
-human_dir, agent_dir = (
-    f"{base_dir}/collected_data/",
-    f"{base_dir}/agents/collected_data/",
-)
+base_dir = Path(__file__).parents[2] / "experiments"
+human_dir = str(base_dir / "collected_data")
+agent_dir = str(base_dir / "agents" / "collected_data")
 
 _cache = {}  # lazy cache for models and base pivots
 
@@ -23,6 +26,46 @@ def _get_base_pivot(human: bool):
         mdp = model.build_MDP()
         _cache[key] = pd.DataFrame(aggregate_event_transitions(mdp)).fillna(0.0)
     return _cache[key]
+
+
+def get_transition_models():
+    """load human and agent transition models for agent probability calculation
+
+    returns:
+        tuple: (human_transitions, agent_transitions) as dicts of event->event->prob
+    """
+    human_model = BehaviorModel(human_dir)
+    agent_model = AgentBehaviorModel(agent_dir)
+
+    human_mdp = human_model.build_MDP()
+    agent_mdp = agent_model.build_MDP()
+
+    human_trans = aggregate_event_transitions(human_mdp)
+    agent_trans = aggregate_event_transitions(agent_mdp)
+
+    return human_trans, agent_trans
+
+
+def trajectory_to_events(trajectory: list) -> list:
+    """extract event names from trajectory for KL divergence calculation
+
+    trajectories are in format 'eventName_product0', extract just eventName
+
+    args:
+        trajectory: list like ['view_product0', 'add_to_cart_product1', 'checkout_product1']
+
+    returns:
+        list: event names like ['view', 'add_to_cart', 'checkout']
+    """
+    events = []
+    for state in trajectory:
+        # state format from sample_behavior: 'eventName_productX'
+        if "_product" in state:
+            event = state.rsplit("_product", 1)[0]
+        else:
+            event = state
+        events.append(event)
+    return events
 
 
 def adjust_behavior_to_condition(condition, transition_matrix):
