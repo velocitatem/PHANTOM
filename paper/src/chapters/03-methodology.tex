@@ -137,8 +137,11 @@ The architecture of this platform begins with the deployed web-apps posting inte
 
 \subsubsection{DevOps Principles}
 
+
+
 \subsubsection{Online Dynamic Pricing}
 
+In order to collect data from actors under correct conditions we replicate a naive and simple dynamic pricing algorithm which runs in the background during the experiments.
 The dynamic pricing done is handled by a pipeline which computes a demand estimate on a per-product basis of a specific window of the data, defined by the period $T$ which by default is 5 minutes. This dynamic pricing pipeline computes a demand estimate vector $\hat{q} \in \mathbb{R}^N$ by a weighted sum of interactions for each product, it additionally computes a price elasticity vector $\hat{\epsilon}$ in the same dimensions as our demand. The final features matrix is of the size $N \times 2$ which we translate to a new price vector $\hat{p} \in \mathbb{R}^N$. The transformation that governs this dynamic pricing is a very simple surge-based pricing (a special case of our later defined policy $\pi$):
 
 \begin{equation}
@@ -176,6 +179,14 @@ Our approach can be well summarized by a three-stage division, first we intend t
 \end{figure}
 
 Our web platform (developed in similar patterns as the RecSim by \textcite{ie_recsim_2019}) allows us to setup a controled environment in which we assign tasks to human and agentic actors which are then carried out. Each actor gets a browser assigned experiment identification which is persistent across possibly multiple session identifiers. We then group by experiments and extract all the session interactions (trajectories) which follow the schema formalized below.
+
+To speak to the quality and realism, in user interview, participants reported that the platform's architecture mirrored standard commercial booking interfaces, reducing the cognitive load required to learn the system. One participant noted the flow was 'intuitive' and indistinguishable from a 'normal' transaction, suggesting that observed behaviors were driven by the pricing variables rather than interface novelty.
+The dynamic pricing mechanisms successfully elicited immediate behavioral adjustments. Participants demonstrated high sensitivity to price volatility, for instance, observing sudden price boosts triggered panic booking behaviors, while significant discrepancies between listing and final prices prompted heightened scrutiny and comparison behaviors. This is comforting as control for the data settings we gather is closely reflective of real life environments.
+
+
+\subsubsection{Design of Training Factorial Study}
+
+Since in our simulation we have different configurable factors such as the distributions from which we sample individual product valuations, how we parameterize the demand estimation and many more, we need to design a multi factor study. Current estimate is 4x4x3x2x2. This would normally be computationally prohibitive for reinforcement learning, we however have access to 300+ trillium TPU chips in a large cluster.
 
 \subsubsection{Interaction Schema}
 
@@ -219,7 +230,6 @@ In addition to behavioral events, the platform logs price observations to a sepa
 \subsection{Generative Contamination and Separability}
 
 To develop a robust pricing learner, we require a simulation environment capable of generating realistic, contaminated interaction data. We achieve this by learning from our Phantom platform data using a two-stage approach.
-
 
 
 \subsubsection{GOFAI-Based Separability}
