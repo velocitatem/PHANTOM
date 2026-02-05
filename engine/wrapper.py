@@ -4,8 +4,8 @@ import numpy as np
 from .engine import Limbo, MarketEngine, PricingEngine
 from .lib.render import DashboardRenderer
 from .lib.coi import (
-    compute_coi_leakage,
-    compute_erosion_metrics,
+    compute_uplift_coi,
+    extract_purchases,
     compute_agent_probability,
 )
 from .lib.behavior import get_transition_models, trajectory_to_events
@@ -84,6 +84,7 @@ class PHANTOM(gym.Env):
         self._renderer = None
         self._initial_episode_prices = None
         self._trajectories = []  # session trajectories for agent prob calculation
+        self.baseline_prices = np.full(self.n_products, self.price_bounds[0])
 
         # load behavioral models for agent probability estimation
         try:
@@ -119,19 +120,30 @@ class PHANTOM(gym.Env):
             all_events, self._human_trans, self._agent_trans
         )
 
-    def _compute_reward(self, prices: np.ndarray, demand: dict) -> float:
-        revenue = np.sum(
-            prices * np.array([demand.get(i, 0.0) for i in range(self.n_products)])
-        )
+    def _compute_reward(self, prices: np.ndarray, demand: dict) -> tuple[float, dict]:
+        revenue = sum(prices[i] * demand.get(i, 0.0) for i in range(self.n_products))
 
-        # compute agent probability from behavioral trajectories
-        agent_prob = self._compute_agent_prob()
+        trajs_mix = self.market.last_trajectories
+        purchases_mix = extract_purchases(trajs_mix)
+        coi_mix = compute_uplift_coi(prices, purchases_mix, self.baseline_prices)
 
-        # COI leakage: minimal implementation per thesis
-        coi_leakage = compute_coi_leakage(prices, agent_prob)
+        old_state = (self.market.alpha, self.market.Nagents, self.market.Nhumans)
+        self.market.alpha, self.market.Nagents, self.market.Nhumans = 0.0, 0, self.N
+        self.market.act(prices)
+        purchases_base = extract_purchases(self.market.last_trajectories)
+        coi_base = compute_uplift_coi(prices, purchases_base, self.baseline_prices)
+        self.market.alpha, self.market.Nagents, self.market.Nhumans = old_state
+
+        coi_leakage = max(0.0, coi_base - coi_mix)
         coi_penalty = self.lambda_coi * coi_leakage
 
-        return float(revenue - coi_penalty)
+        return float(revenue - coi_penalty), {
+            "revenue": float(revenue),
+            "coi_mix": float(coi_mix),
+            "coi_base": float(coi_base),
+            "coi_leakage": float(coi_leakage),
+            "coi_penalty": float(coi_penalty),
+        }
 
     def _record_history(self):
         demand_arr = np.array(
@@ -163,27 +175,13 @@ class PHANTOM(gym.Env):
             self._trajectories.extend(self.market.last_trajectories)
 
         agent_prob = self._compute_agent_prob()
-        coi_leakage = compute_coi_leakage(self._prices, agent_prob)
-        reward = self._compute_reward(self._prices, self._demand)
+        reward, metrics = self._compute_reward(self._prices, self._demand)
         terminated = self._step_count >= 100
-
-        # legacy erosion metrics for comparison
-        erosion = compute_erosion_metrics(
-            self._price_history,
-            self._demand_history,
-            self._initial_episode_prices,
-            self._prices,
-            self.price_bounds,
-            self.alpha,
-            self.coi_window,
-        )
 
         info = {
             "step": self._step_count,
             "agent_prob": agent_prob,
-            "coi_leakage": coi_leakage,
-            "coi_penalty": self.lambda_coi * coi_leakage,
-            "erosion_metrics": erosion,
+            **metrics,
             "raw_revenue": np.sum(
                 self._prices
                 * np.array([self._demand.get(i, 0.0) for i in range(self.n_products)])

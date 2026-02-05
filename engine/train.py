@@ -31,7 +31,7 @@ model.save("phantom_sac")
 wandb.finish()
 
 # test trained policy
-env = PHANTOM(n_products=10, alpha=0.3, render_mode="human")
+env = PHANTOM(n_products=10, alpha=0.3, render_mode=None)
 obs, _ = env.reset()
 for _ in range(100):
     action, _ = model.predict(obs, deterministic=True)

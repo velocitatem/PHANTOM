@@ -4,4 +4,4 @@ from .render import DashboardRenderer, style_axis
 from .wrappers import EconomicMetricsWrapper
 from .callbacks import MetricsCallback, EvalMetricsCallback
 from .providers import ProviderBenchmark, ProviderResult, BenchmarkConfig
-from .coi import compute_coi_leakage, compute_erosion_metrics, compute_agent_probability
+from .coi import compute_uplift_coi, extract_purchases, compute_agent_probability
