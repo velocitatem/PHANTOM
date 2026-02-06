@@ -135,7 +135,8 @@ class PHANTOM(gym.Env):
         self.market.alpha, self.market.Nagents, self.market.Nhumans = old_state
 
         coi_leakage = max(0.0, coi_base - coi_mix)
-        coi_penalty = self.lambda_coi * coi_leakage
+        coi_penalty = max(self.lambda_coi * coi_leakage, 1000) / 1000
+        coi_penalty *= revenue
 
         return float(revenue - coi_penalty), {
             "revenue": float(revenue),
