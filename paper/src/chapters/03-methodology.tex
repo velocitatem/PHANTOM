@@ -259,7 +259,7 @@ For both subsets, we model session dynamics as an MDP and estimate transition ke
 \end{equation}
 where $N(s, s')$ is the observed transition count. This allows us to construct a \textit{Contamination Generator} $\mathcal{G}(\alpha)$. Given a clean trajectory dataset, $\mathcal{G}$ injects synthetic agent trajectories sampled from $\hat{\mathcal{T}}_A$ until the effective mixing ratio reaches $\alpha$.
 
-To scale this to catalog-level pricing, we lift the base event transition structure from $T\times T$ (event states only) to $(T\cdot N + C)\times(T\cdot N + C)$, where $N$ is catalog size and $C$ captures generic events (homepage, login, checkout terminal states). This construction lets demand and behavior be product-specific while preserving shared navigation transitions.
+To scale this to catalog-level pricing, we expand the base event transition matrix from $T\times T$ into product-specific transitions using the current demand condition. In practice, we normalize the demand vector across products and use it to weight how much transition mass each product pair receives. Concretely, each cell of the base matrix becomes an $N\times N$ block (for $N$ products), so the transition matrix grows from $T\times T$ to $(T\cdot N)\times(T\cdot N)$. Finally, we add $C$ generic states (homepage, login, checkout terminal states), which gives the full kernel size $(T\cdot N + C)\times(T\cdot N + C)$.
 
 \begin{figure}[ht]
     \centering
