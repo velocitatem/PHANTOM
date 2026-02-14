@@ -86,13 +86,21 @@ where $\mathbb{E}[P]$ is the expected price charged by the policy and $\underlin
 
 We now formally demonstrate that standard dynamic pricing mechanisms are not incentive-compatible with high-frequency agentic traffic. As the number of independent competitive agents $N$ querying the system grows, the platform's ability to sustain a COI vanishes.
 
+\begin{assumption}
+  A fundamental assumption for our claim lays in the alignment of the AI agent through it's prompt which has been demonstrated by \cite{fish_algorithmic_2025} to cause strong collusive behavior under linguistic nudges. This assumption can be generalized to the human user asking the agent to research products with a minimizing objective.
+\end{assumption}
+
 \begin{theorem}[COI Erosion in the Limit]
 Let $N$ be the number of independent, utility-maximizing agents querying the platform. Let $p_{(1)}$ be the first order statistic (minimum) of the prices offered to these agents. As $N \to \infty$, the Cost of Information converges to 0.
 \end{theorem}
 
+
+
+
+
 \begin{proof}
 Consider $N$ independent agents querying the platform, each receiving a price sample $p_i$ drawn from the pricing policy's distribution $F(p)$ with support $[\underline{p}, \bar{p}]$. A strategic agent conducting reconnaissance will select the minimum observed price: $p_{(1)} = \min(p_1, \ldots, p_N)$.
-
+% support here means that its the range of possible outputs.
 The probability that the minimum price exceeds some threshold $t$ is:
 \begin{equation}
 P(p_{(1)} > t) = P(\text{all } p_i > t) = [1 - F(t)]^N
@@ -112,7 +120,7 @@ Since the integrand vanishes as $N \to \infty$ for all $t > \underline{p}$, the 
 \end{proof}
 
 
-This result proves that standard pricing policies $\pi$ fail to extract surplus in the presence of large-scale agentic search, necessitating a robust counter-mechanism.
+This result naively proves that standard pricing policies $\pi$ fail to extract surplus in the presence of large-scale agentic search, necessitating a robust counter-mechanism.
 
 % The DRO objective creates a lower bound on COI extraction, effectively guaranteeing a minimum margin even in the presence of adversarial agents. we need to prove this and demonstrate that in a theorem.
 
@@ -126,10 +134,12 @@ In order for our research to have grounding in interactions we built a robust e-
 
 The architecture of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a kafka cluster. This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to. Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into kafka. This kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The final stage of the pricing pipeline, submits computed dynamic pricing results into a redis database for quick updates which is then read by the pricing provider and displayed on the webapp. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks. We intentionally put emphasis on the development of this infrastructure to establish a reproducible framework for interaction and to minimize any noise.
 
+We transition the Kappa like architecture of the data collection to a Lambda system for actual learning in a surrogate environment. This allows us to move faster on data which is provided and helps us create a feedback loop for production deployment.
+
 
 \subsubsection{DevOps Principles}
 
-
+Reproducible results are key to quality research platforms, this is taken into mind when deploying and working with our research platform. From a deployment standpoint the platform can be deployed across a large variety of providers and can be run locally. When developing a new interaction modality apart from the ones that come out of the box, a simple template pattern can be followed. The middleware of the framework is designed to properly render the chosen modality from environmental variables, thus deployment of different or parallel version of the software can be easily parametrized.
 
 \subsubsection{Online Dynamic Pricing}
 
@@ -185,7 +195,7 @@ The dynamic pricing mechanism elicited immediate behavioral adjustments. Partici
 
 \subsubsection{Design of Training Factorial Study}
 
-The simulator has multiple configurable factors, including valuation distributions, demand parametrization, contamination ratio, and policy settings. We therefore design a multi-factor study (current grid: $4\times4\times3\times2\times2$). While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable.
+The simulator has multiple configurable factors, including valuation distributions, demand parametrization, contamination ratio, and policy settings. We therefore design a multi-factor study (current grid estimate: $4\times4\times3\times2\times2$). While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable and logged with services provided by weights and biases.
 
 \subsubsection{Interaction Schema}
 
@@ -279,6 +289,8 @@ To scale this to catalog-level pricing, we expand the base event transition matr
 \subsection{Second-Stage Classification}
 After contamination, we run a second classification stage. We remap events into a semantically aligned feature space, apply richer feature engineering, and retrain to obtain cleaner label probabilities across the full dataset. This classifier is then used directly in the reinforcement-learning reward structure.
 
+Now might be a good time to stand up and go for a quick walk before returning to the rest of this paper.
+
 
 \subsection{Distributionally Robust Reinforcement Learning (DR-RL)}
 
@@ -318,10 +330,13 @@ In practice, we parameterize this with a session-level leakage term:
 \end{equation}
 where $f(\tau')$ is the weak agent probability and $\text{InfoValue}$ is implemented either as a constant query-tax surrogate or as a revelation surrogate $-\log\pi(p\mid\tau')$.
 
+
 Another possible extension is to adapt the ambiguity radius online, e.g., $\epsilon(\Delta_H)$, so the Wasserstein ball changes with live divergence. We keep this as future work and retain a fixed-radius setup because Wasserstein ambiguity already handles heavy-tail and ``black swan'' behavior without absolute continuity assumptions \parencite{kuhn_wasserstein_2024}.
 
 \subsubsection{Actor Implementation}
 In our simulation, the ``follower'' is implemented as a set of Actors. Each Actor is initialized with a type $\theta$ which samples a specific demand curve $d(p; \theta)$ from the latent distribution. This formalization ensures that our DR-RL agent does not overfit to a single deterministic demand function but learns a policy robust to the distributional uncertainty defined by $\mathcal{U}_\epsilon$.
+
+Practical implementation of interactions of agent with web environment is a strongly evolving field with near weekly releases of SOTA architectures. An agent we develop uses Playwright to
 
 
 As part of reward engineering, we include a UX factor ($UX\in[0,1]$) as a proxy for user-experience degradation. This is computed from separability-model calibration and specificity-sensitive penalties.
