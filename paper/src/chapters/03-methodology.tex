@@ -27,6 +27,12 @@ The platform does not directly observe the true underlying demand function $d(p)
 \end{equation}
 where $\omega: \mathcal{A} \to \mathbb{R}_+$ assigns weights to actions based on their signal strength regarding willingness to pay.
 
+In the current engine implementation, we use the normalized variant of this proxy for each step:
+\begin{equation}
+\tilde q_{t,i} = 100 \cdot \frac{\hat q_{t,i}}{\sum_{j=1}^{N}\hat q_{t,j} + \varepsilon}
+\end{equation}
+with fixed category-level weights (cart, dwell, nav, filter) following the same rank order from Table~\ref{tab:action_space}. This keeps the signal dense and directly usable in the simulator.
+
 \subsubsection{Actor Types and Demand Curves}
 We formalize the heterogeneity of actors by introducing a type space $\Theta$. An actor of class $Y_s$ is further parameterized by a type $\theta \sim \mathcal{D}_{Y}$. This type determines the actor's demand response function $d(p; \theta)$, sampled from a distribution of possible demand curves. The total observed demand is a stochastic process governed by the naively defined mixture:
 \begin{equation}
@@ -231,6 +237,8 @@ $\mathcal{A}_{\text{filter}}$ & \texttt{search}, \texttt{filter\_date}, \texttt{
 
 This partition enables the weight function $\omega$ from Eq.~\ref{eq:qhat} to assign category-specific signal strengths, with $\omega(\mathcal{A}_{\text{cart}}) > \omega(\mathcal{A}_{\text{dwell}}) > \omega(\mathcal{A}_{\text{nav}}) > \omega(\mathcal{A}_{\text{filter}})$ reflecting decreasing commitment.
 
+In the simulator baseline this order is encoded with a compact fixed scale: cart $=4.0$, dwell $=2.0$, nav $=1.0$, filter $=0.5$. Unknown actions are mapped by prefix heuristics to the nearest category.
+
 The metadata record $\mu$ varies by action type. For product views, $\mu$ contains the observed price $p_{\text{obs}}$ and product attributes. For dwell events, $\mu$ includes the element text and accumulated hover duration. This heterogeneous structure is captured via a schema-on-read approach in our Kafka ingestion pipeline, where events are validated against type-specific schemas before storage.
 
 In addition to behavioral events, the platform logs price observations to a separate Kafka topic. Each price query generates a record $(i, p, \text{sid}, \phi, t)$ associating the product, displayed price, requesting session, platform mode, and timestamp. This dual-stream architecture enables joint analysis of price exposure and behavioral response.
@@ -289,8 +297,6 @@ To scale this to catalog-level pricing, we expand the base event transition matr
 \subsection{Second-Stage Classification}
 After contamination, we run a second classification stage. We remap events into a semantically aligned feature space, apply richer feature engineering, and retrain to obtain cleaner label probabilities across the full dataset. This classifier is then used directly in the reinforcement-learning reward structure.
 
-Now might be a good time to stand up and go for a quick walk before returning to the rest of this paper.
-
 
 \subsection{Distributionally Robust Reinforcement Learning (DR-RL)}
 
@@ -307,22 +313,28 @@ Because contamination level $\alpha$ and demand shift are non-stationary online,
 
 This yields two centroid-like heuristics that guide contamination estimation at session granularity.
 
-In implementation, we maintain an alternating game-history stack (our \textit{Limbo} stack): leader moves (prices) are pushed first, follower responses (trajectory-derived demand proxies) are appended next, and updates are computed over this sequence.
+In implementation, we maintain an alternating game-history stack (our \textit{Limbo} stack) and execute it explicitly every epoch with exactly two transitions: first the platform publishes a price vector (leader move), then the market responds with trajectory-derived demand (follower move).
 
 \subsubsection{Ambiguity Set Construction}
-We define an ambiguity set $\mathcal{U}_p(\hat{P}_N)$ centered around our empirical reference distribution $\hat{P}_N$ (derived from the generator $\mathcal{G}$). We utilize the Wasserstein distance metric to define the set of plausible demand distributions the agent might face:
+We define an ambiguity set $\mathcal{U}_\epsilon(\hat{P}_N)$ centered around our empirical reference distribution $\hat{P}_N$ (derived from the generator $\mathcal{G}$). We utilize the Wasserstein distance metric to define the set of plausible demand distributions the agent might face:
 \begin{equation}
 \mathcal{U}_\epsilon(\hat{P}_N) = \left\{ Q \in \mathcal{P}(\Xi) : W_p(Q, \hat{P}_N) \le \epsilon \right\}
 \end{equation}
 This set captures all distributions that are statistically close to our observed training data but allows for adversarial shifts.
 
+For the current engine baseline, we use a compact inner-robust approximation by applying ambiguity over contamination in a local interval around nominal contamination $\alpha_0$:
+\begin{equation}
+\mathcal{A}_{\epsilon_\alpha}(\alpha_0)=\left\{\alpha\in[0,1]:\lvert\alpha-\alpha_0\rvert\le\epsilon_\alpha\right\}
+\end{equation}
+and we evaluate a small fixed grid in $\mathcal{A}_{\epsilon_\alpha}(\alpha_0)$ per step, selecting the worst-case candidate for the learner.
+
 \subsubsection{The Min-Max Objective}
 The robust policy $\pi^*$ is obtained by solving the maximin problem:
 \begin{equation}
 \label{eq:robust_policy}
-\pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}(p) \right]
+\pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}_{\text{leak}}(p,\tau') \right]
 \end{equation}
-where $R(p, d)$ is the revenue function and $\lambda$ weighs the penalty for information leakage (COI). We previously defined $\text{COI}$, however to properly connect this concept into the reward structure we need to define a parametrized version which informs us of the leakage of said structure with $\text{COI}(p)$.
+where $R(p, d)$ is the revenue function and $\lambda$ weighs the information-leakage penalty.
 
 In practice, we parameterize this with a session-level leakage term:
 \begin{equation}
@@ -330,16 +342,22 @@ In practice, we parameterize this with a session-level leakage term:
 \end{equation}
 where $f(\tau')$ is the weak agent probability and $\text{InfoValue}$ is implemented either as a constant query-tax surrogate or as a revelation surrogate $-\log\pi(p\mid\tau')$.
 
+For the baseline engine reported here, we intentionally use the constant query-tax surrogate to keep the mechanism minimal:
+\begin{equation}
+r_t = R(p_t,\tilde q_t) - \lambda\,f(\tau_t')\,c_{\text{info}}
+\end{equation}
+with fixed $c_{\text{info}}>0$.
+
 
 Another possible extension is to adapt the ambiguity radius online, e.g., $\epsilon(\Delta_H)$, so the Wasserstein ball changes with live divergence. We keep this as future work and retain a fixed-radius setup because Wasserstein ambiguity already handles heavy-tail and ``black swan'' behavior without absolute continuity assumptions \parencite{kuhn_wasserstein_2024}.
 
 \subsubsection{Actor Implementation}
 In our simulation, the ``follower'' is implemented as a set of Actors. Each Actor is initialized with a type $\theta$ which samples a specific demand curve $d(p; \theta)$ from the latent distribution. This formalization ensures that our DR-RL agent does not overfit to a single deterministic demand function but learns a policy robust to the distributional uncertainty defined by $\mathcal{U}_\epsilon$.
 
-Practical implementation of interactions of agent with web environment is a strongly evolving field with near weekly releases of SOTA architectures. An agent we develop uses Playwright to
+Practical implementation of browser agents is a strongly evolving field with near-weekly releases of SOTA architectures. In this thesis implementation we abstract that layer into trajectory generators learned from observed human/agent transition kernels.
 
 
-As part of reward engineering, we include a UX factor ($UX\in[0,1]$) as a proxy for user-experience degradation. This is computed from separability-model calibration and specificity-sensitive penalties.
+As part of reward engineering, we keep a UX factor ($UX\in[0,1]$) as an auxiliary evaluation axis. In the current baseline it is not injected into the core reward; it is tracked separately to compare policy trade-offs.
 
 \begin{figure}[ht]
   \centering
@@ -362,7 +380,8 @@ We now present the complete pricing mechanism that integrates the behavioral sep
 \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
 
 \Input{catalog size \(N\); costs \(c\); reference prices \(p^{ref}\); behavior models \(\bar T_H,\bar T_A\);
-action weights \(\omega\); penalty \(\lambda\); horizon \(T\); sessions per step \(M\)}
+action weights \(\omega\); penalty \(\lambda\); nominal contamination \(\alpha_0\); ambiguity radius \(\epsilon_\alpha\);
+candidate count \(K\); horizon \(T\); sessions per step \(M\)}
 \Output{price/demand trajectory \(\{(p_t,\hat Q_t,\hat\alpha_t)\}_{t=0}^{T-1}\)}
 
 Initialize contamination estimate \(\hat\alpha \leftarrow 0.2\)\;
@@ -383,7 +402,11 @@ Initialize contamination estimate \(\hat\alpha \leftarrow 0.2\)\;
   \tcp{Estimate contamination from behavioral separability}
   compute \(\hat\alpha \leftarrow \frac{1}{M}\sum_{\tau\in\mathcal S_t} \Big[\sigma\big(\beta(\Delta_H(\tau)-\Delta_A(\tau))\big)\Big]\)\;
 
-  compute \(J_t \leftarrow \text{Revenue}(p_t,\hat Q_t) - \lambda\cdot \text{COILeak}(\hat\alpha)\)\;
+  \tcp{Inner robust step over local ambiguity interval}
+  define \(\mathcal{A}_{\epsilon_\alpha}(\alpha_0)\) and sample \(K\) candidates\;
+  pick \(\alpha_t^* \leftarrow \arg\min_{\alpha\in\mathcal{A}_{\epsilon_\alpha}(\alpha_0)} \Big[\text{Revenue}(p_t,\hat Q_t^{\alpha}) - \lambda\cdot \text{COI}_{\text{leak}}(p_t,\tau_t^{\alpha})\Big]\)\;
+
+  compute \(J_t \leftarrow \text{Revenue}(p_t,\hat Q_t^{\alpha_t^*}) - \lambda\cdot \text{COI}_{\text{leak}}(p_t,\tau_t^{\alpha_t^*})\)\;
 }
 \end{algorithm}
 
