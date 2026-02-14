@@ -30,3 +30,4 @@ sim/rl/behavior_loader/*.pdf
 tests/e2e/node_modules/**
 lab/case/thesis/runs*/
 sim/case/thesis_simplified/runs*/
+PHANTOM_web/*

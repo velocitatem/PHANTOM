@@ -19,15 +19,18 @@ class MarketEngine:
         agent_params: tuple,
         demand_distribution=np.random.normal,
         noise_std: float = 1.0,
+        action_weights: dict | None = None,
     ):
         # no defaults for D_H, D_A - force explicit experiment design
         self.alpha = alpha
+        self.N = int(N)
         self.Nagents = int(N * alpha)
         self.Nhumans = int(N * (1 - alpha))
         self.human_params = human_params
         self.agent_params = agent_params
         self.noise_std = noise_std
         self.demand_dist = demand_distribution
+        self.action_weights = action_weights
 
     def act(self, prices):
         # generate separate demands d() per actor type
@@ -48,7 +51,7 @@ class MarketEngine:
         agent_t = [sample_behavior(demand_a, human=False) for _ in range(self.Nagents)]
         # store trajectories for agent probability calculation
         self.last_trajectories = human_t + agent_t
-        return estimate_demand(self.last_trajectories)
+        return estimate_demand(self.last_trajectories, self.action_weights)
 
     def measure(self):
         pass
@@ -72,13 +75,16 @@ class Limbo:
         self.output = None
 
     def step(self):
-        # we could code golf this a little bit
         if self.platform_turn:
             self.output = self.platform.act(self.output)
         else:
             self.output = self.market.act(self.output)
-        print(self.output)
         self.platform_turn = not self.platform_turn
+        return self.output
+
+    def reset(self):
+        self.platform_turn = True
+        self.output = None
 
 
 if __name__ == "__main__":
