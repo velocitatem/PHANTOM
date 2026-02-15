@@ -5,3 +5,4 @@ from .wrappers import EconomicMetricsWrapper
 from .callbacks import MetricsCallback, EvalMetricsCallback
 from .providers import ProviderBenchmark, ProviderResult, BenchmarkConfig
 from .coi import compute_uplift_coi, extract_purchases, compute_agent_probability
+from .discrete import EventQTable

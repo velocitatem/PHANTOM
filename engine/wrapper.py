@@ -29,6 +29,7 @@ class PHANTOM(gym.Env):
     reward = R(p,d) - λ·COI_leak(p,τ') per thesis Section on DR-RL
     COI_leak uses behavioral divergence to estimate agent probability f(τ')
     robust inner step: min over alpha in Wasserstein interval around nominal alpha
+    actions are discrete global price-scale moves
     """
 
     metadata = {"render_modes": ["human", "ansi"]}
@@ -47,6 +48,9 @@ class PHANTOM(gym.Env):
         robust_radius: float = 0.0,
         robust_points: int = 5,
         info_value: float = 1.0,
+        action_levels: int = 9,
+        action_scale_low: float = 0.9,
+        action_scale_high: float = 1.1,
         render_mode: str = None,
     ):
         super().__init__()
@@ -63,6 +67,10 @@ class PHANTOM(gym.Env):
         self.robust_radius = max(0.0, float(robust_radius))
         self.robust_points = max(1, int(robust_points))
         self.info_value = float(info_value)
+        self.action_levels = max(2, int(action_levels))
+        self._action_scales = np.linspace(
+            float(action_scale_low), float(action_scale_high), self.action_levels
+        )
 
         self.market = MarketEngine(
             alpha=alpha,
@@ -75,12 +83,7 @@ class PHANTOM(gym.Env):
         self._limbo = Limbo(self._platform_stub, self.market)
         self._set_market_mix(self.nominal_alpha)
 
-        self.action_space = spaces.Box(
-            low=price_bounds[0],
-            high=price_bounds[1],
-            shape=(n_products,),
-            dtype=np.float32,
-        )
+        self.action_space = spaces.Discrete(self.action_levels)
         self.observation_space = spaces.Dict(
             {
                 "demand": spaces.Box(
@@ -126,6 +129,21 @@ class PHANTOM(gym.Env):
         self.market.alpha = alpha
         self.market.Nagents = n_agents
         self.market.Nhumans = self.N - n_agents
+
+    def _decode_action(self, action) -> np.ndarray:
+        base = (
+            self._prices
+            if self._prices is not None
+            else np.full(self.n_products, self.price_bounds[0], dtype=float)
+        )
+        if np.isscalar(action):
+            idx = int(np.clip(int(action), 0, self.action_levels - 1))
+            return np.clip(base * self._action_scales[idx], *self.price_bounds)
+        a = np.asarray(action)
+        if a.size == 1:
+            idx = int(np.clip(int(a.reshape(-1)[0]), 0, self.action_levels - 1))
+            return np.clip(base * self._action_scales[idx], *self.price_bounds)
+        return np.clip(a.astype(float), *self.price_bounds)
 
     def _compute_agent_prob(self, trajectories=None) -> float:
         trajectories = (
@@ -208,8 +226,8 @@ class PHANTOM(gym.Env):
         self._record_history()
         return self._get_obs(), {}
 
-    def step(self, action: np.ndarray):
-        self._prices = np.clip(action, *self.price_bounds)
+    def step(self, action):
+        self._prices = self._decode_action(action)
         alpha_adv = self._select_adversarial_alpha(self._prices)
         self._set_market_mix(alpha_adv)
         self._platform_stub.set_prices(self._prices)

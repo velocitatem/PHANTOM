@@ -315,6 +315,8 @@ This yields two centroid-like heuristics that guide contamination estimation at 
 
 In implementation, we maintain an alternating game-history stack (our \textit{Limbo} stack) and execute it explicitly every epoch with exactly two transitions: first the platform publishes a price vector (leader move), then the market responds with trajectory-derived demand (follower move).
 
+% Mention discretized action space and the clipping and over shotting in continuous action spaces
+
 \subsubsection{Ambiguity Set Construction}
 We define an ambiguity set $\mathcal{U}_\epsilon(\hat{P}_N)$ centered around our empirical reference distribution $\hat{P}_N$ (derived from the generator $\mathcal{G}$). We utilize the Wasserstein distance metric to define the set of plausible demand distributions the agent might face:
 \begin{equation}

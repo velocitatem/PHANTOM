@@ -1,57 +1,408 @@
-import wandb
-from stable_baselines3 import SAC
-from stable_baselines3.common.callbacks import EvalCallback
+import argparse
+import json
+from pathlib import Path
+import numpy as np
+from gymnasium.wrappers import FlattenObservation
+
+try:
+    import wandb
+
+    HAS_WANDB = True
+except ImportError:
+    HAS_WANDB = False
+
+try:
+    from stable_baselines3 import PPO, A2C, DQN
+    from stable_baselines3.common.callbacks import EvalCallback
+    from stable_baselines3.common.monitor import Monitor
+
+    HAS_SB3 = True
+except ImportError:
+    HAS_SB3 = False
+
 from .wrapper import PHANTOM
 from .lib import EconomicMetricsWrapper, MetricsCallback
+from .lib.discrete import EventQTable
 
-wandb.init(
-    project="phantom-pricing",
-    config={
-        "alpha": 0.3,
-        "n_products": 10,
-        "total_timesteps": 50000,
-        "robust_radius": 0.15,
-        "robust_points": 5,
-        "lambda_coi": 0.2,
-    },
-)
 
-env_kwargs = {
+DEFAULT_CFG = {
+    "project": "phantom-pricing",
+    "algo": "ppo",
+    "seed": 42,
+    "total_timesteps": 50_000,
+    "eval_episodes": 5,
+    "eval_freq": 1_000,
+    "log_freq": 100,
+    "revenue_weight": 0.01,
     "n_products": 10,
+    "N": 100,
     "alpha": 0.3,
     "lambda_coi": 0.2,
     "robust_radius": 0.15,
     "robust_points": 5,
-    "render_mode": None,
+    "info_value": 1.0,
+    "price_low": 10.0,
+    "price_high": 150.0,
+    "action_levels": 9,
+    "action_scale_low": 0.8,
+    "action_scale_high": 1.2,
+    "learning_rate": 3e-4,
+    "gamma": 0.99,
+    "buffer_size": 50_000,
+    "batch_size": 256,
+    "tau": 0.005,
+    "train_freq": 1,
+    "learning_starts": 1_000,
+    "target_update_interval": 1_000,
+    "exploration_fraction": 0.2,
+    "exploration_final_eps": 0.05,
+    "n_steps": 2_048,
+    "n_epochs": 10,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.0,
+    "q_lr": 0.1,
+    "eps_start": 1.0,
+    "eps_end": 0.05,
+    "eps_decay": 0.9995,
+    "model_dir": "engine/models",
+    "arch": "small",
+    "activation": "relu",
+    "q_bins": 6,
 }
-env = EconomicMetricsWrapper(PHANTOM(**env_kwargs))
-eval_env = EconomicMetricsWrapper(PHANTOM(**env_kwargs))
 
-model = SAC(
-    "MultiInputPolicy",
-    env,
-    verbose=1,
-    learning_rate=3e-4,
-    buffer_size=50000,
-    batch_size=256,
-    tau=0.005,
-    gamma=0.99,
-)
 
-metrics_cb = MetricsCallback(log_histograms=True, log_freq=100)
-eval_cb = EvalCallback(eval_env, eval_freq=1000, n_eval_episodes=5, verbose=1)
+def _cfg(raw: dict | None = None) -> dict:
+    cfg = dict(DEFAULT_CFG)
+    if raw:
+        cfg.update({k: v for k, v in raw.items() if v is not None})
+    cfg["algo"] = str(cfg["algo"]).lower()
+    return cfg
 
-model.learn(total_timesteps=50000, callback=[metrics_cb, eval_cb])
-model.save("phantom_sac")
-wandb.finish()
 
-# test trained policy
-env = PHANTOM(**env_kwargs)
-obs, _ = env.reset()
-for _ in range(100):
-    action, _ = model.predict(obs, deterministic=True)
-    obs, reward, term, trunc, _ = env.step(action)
-    env.render()
-    if term or trunc:
-        break
-env.close()
+def _wandb_cfg_dict() -> dict:
+    return (
+        {k: wandb.config[k] for k in wandb.config.keys()}
+        if HAS_WANDB and wandb.run
+        else {}
+    )
+
+
+def make_env(cfg: dict):
+    env = PHANTOM(
+        n_products=int(cfg["n_products"]),
+        alpha=float(cfg["alpha"]),
+        N=int(cfg["N"]),
+        price_bounds=(float(cfg["price_low"]), float(cfg["price_high"])),
+        lambda_coi=float(cfg["lambda_coi"]),
+        robust_radius=float(cfg["robust_radius"]),
+        robust_points=int(cfg["robust_points"]),
+        info_value=float(cfg["info_value"]),
+        action_levels=int(cfg["action_levels"]),
+        action_scale_low=float(cfg["action_scale_low"]),
+        action_scale_high=float(cfg["action_scale_high"]),
+        render_mode=None,
+    )
+    env = EconomicMetricsWrapper(env)
+    env = FlattenObservation(env)
+    return env
+
+
+def _net_arch(name) -> list[int]:
+    presets = {
+        "tiny": [32, 32],
+        "small": [64, 64],
+        "medium": [128, 128],
+        "large": [256, 256],
+    }
+    if isinstance(name, (list, tuple)):
+        return [int(v) for v in name]
+    s = str(name).lower().strip()
+    if s in presets:
+        return presets[s]
+    if "x" in s:
+        try:
+            vals = [int(v) for v in s.split("x") if v]
+            return vals if vals else presets["small"]
+        except ValueError:
+            return presets["small"]
+    return presets["small"]
+
+
+def _activation(name):
+    try:
+        import torch.nn as nn
+    except ImportError:
+        return None
+    return {
+        "relu": nn.ReLU,
+        "tanh": nn.Tanh,
+        "elu": nn.ELU,
+        "leaky_relu": nn.LeakyReLU,
+    }.get(str(name).lower().strip(), nn.ReLU)
+
+
+def _policy_kwargs(cfg: dict) -> dict:
+    kw = {"net_arch": _net_arch(cfg.get("arch", "small"))}
+    act = _activation(cfg.get("activation", "relu"))
+    if act is not None:
+        kw["activation_fn"] = act
+    return kw
+
+
+def _action(agent, obs, deterministic: bool = True):
+    out = agent.predict(obs, deterministic=deterministic)
+    a = out[0] if isinstance(out, tuple) else out
+    if isinstance(a, np.ndarray) and a.size == 1:
+        return int(a.reshape(-1)[0])
+    return a
+
+
+def evaluate(agent, env, episodes: int) -> dict:
+    rewards, revenues = [], []
+    for _ in range(int(episodes)):
+        obs, _ = env.reset()
+        done, ep_r, ep_rev = False, 0.0, 0.0
+        while not done:
+            obs, reward, term, trunc, info = env.step(_action(agent, obs, True))
+            done = term or trunc
+            ep_r += float(reward)
+            ep_rev += float(
+                info.get("economics", {}).get("revenue", info.get("revenue", 0.0))
+            )
+        rewards.append(ep_r)
+        revenues.append(ep_rev)
+    return {
+        "eval/reward": float(np.mean(rewards)),
+        "eval/revenue": float(np.mean(revenues)),
+        "eval/reward_std": float(np.std(rewards)),
+        "eval/revenue_std": float(np.std(revenues)),
+    }
+
+
+def build_model(cfg: dict, env):
+    algo = cfg["algo"]
+    policy_kwargs = _policy_kwargs(cfg)
+    if algo == "sac":
+        raise ValueError("sac is not supported with the discrete core env")
+    if algo == "ppo":
+        return PPO(
+            "MlpPolicy",
+            env,
+            verbose=1,
+            policy_kwargs=policy_kwargs,
+            seed=int(cfg["seed"]),
+            learning_rate=float(cfg["learning_rate"]),
+            n_steps=int(cfg["n_steps"]),
+            batch_size=int(cfg["batch_size"]),
+            n_epochs=int(cfg["n_epochs"]),
+            gamma=float(cfg["gamma"]),
+            gae_lambda=float(cfg["gae_lambda"]),
+            clip_range=float(cfg["clip_range"]),
+            ent_coef=float(cfg["ent_coef"]),
+        )
+    if algo == "a2c":
+        return A2C(
+            "MlpPolicy",
+            env,
+            verbose=1,
+            policy_kwargs=policy_kwargs,
+            seed=int(cfg["seed"]),
+            learning_rate=float(cfg["learning_rate"]),
+            n_steps=max(5, int(cfg["n_steps"]) // 32),
+            gamma=float(cfg["gamma"]),
+            gae_lambda=float(cfg["gae_lambda"]),
+            ent_coef=float(cfg["ent_coef"]),
+        )
+    if algo == "dqn":
+        return DQN(
+            "MlpPolicy",
+            env,
+            verbose=1,
+            policy_kwargs=policy_kwargs,
+            seed=int(cfg["seed"]),
+            learning_rate=float(cfg["learning_rate"]),
+            buffer_size=int(cfg["buffer_size"]),
+            batch_size=int(cfg["batch_size"]),
+            gamma=float(cfg["gamma"]),
+            train_freq=int(cfg["train_freq"]),
+            learning_starts=int(cfg["learning_starts"]),
+            target_update_interval=int(cfg["target_update_interval"]),
+            exploration_fraction=float(cfg["exploration_fraction"]),
+            exploration_final_eps=float(cfg["exploration_final_eps"]),
+        )
+    raise ValueError(f"unsupported algo '{algo}'")
+
+
+def train_qtable(cfg: dict) -> tuple[EventQTable, dict]:
+    np.random.seed(int(cfg["seed"]))
+    env = make_env(cfg)
+    eval_env = make_env(cfg)
+    agent = EventQTable(
+        env.action_space.n,
+        int(cfg["n_products"]),
+        (float(cfg["price_low"]), float(cfg["price_high"])),
+        lr=float(cfg["q_lr"]),
+        gamma=float(cfg["gamma"]),
+        n_bins=int(cfg["q_bins"]),
+    )
+    eps = float(cfg["eps_start"])
+    obs, _ = env.reset(seed=int(cfg["seed"]))
+    for t in range(int(cfg["total_timesteps"])):
+        a, s = agent.act(obs, eps)
+        nxt, reward, term, trunc, info = env.step(a)
+        done = term or trunc
+        agent.update(s, a, float(reward), agent.encode(nxt), done)
+        eps = max(float(cfg["eps_end"]), eps * float(cfg["eps_decay"]))
+        if HAS_WANDB and wandb.run and (t + 1) % int(cfg["log_freq"]) == 0:
+            econ = info.get("economics", {})
+            wandb.log(
+                {
+                    "train/reward": float(reward),
+                    "train/revenue": float(econ.get("revenue", 0.0)),
+                    "train/epsilon": float(eps),
+                },
+                step=t + 1,
+            )
+        obs = env.reset()[0] if done else nxt
+    metrics = evaluate(agent, eval_env, int(cfg["eval_episodes"]))
+    metrics["train/global_step"] = int(cfg["total_timesteps"])
+    env.close()
+    eval_env.close()
+    return agent, metrics
+
+
+def train_sb3(cfg: dict) -> tuple[object, dict]:
+    if not HAS_SB3:
+        raise ImportError("stable-baselines3 is required for SB3 models")
+    env = make_env(cfg)
+    eval_env = make_env(cfg)
+    env = Monitor(env)
+    eval_env = Monitor(eval_env)
+    model = build_model(cfg, env)
+    cbs = [MetricsCallback(log_histograms=True, log_freq=int(cfg["log_freq"]))]
+    cbs.append(
+        EvalCallback(
+            eval_env,
+            eval_freq=int(cfg["eval_freq"]),
+            n_eval_episodes=int(cfg["eval_episodes"]),
+            deterministic=True,
+            verbose=0,
+        )
+    )
+    model.learn(total_timesteps=int(cfg["total_timesteps"]), callback=cbs)
+    model_path = Path(cfg["model_dir"])
+    model_path.mkdir(parents=True, exist_ok=True)
+    model.save(str(model_path / f"phantom_{cfg['algo']}"))
+    metrics = evaluate(model, eval_env, int(cfg["eval_episodes"]))
+    metrics["train/global_step"] = int(model.num_timesteps)
+    env.close()
+    eval_env.close()
+    return model, metrics
+
+
+def train_once(cfg: dict) -> dict:
+    algo = cfg["algo"]
+    if algo == "qtable":
+        _, metrics = train_qtable(cfg)
+    else:
+        _, metrics = train_sb3(cfg)
+    metrics["sweep/score"] = float(
+        metrics["eval/reward"] + float(cfg["revenue_weight"]) * metrics["eval/revenue"]
+    )
+    return metrics
+
+
+def run_wandb(
+    project: str, overrides: dict, mode: str = "online", sweep_mode: bool = False
+) -> dict:
+    if not HAS_WANDB:
+        raise ImportError("wandb is required for sweep runs")
+    init_kwargs = {"mode": mode}
+    if sweep_mode:
+        run = wandb.init(**init_kwargs)
+        cfg = _cfg(_wandb_cfg_dict())
+        for k, v in overrides.items():
+            if k not in wandb.config:
+                cfg[k] = v
+    else:
+        run = wandb.init(project=project, config=overrides, **init_kwargs)
+        cfg = _cfg(_wandb_cfg_dict())
+    metrics = train_once(cfg)
+    step = int(metrics.get("train/global_step", cfg["total_timesteps"]))
+    wandb.log(metrics, step=step)
+    for k, v in metrics.items():
+        run.summary[k] = v
+    wandb.finish()
+    return metrics
+
+
+def run_local(overrides: dict) -> dict:
+    cfg = _cfg(overrides)
+    metrics = train_once(cfg)
+    print(json.dumps(metrics, indent=2))
+    return metrics
+
+
+def main():
+    p = argparse.ArgumentParser(description="PHANTOM training and W&B sweeps")
+    p.add_argument("--project", default=DEFAULT_CFG["project"])
+    p.add_argument("--algo", choices=["ppo", "a2c", "dqn", "qtable"])
+    p.add_argument("--total-timesteps", type=int)
+    p.add_argument("--alpha", type=float)
+    p.add_argument("--n-products", type=int)
+    p.add_argument("--lambda-coi", type=float)
+    p.add_argument("--robust-radius", type=float)
+    p.add_argument("--robust-points", type=int)
+    p.add_argument("--learning-rate", type=float)
+    p.add_argument("--gamma", type=float)
+    p.add_argument("--revenue-weight", type=float)
+    p.add_argument("--arch", type=str)
+    p.add_argument("--activation", type=str)
+    p.add_argument("--sweep-agent", action="store_true")
+    p.add_argument("--sweep-id", type=str)
+    p.add_argument("--count", type=int, default=0)
+    p.add_argument("--offline", action="store_true")
+    p.add_argument("--no-wandb", action="store_true")
+    args = p.parse_args()
+
+    overrides = {
+        "algo": args.algo,
+        "total_timesteps": args.total_timesteps,
+        "alpha": args.alpha,
+        "n_products": args.n_products,
+        "lambda_coi": args.lambda_coi,
+        "robust_radius": args.robust_radius,
+        "robust_points": args.robust_points,
+        "learning_rate": args.learning_rate,
+        "gamma": args.gamma,
+        "revenue_weight": args.revenue_weight,
+        "arch": args.arch,
+        "activation": args.activation,
+    }
+    overrides = {k: v for k, v in overrides.items() if v is not None}
+
+    if args.sweep_agent:
+        if args.no_wandb:
+            raise ValueError("sweep agent requires wandb")
+        if not args.sweep_id:
+            raise ValueError("--sweep-id is required with --sweep-agent")
+        mode = "offline" if args.offline else "online"
+        wandb.agent(
+            args.sweep_id,
+            function=lambda: run_wandb(
+                args.project, overrides, mode=mode, sweep_mode=True
+            ),
+            count=args.count if args.count > 0 else None,
+        )
+        return
+
+    if args.no_wandb or not HAS_WANDB:
+        run_local(overrides)
+        return
+
+    run_wandb(args.project, overrides, mode="offline" if args.offline else "online")
+
+
+if __name__ == "__main__":
+    main()
