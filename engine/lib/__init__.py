@@ -3,6 +3,12 @@ from .behavior import sample_behavior, get_transition_models, trajectory_to_even
 from .render import DashboardRenderer, style_axis
 from .wrappers import EconomicMetricsWrapper
 from .callbacks import MetricsCallback, EvalMetricsCallback
-from .providers import ProviderBenchmark, ProviderResult, BenchmarkConfig
+from .providers import (
+    ProviderBenchmark,
+    ProviderResult,
+    BenchmarkConfig,
+    RandomBaseline,
+    SurgeBaseline,
+)
 from .coi import compute_uplift_coi, extract_purchases, compute_agent_probability
 from .discrete import EventQTable

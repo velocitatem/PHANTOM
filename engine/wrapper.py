@@ -51,6 +51,9 @@ class PHANTOM(gym.Env):
         action_levels: int = 9,
         action_scale_low: float = 0.9,
         action_scale_high: float = 1.1,
+        max_steps: int = 100,
+        margin_floor: float = 0.05,
+        margin_floor_patience: int = 5,
         render_mode: str = None,
     ):
         super().__init__()
@@ -58,6 +61,11 @@ class PHANTOM(gym.Env):
         self.price_bounds = price_bounds
         self.lambda_coi = lambda_coi
         self.coi_window = coi_window
+        self.max_steps = max(1, int(max_steps))
+        self.margin_floor = float(
+            margin_floor
+        )  # terminate if avg margin stays below this for patience steps
+        self.margin_floor_patience = max(1, int(margin_floor_patience))
         self.render_mode = render_mode
         self.alpha = float(alpha)
         self.nominal_alpha = float(alpha)
@@ -108,6 +116,7 @@ class PHANTOM(gym.Env):
         self._initial_episode_prices = None
         self._trajectories = []  # session trajectories for agent prob calculation
         self.baseline_prices = np.full(self.n_products, self.price_bounds[0])
+        self._low_margin_streak = 0  # consecutive steps below margin_floor
 
         # load behavioral models for agent probability estimation
         try:
@@ -170,14 +179,18 @@ class PHANTOM(gym.Env):
         revenue = float(np.dot(prices, demand_arr))
         purchases = extract_purchases(trajectories)
         coi_mix = compute_uplift_coi(prices, purchases, self.baseline_prices)
+        # multiplicative penalty so COI term scales with revenue magnitude
         coi_leakage = float(agent_prob * self.info_value)
-        coi_penalty = float(self.lambda_coi * coi_leakage)
-        return float(revenue - coi_penalty), {
+        discount = float(np.clip(1.0 - self.lambda_coi * coi_leakage, 0.0, 1.0))
+        coi_penalty = revenue * (1.0 - discount)  # absolute penalty in revenue units
+        reward = revenue * discount
+        return reward, {
             "revenue": revenue,
             "coi_mix": float(coi_mix),
             "coi_base": 0.0,
             "coi_leakage": coi_leakage,
             "coi_penalty": coi_penalty,
+            "coi_discount": discount,
         }
 
     def _alpha_candidates(self) -> np.ndarray:
@@ -187,21 +200,28 @@ class PHANTOM(gym.Env):
         hi = min(1.0, self.nominal_alpha + self.robust_radius)
         return np.linspace(lo, hi, self.robust_points)
 
-    def _select_adversarial_alpha(self, prices: np.ndarray) -> float:
+    def _select_adversarial_alpha(
+        self, prices: np.ndarray
+    ) -> tuple[float, dict, list, float]:
+        """inner robust step: pick worst-case alpha and return its outcome directly to avoid double-sampling"""
         candidates = self._alpha_candidates()
-        if len(candidates) == 1:
-            return float(candidates[0])
         best_alpha, worst_reward = float(candidates[0]), np.inf
+        best_demand, best_trajectories, best_agent_prob = None, [], 0.0
         for alpha in candidates:
             self._set_market_mix(float(alpha))
             demand = self.market.act(prices)
-            trajectories = self.market.last_trajectories
+            trajectories = list(self.market.last_trajectories)
             agent_prob = self._compute_agent_prob(trajectories)
             reward, _ = self._compute_reward(prices, demand, agent_prob, trajectories)
             if reward < worst_reward:
                 worst_reward = reward
-                best_alpha = float(alpha)
-        return best_alpha
+                best_alpha, best_demand, best_trajectories, best_agent_prob = (
+                    float(alpha),
+                    demand,
+                    trajectories,
+                    agent_prob,
+                )
+        return best_alpha, best_demand, best_trajectories, best_agent_prob
 
     def _record_history(self):
         demand_arr = np.array(
@@ -221,6 +241,7 @@ class PHANTOM(gym.Env):
         self._demand = self._limbo.step()
         self._initial_episode_prices = self._prices.copy()
         self._step_count = 0
+        self._low_margin_streak = 0
         self._demand_history, self._price_history, self._revenue_history = [], [], []
         self._trajectories = list(getattr(self.market, "last_trajectories", []))
         self._record_history()
@@ -228,21 +249,30 @@ class PHANTOM(gym.Env):
 
     def step(self, action):
         self._prices = self._decode_action(action)
-        alpha_adv = self._select_adversarial_alpha(self._prices)
+        # inner robust step returns worst-case outcome directly, no re-sampling
+        alpha_adv, self._demand, trajectories, agent_prob = (
+            self._select_adversarial_alpha(self._prices)
+        )
         self._set_market_mix(alpha_adv)
         self._platform_stub.set_prices(self._prices)
-        self._limbo.step()
-        self._demand = self._limbo.step()
-        trajectories = getattr(self.market, "last_trajectories", [])
         self._step_count += 1
         self._trajectories.extend(trajectories)
 
-        agent_prob = self._compute_agent_prob(trajectories)
         reward, metrics = self._compute_reward(
             self._prices, self._demand, agent_prob, trajectories
         )
         self._record_history()
-        terminated = self._step_count >= 100
+
+        # soft early termination when margin collapses for too long
+        avg_margin = float(np.mean(self._prices) - self.price_bounds[0]) / max(
+            float(np.mean(self._prices)), 1e-6
+        )
+        if avg_margin < self.margin_floor:
+            self._low_margin_streak += 1
+        else:
+            self._low_margin_streak = 0
+        margin_collapsed = self._low_margin_streak >= self.margin_floor_patience
+        terminated = self._step_count >= self.max_steps or margin_collapsed
 
         info = {
             "step": self._step_count,
