@@ -1,0 +1,85 @@
+method: grid
+metric:
+  name: sweep/score
+  goal: maximize
+run_cap: 4
+command:
+  - ${env}
+  - python
+  - -m
+  - engine.train
+parameters:
+  algo:
+    values: [ppo, a2c, dqn, qtable]
+  seed:
+    value: 42
+  total_timesteps:
+    value: 12000
+  eval_episodes:
+    value: 3
+  eval_freq:
+    value: 500
+  log_freq:
+    value: 100
+  revenue_weight:
+    value: 0.01
+  n_products:
+    value: 8
+  N:
+    value: 80
+  alpha:
+    value: 0.3
+  lambda_coi:
+    value: 0.2
+  robust_radius:
+    value: 0.0
+  robust_points:
+    value: 1
+  info_value:
+    value: 1.0
+  learning_rate:
+    value: 0.0003
+  gamma:
+    value: 0.99
+  buffer_size:
+    value: 20000
+  batch_size:
+    value: 128
+  tau:
+    value: 0.005
+  train_freq:
+    value: 1
+  learning_starts:
+    value: 500
+  n_steps:
+    value: 512
+  n_epochs:
+    value: 10
+  gae_lambda:
+    value: 0.95
+  clip_range:
+    value: 0.2
+  ent_coef:
+    value: 0.0
+  target_update_interval:
+    value: 500
+  exploration_fraction:
+    value: 0.2
+  exploration_final_eps:
+    value: 0.05
+  action_levels:
+    value: 7
+  action_scale_low:
+    value: 0.9
+  action_scale_high:
+    value: 1.1
+  q_lr:
+    value: 0.1
+  q_bins:
+    value: 6
+  eps_start:
+    value: 1.0
+  eps_end:
+    value: 0.05
+  eps_decay:
+    value: 0.9995
