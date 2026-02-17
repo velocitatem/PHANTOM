@@ -2,7 +2,7 @@ from .demand import estimate_demand, estimate_weighted_demand, generate_demand_f
 from .behavior import sample_behavior, get_transition_models, trajectory_to_events
 from .render import DashboardRenderer, style_axis
 from .wrappers import EconomicMetricsWrapper
-from .callbacks import MetricsCallback, EvalMetricsCallback
+from .callbacks import MetricsCallback, EvalMetricsCallback, CheckpointArtifactCallback
 from .providers import (
     ProviderBenchmark,
     ProviderResult,
