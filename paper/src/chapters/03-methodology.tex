@@ -198,7 +198,44 @@ The dynamic pricing mechanism elicited immediate behavioral adjustments. Partici
 
 \subsubsection{Design of Training Factorial Study}
 
-The simulator has multiple configurable factors, including valuation distributions, demand parametrization, contamination ratio, and policy settings. We therefore design a multi-factor study (current grid estimate: $4\times4\times3\times2\times2$). While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable and logged with services provided by weights and biases.
+The simulator has multiple configurable factors, including valuation distributions, demand parametrization, contamination ratio, and policy settings. We therefore design a multi-factor study (current grid estimate: $4\times4\times3\times2\times2$). While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable.
+
+Our training budget is provisioned through TPU Research Cloud and spans 384 chips across TPU v4, v5e, and v6e generations, with a spot-heavy allocation plus an on-demand reserve. At peak BF16 throughput this corresponds to approximately 160 PFLOPS of aggregate compute, which makes repeated seeds, ablations, and sensitivity sweeps feasible within practical wall-clock limits. We allocate v6e capacity to the highest-intensity policy training jobs, use v5e for wider hyperparameter exploration where throughput-per-dollar is favorable, and reserve on-demand v4 capacity for runs that should not be interrupted.
+
+\begin{table}[ht]
+\centering
+\caption{Compact comparison of TPU generations used in the training stack.}
+\label{tab:tpu_specs}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Feature} & \textbf{TPU v4} & \textbf{TPU v5e} & \textbf{TPU v6e (Trillium)} \\
+\midrule
+Peak BF16 per chip (TFLOPS) & 275 & 197 & 918 \\
+HBM capacity per chip (GB) & 32 & 16 & 32 \\
+HBM bandwidth per chip (GB/s) & 1200 & 819 & 1600 \\
+TensorCores per chip & 2 & 1 & 1 \\
+Interconnect topology & 3D mesh/torus & 2D torus & 2D torus \\
+Max pod size (chips) & 4096 & 256 & 256 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{TPU allocation used for the factorial study.}
+\label{tab:tpu_allocation}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{TPU Type} & \textbf{Total Chips} & \textbf{Zone(s)} & \textbf{Provisioning} \\
+\midrule
+v6e & 128 (64 + 64) & europe-west4-a, us-east1-d & Spot \\
+v5e & 128 (64 + 64) & us-central1-a, europe-west4-b & Spot \\
+v4 & 64 (32 + 32) & us-central2-b & 32 Spot + 32 On-demand \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For interactive monitoring from Madrid, we prioritize the europe-west4 allocation for latency-sensitive runs. All sweep metadata, model checkpoints, and reward traces are logged in Weights \& Biases. Hardware specifications are from the official Google Cloud TPU documentation \parencite{noauthor_tpu_2026,noauthor_tpu_2025-1,noauthor_tpu_2025}.
 
 \subsubsection{Interaction Schema}
 
