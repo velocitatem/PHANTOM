@@ -93,7 +93,7 @@ where $\mathbb{E}[P]$ is the expected price charged by the policy and $\underlin
 
 We now formally demonstrate that standard dynamic pricing mechanisms are not incentive-compatible with high-frequency agentic traffic. As the number of independent competitive agents $N$ querying the system grows, the platform's ability to sustain a COI vanishes.
 
-  A fundamental assumption for our claim lays in the alignment of the AI agent through it's prompt which has been demonstrated by \cite{fish_algorithmic_2025} to cause strong collusive behavior under linguistic nudges. This assumption can be generalized to the human user asking the agent to research products with a minimizing objective.
+  A fundamental assumption for our claim lies in the alignment of the AI agent through its prompt which has been demonstrated by \cite{fish_algorithmic_2025} to cause strong collusive behavior under linguistic nudges. This assumption can be generalized to the human user asking the agent to research products with a minimizing objective.
 
 \begin{theorem}[COI Erosion in the Limit]
 Let $N$ be the number of independent, utility-maximizing agents querying the platform. Let $p_{(1)}$ be the first order statistic (minimum) of the prices offered to these agents. As $N \to \infty$, the Cost of Information converges to 0.
@@ -161,13 +161,13 @@ p_{0,i} & \text{otherwise}
 
 where $p_0 \in \mathbb{R}^N$ is the base price vector (which is seeded into our database distinctly for each mode of the commerce platform), $\theta_{\text{high}}, \theta_{\text{low}} \in \mathbb{R}$ are demand thresholds defining surge and discount regions, and $\lambda_{\text{surge}}, \lambda_{\text{disc}} \in \mathbb{R}^+$ are multiplicative factors with typical values $\lambda_{\text{surge}} = 1.2$ and $\lambda_{\text{disc}} = 0.9$. This piecewise function enables rapid price adjustment in response to observed demand without requiring complex elasticity estimation or historical calibration, allowing us to expose actors within our experiments to a system with a dynamic component of pricing.
 
-For our offline experimental setting, we generalize a master value function that can encompass different demand estimation and pricing strategies.
-
-\begin{align}
-V(\cdot) = \max_{p_t} \min_{Q \in \mathcal{U}(\hat{d})}{\mathbb{E}_{d\sim Q} [p_t \times d(p_t, x_t ; \theta) + \psi V_{t+1}(\cdot)]}
-\end{align}
-
-We evaluate different substitutions of this objective, which later serve as hyperparameters in the simulator.
+% For our offline experimental setting, we generalize a master value function that can encompass different demand estimation and pricing strategies.
+%
+% \begin{align}
+% V(\cdot) = \max_{p_t} \min_{Q \in \mathcal{U}(\hat{d})}{\mathbb{E}_{d\sim Q} [p_t \times d(p_t, x_t ; \theta) + \psi V_{t+1}(\cdot)]}
+% \end{align}
+%
+% We evaluate different substitutions of this objective, which later serve as hyperparameters in the simulator.
 
 \subsection{Experimental Design}
 
@@ -175,7 +175,11 @@ We start from a practical constraint: we do not have access to proprietary produ
 
 The interface is organized as a product catalog where each product belongs to a time-bounded price vector (for example, a daily pricing period). During each period we collect interaction data by instrumenting UI components and predefined action templates that are still customizable. This gives us control without losing realism.
 
-Since users act with motivations, we define a pool of tasks (jobs to be done) and assign tasks randomly to participants. A representative task is to find the cheapest feasible catalog item under explicit constraints while removing strict financial limits so we avoid trivial optimization behavior. Participants are also randomly assigned to one experimental platform mode (hotel or airline). Once assigned, they are dropped into the experiment with an actor ID. Under each experiment ID, we can observe multiple sessions across time and gather long interaction traces for the same actor.
+Since users act with motivations, we define a pool of tasks (jobs to be done) and assign tasks randomly to participants.
+% TODO: describe the task pool in detail here -- list the specific tasks used in the experiments
+A representative task is to find the cheapest feasible catalog item under explicit constraints while removing strict financial limits so we avoid trivial optimization behavior. Participants are also randomly assigned to one experimental platform mode (hotel or airline). Once assigned, they are dropped into the experiment with an actor ID. Under each experiment ID, we can observe multiple sessions across time and gather long interaction traces for the same actor.
+
+The human data collection involved 18 participants, all of whom provided explicit informed consent prior to their session. Participants had an average age of 21 years and were recruited from a university population. Alongside the 18 human sessions we ran 18 agent sessions of equivalent task scope, giving a balanced dataset of 36 labeled trajectories. Each participant was assigned a single platform mode and a single task drawn from the pool, and completed the session independently without guidance on navigation or pricing strategy.
 
 To evaluate quality and realism of the setup, we store both structured event logs and full interaction transcripts. This lets us combine quantitative analysis with transcript-level qualitative findings. The result is an isolated system where we can control the interaction process while preserving realistic behavior.
 
@@ -199,7 +203,9 @@ The dynamic pricing mechanism elicited immediate behavioral adjustments. Partici
 
 \subsubsection{Design of Training Factorial Study}
 
-The simulator has multiple configurable factors, including valuation distributions, demand parametrization, contamination ratio, and policy settings. We therefore design a multi-factor study (current grid estimate: $4\times4\times3\times2\times2$). While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable.
+The simulator has multiple configurable factors. We design a multi-factor study across five axes derived from the sweep configurations: (1) RL algorithm (\texttt{ppo}, \texttt{a2c}, \texttt{dqn}, \texttt{qtable}; 4 levels), (2) contamination ratio $\alpha$ sampled from $[0.1, 0.6]$ at four representative levels, (3) robustness radius $\epsilon_\alpha \in \{0.0, 0.15, 0.3\}$ (3 levels), (4) COI penalty weight $\lambda_\text{coi}$ at two reference levels, and (5) pricing action granularity (two discretization settings for \texttt{action\_levels}); giving a grid of $4\times4\times3\times2\times2 = 192$ configurations. Statistical power for the behavioral comparisons is determined by a two-sample test over per-session KL divergence scores; a formal power analysis with minimum detectable effect size at $n=18+18$ is reported in the results.
+% Power analysis plan: apply a two-sample Mann-Whitney U (or permutation test) on per-session (delta_H - delta_A) divergence scores comparing the human and agent groups. Compute minimum detectable effect size at alpha=0.05, power=0.8, given n=18 per group. Bootstrap confidence intervals on mean KL are a cleaner complement given the non-normality of divergence distributions.
+While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable.
 
 Our training budget is provisioned through TPU Research Cloud and spans 384 chips across TPU v4, v5e, and v6e generations, with a spot-heavy allocation plus an on-demand reserve. At peak BF16 throughput this corresponds to approximately 160 PFLOPS of aggregate compute, which makes repeated seeds, ablations, and sensitivity sweeps feasible within practical wall-clock limits. We allocate v6e capacity to the highest-intensity policy training jobs, use v5e for wider hyperparameter exploration where throughput-per-dollar is favorable, and reserve on-demand v4 capacity for runs that should not be interrupted.
 
@@ -288,10 +294,11 @@ In addition to behavioral events, the platform logs price observations to a sepa
 To train a robust pricing learner, we need a simulator that can generate realistic interaction data under controlled contamination. We build this from Phantom data using a two-stage approach.
 
 
-\subsubsection{GOFAI-Based Separability}
-We use Good Old-Fashioned AI (GOFAI) heuristics to generate weak labels for separability. A set of rule-based predicates $\phi_j: \tau \to \{0,1\}$ partitions dataset $\mathcal{D}$ into high-confidence sets $\mathcal{D}_H$ and $\mathcal{D}_A$. We then estimate separate transition models for both groups and ask a direct methodological question: are the kernels separable enough to justify downstream pricing control that depends on that separability?
+\subsubsection{Ground-Truth Separability}
+Because sessions are collected under controlled experimental conditions where each actor is assigned a known type at the start of the trial, labels $y_s \in \{H, A\}$ are available as ground truth rather than as the output of a heuristic classifier. We therefore estimate separate transition kernels directly from each labeled partition $\mathcal{D}_H$ and $\mathcal{D}_A$, treating the resulting $\hat{\mathcal{T}}_H$ and $\hat{\mathcal{T}}_A$ as the ground-truth behavioral profiles for each class. We then ask a direct methodological question: are the kernels separable enough to justify downstream pricing control that depends on that separability?
 
 To answer this, we compute average KL divergence between transition probability matrices. This statistic gives global separability and event-level diagnostics at the same time. In our balanced dataset (50\% human, 50\% agent), the average divergence is approximately $1.8$.
+% To contextualize this figure a useful intra-class baseline is to randomly split D_H into two equal halves, estimate a kernel from each half, compute the same average KL statistic, and repeat for B bootstrap samples (e.g. B=100). The resulting null distribution (mean +/- std) gives the divergence expected purely from estimation noise at this sample size. A between-class KL substantially above this null confirms the separation is real and not a finite-sample artefact. In practice: for each of B splits, partition D_H 50/50 without replacement, run build_kernel() on each half, average the per-state KL values, and collect the B scores into a reference distribution to compare against the 1.8 figure.
 
 \begin{definition}[Kullback-Leibler Divergence for Transition Distributions]
 Let $P_e$ and $Q_e$ be categorical distributions over destination states following event $e$, derived from human and agent trajectories respectively. The KL divergence between these distributions is:
@@ -317,6 +324,7 @@ For both subsets, we model session dynamics as an MDP and estimate transition ke
 where $N(s, s')$ is the observed transition count. This allows us to construct a \textit{Contamination Generator} $\mathcal{G}(\alpha)$. Given a clean trajectory dataset, $\mathcal{G}$ injects synthetic agent trajectories sampled from $\hat{\mathcal{T}}_A$ until the effective mixing ratio reaches $\alpha$.
 
 To scale this to catalog-level pricing, we expand the base event transition matrix from $T\times T$ into product-specific transitions using the current demand condition. In practice, we normalize the demand vector across products and use it to weight how much transition mass each product pair receives. Concretely, each cell of the base matrix becomes an $N\times N$ block (for $N$ products), so the transition matrix grows from $T\times T$ to $(T\cdot N)\times(T\cdot N)$. Finally, we add $C$ generic states (homepage, login, checkout terminal states), which gives the full kernel size $(T\cdot N + C)\times(T\cdot N + C)$.
+% The validity of this demand-weighted block expansion is still subject to formal proof: it needs to be shown that the resulting matrix retains row-stochasticity (rows summing to 1) and that the weighting by the demand vector preserves the Markov property for the expanded state space. In the engine source this is the target of ongoing validation before the expansion is relied on for behavioral generation at scale.
 
 \begin{figure}[ht]
     \centering
@@ -371,6 +379,7 @@ For the current engine baseline, we use a compact inner-robust approximation by 
 \mathcal{A}_{\epsilon_\alpha}(\alpha_0)=\left\{\alpha\in[0,1]:\lvert\alpha-\alpha_0\rvert\le\epsilon_\alpha\right\}
 \end{equation}
 and we evaluate a small fixed grid in $\mathcal{A}_{\epsilon_\alpha}(\alpha_0)$ per step, selecting the worst-case candidate for the learner.
+% A proper Wasserstein ball implementation over the full demand distribution (rather than a scalar alpha interval) would use the POT library (Python Optimal Transport): compute W_2 between the empirical reference P_hat and each candidate Q using ot.emd2() or ot.sliced_wasserstein_distance() for scalability, then accept only candidates within epsilon. In practice the inner minimization becomes: candidates = [G(alpha) for alpha in linspace]; dists = [ot.emd2(p_hat, q, M) for q in candidates]; worst = candidates[argmin(reward[dists <= epsilon])]. The current grid-on-alpha approximation is a computationally cheap substitute; moving to a true Wasserstein ball would tighten the worst-case guarantee but requires specifying the ground metric M over the demand space.
 
 \subsubsection{The Min-Max Objective}
 The robust policy $\pi^*$ is obtained by solving the maximin problem:
