@@ -37,7 +37,6 @@ COPY engine /app/engine
 ENV PYTHONPATH=/app \
     PHANTOM_USE_JAX=1 \
     PHANTOM_DEFAULT_AGENT_ARGS="--jax" \
-    JAX_PLATFORMS=tpu,cpu \
     XLA_PYTHON_CLIENT_PREALLOCATE=false
 
 ENTRYPOINT ["/usr/local/bin/trainer-agent-entrypoint"]

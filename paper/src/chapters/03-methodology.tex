@@ -140,6 +140,7 @@ The architecture of this platform begins with the deployed web-apps posting inte
 
 \paragraph{Public Web Artifact} We transition the Kappa like architecture of the data collection to a Lambda system for actual learning in a surrogate environment. This allows us to move faster on data which is provided and helps us create a feedback loop for production deployment. To support further research in this intersection of fields we release P4P \footnote{\url{https://github.com/velocitatem/p4p}} as a public repository providing the interaction layer of the PHANTOM framework. This provides a configurable storefront which can be tailored to any commercial setting with a standardized session-level event tracking. We document the API adapters or what the framework expects in terms of schemas for pricing providers and log ingestion servicse. The repository is intended for controlled experimentation and method replication rather than production commerce deployment.
 
+
 \subsubsection{DevOps Principles}
 
 Reproducible results are key to quality research platforms, this is taken into mind when deploying and working with our research platform. From a deployment standpoint the platform can be deployed across a large variety of providers and can be run locally. When developing a new interaction modality apart from the ones that come out of the box, a simple template pattern can be followed. The middleware of the framework is designed to properly render the chosen modality from environmental variables, thus deployment of different or parallel version of the software can be easily parametrized.
@@ -235,7 +236,11 @@ v4 & 64 (32 + 32) & us-central2-b & 32 Spot + 32 On-demand \\
 \end{tabular}
 \end{table}
 
-For interactive monitoring from Madrid, we prioritize the europe-west4 allocation for latency-sensitive runs. All sweep metadata, model checkpoints, and reward traces are logged in Weights \& Biases. Hardware specifications are from the official Google Cloud TPU documentation \parencite{noauthor_tpu_2026,noauthor_tpu_2025-1,noauthor_tpu_2025}.
+For connections from Madrid, we prioritize the europe-west4 allocation for latency-sensitive runs with the benefit of having the most grouped chips within a single region. This regional grouping is important for the deployment of our Kubernetes cluster which cannot span multiple regions. All sweep metadata, model checkpoints, and reward traces are logged in Weights \& Biases. Hardware specifications are from the official Google Cloud TPU documentation \parencite{noauthor_tpu_2026,noauthor_tpu_2025-1,noauthor_tpu_2025}.
+
+Design of training processes: we build docker image with the fact in mind of different caching over layers in order to most speed up docker re-building and such we place the most volatile steps towards the end of the image building. What is means in practice is that any dependency installations are isolated so edits to source code do no trigger rebuilds. Only if we update our entry point of training a sweep, Docker will also rebuild the source-code copy stage.
+
+Due to the preemptive nature of the current demand of TPU chips we sttle for running our on demeaned as the primary source of compute. The on demand TPU pod of 32 chips spread across 4 virtual hosts creates a relatively unique parallelization setup. Despite our desire to use a traditional approach of clustering and perhaps deploying SLURM jobs of our sweep agent, the lack of predictability in provisioning each instance of a compute resource makes this an high friction layer we do not want to add.
 
 \subsubsection{Interaction Schema}
 
