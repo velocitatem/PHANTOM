@@ -1,0 +1,27 @@
+\begin{tikzpicture}
+    \begin{axis}[
+        view={0}{90},   % Top-down view for heatmap
+        xlabel={Step},
+        ylabel={Price},
+        ymin=90,
+        colorbar,
+        colorbar style={
+            title={Density},
+            ylabel={},
+        },
+        colormap/viridis,
+        % Adjust these axis limits if necessary based on data
+        enlargelimits=false,
+        axis on top,
+        width=0.9\columnwidth,
+        height=0.5\columnwidth,
+    ]
+
+    \addplot3[
+        surf,
+        shader=flat,
+        mesh/check=false % Disable check to rely on empty lines
+    ] table [col sep=comma, x=step, y=price, z=density] {chapters/figures/supra_data.csv};
+
+    \end{axis}
+\end{tikzpicture}
