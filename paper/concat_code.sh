@@ -42,6 +42,10 @@ EOF
 # Process each directory
 echo "Concatenating code from source directories..."
 
+# Engine
+find "$PROJECT_ROOT/engine" -type d \( -name ".venv" -o -name "__pycache__" -o -name "*.egg-info" -o -name "node_modules" -o -name ".pytest_cache" \) -prune -o -type f \( -name "*.py" -o -name "*.js" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" \) ! -name "*.pyc" ! -name "*.pyo" -print | sort | while read -r file; do
+    add_file "$file"
+done
 # Backend
 find "$PROJECT_ROOT/backend" -type d \( -name ".venv" -o -name "__pycache__" -o -name "*.egg-info" -o -name "node_modules" -o -name ".pytest_cache" \) -prune -o -type f \( -name "*.py" -o -name "*.js" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" \) ! -name "*.pyc" ! -name "*.pyo" -print | sort | while read -r file; do
     add_file "$file"
@@ -53,7 +57,7 @@ find "$PROJECT_ROOT/experiments" -type d \( -name ".venv" -o -name "__pycache__"
 done
 
 # Docker
-find "$PROJECT_ROOT/docker" -type d \( -name ".venv" -o -name "__pycache__" -o -name "node_modules" \) -prune -o -type f \( -name "*.py" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" -o -name "Dockerfile*" \) ! -name "*.pyc" ! -name "*.pyo" -print | sort | while read -r file; do
+find "$PROJECT_ROOT/docker" -type d \( -name ".venv" -o -name "__pycache__" -o -name "node_modules" \) -prune -o -type f \( -name "*.py" -o -name "*.sh" -o -name "*.yml" -o -name "*.yaml" -o -name "*.Dockerfile*" \) ! -name "*.pyc" ! -name "*.pyo" -print | sort | while read -r file; do
     add_file "$file"
 done
 

@@ -104,7 +104,7 @@ Let $N$ be the number of independent, utility-maximizing agents querying the pla
 
 
 \begin{proof}
-Consider $N$ independent agents querying the platform, each receiving a price sample $p_i$ drawn from the pricing policy's distribution $F(p)$ with support $[\underline{p}, \bar{p}]$. A strategic agent conducting reconnaissance will select the minimum observed price: $p_{(1)} = \min(p_1, \ldots, p_N)$.
+Consider $N$ independent agents querying the platform, each receiving a price sample $p_i$ drawn from the pricing policy's distribution $F(p)$ bounded by $[\underline{p}, \bar{p}]$. A strategic agent conducting reconnaissance will select the minimum observed price: $p_{(1)} = \min(p_1, \ldots, p_N)$.
 % support here means that its the range of possible outputs.
 The probability that the minimum price exceeds some threshold $t$ is:
 \begin{equation}
@@ -138,7 +138,7 @@ In order for our research to have grounding in interactions we built a robust e-
 
 The architecture of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a kafka cluster. This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to. Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into kafka. This kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The final stage of the pricing pipeline, submits computed dynamic pricing results into a redis database for quick updates which is then read by the pricing provider and displayed on the webapp. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks. We intentionally put emphasis on the development of this infrastructure to establish a reproducible framework for interaction and to minimize any noise.
 
-\paragraph{Public Web Artifact} We transition the Kappa like architecture of the data collection to a Lambda system for actual learning in a surrogate environment. This allows us to move faster on data which is provided and helps us create a feedback loop for production deployment. To support further research in this intersection of fields we release P4P \footnote{\url{https://github.com/velocitatem/p4p}} as a public repository providing the interaction layer of the PHANTOM framework. This provides a configurable storefront which can be tailored to any commercial setting with a standardized session-level event tracking. We document the API adapters or what the framework expects in terms of schemas for pricing providers and log ingestion servicse. The repository is intended for controlled experimentation and method replication rather than production commerce deployment.
+\paragraph{Public Web Artifact} We transition the Kappa like architecture of the data collection to a Lambda architecture for actual learning in a surrogate environment. This allows us to move faster on data which is provided and helps us create a feedback loop for production deployment. To support further research in this intersection of fields we release P4P \footnote{\url{https://github.com/velocitatem/p4p}} as a public repository providing the interaction layer of the PHANTOM framework. This provides a configurable storefront which can be tailored to any commercial setting with a standardized session-level event tracking. We document the API adapters or what the framework expects in terms of schemas for pricing providers and log ingestion servicse. The repository is intended for controlled experimentation and method replication rather than production commerce deployment.
 
 
 \subsubsection{DevOps Principles}
@@ -297,7 +297,7 @@ To train a robust pricing learner, we need a simulator that can generate realist
 \subsubsection{Ground-Truth Separability}
 Because sessions are collected under controlled experimental conditions where each actor is assigned a known type at the start of the trial, labels $y_s \in \{H, A\}$ are available as ground truth rather than as the output of a heuristic classifier. We therefore estimate separate transition kernels directly from each labeled partition $\mathcal{D}_H$ and $\mathcal{D}_A$, treating the resulting $\hat{\mathcal{T}}_H$ and $\hat{\mathcal{T}}_A$ as the ground-truth behavioral profiles for each class. We then ask a direct methodological question: are the kernels separable enough to justify downstream pricing control that depends on that separability?
 
-To answer this, we compute average KL divergence between transition probability matrices. This statistic gives global separability and event-level diagnostics at the same time. In our balanced dataset (50\% human, 50\% agent), the average divergence is approximately $1.8$.
+To answer this, we compute average KL divergence between transition probability matrices. This statistic gives global separability and event-level diagnostics at the same time. In our balanced dataset (50\% human, 50\% agent), the average divergence is approximately $1.8$. To contextualize this divergence metric we compare with an intra-class comparison baseline of randomly selected transitions.
 % To contextualize this figure a useful intra-class baseline is to randomly split D_H into two equal halves, estimate a kernel from each half, compute the same average KL statistic, and repeat for B bootstrap samples (e.g. B=100). The resulting null distribution (mean +/- std) gives the divergence expected purely from estimation noise at this sample size. A between-class KL substantially above this null confirms the separation is real and not a finite-sample artefact. In practice: for each of B splits, partition D_H 50/50 without replacement, run build_kernel() on each half, average the per-state KL values, and collect the B scores into a reference distribution to compare against the 1.8 figure.
 
 \begin{definition}[Kullback-Leibler Divergence for Transition Distributions]
@@ -321,7 +321,7 @@ For both subsets, we model session dynamics as an MDP and estimate transition ke
 \begin{equation}
     \hat{P}(s' \mid s) = \frac{N(s, s')}{\sum_{k \in \mathcal{S}} N(s, k)}
 \end{equation}
-where $N(s, s')$ is the observed transition count. This allows us to construct a \textit{Contamination Generator} $\mathcal{G}(\alpha)$. Given a clean trajectory dataset, $\mathcal{G}$ injects synthetic agent trajectories sampled from $\hat{\mathcal{T}}_A$ until the effective mixing ratio reaches $\alpha$.
+where $N(s, s')$ is the observed transition count. This allows us to construct a \textit{Contamination Generator} $\mathcal{G}(\alpha)$. Given a clean trajectory dataset, $\mathcal{G}$ injects synthetic agent trajectories sampled from $\hat{\mathcal{T}}_A$ until the effective mixing ratio reaches $\alpha$. The properties of an MDP such as ... should be preserved by the operation described below.
 
 To scale this to catalog-level pricing, we expand the base event transition matrix from $T\times T$ into product-specific transitions using the current demand condition. In practice, we normalize the demand vector across products and use it to weight how much transition mass each product pair receives. Concretely, each cell of the base matrix becomes an $N\times N$ block (for $N$ products), so the transition matrix grows from $T\times T$ to $(T\cdot N)\times(T\cdot N)$. Finally, we add $C$ generic states (homepage, login, checkout terminal states), which gives the full kernel size $(T\cdot N + C)\times(T\cdot N + C)$.
 % The validity of this demand-weighted block expansion is still subject to formal proof: it needs to be shown that the resulting matrix retains row-stochasticity (rows summing to 1) and that the weighting by the demand vector preserves the Markov property for the expanded state space. In the engine source this is the target of ongoing validation before the expansion is relied on for behavioral generation at scale.
@@ -329,7 +329,7 @@ To scale this to catalog-level pricing, we expand the base event transition matr
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{chapters/mdp_human.pdf}
-    \caption{Markov Decision Process visualization illustrating the behavioral transition dynamics for human actions.}
+    \caption{Markov Decision Process visualization illustrating the behavioral transition dynamics for \textbf{human} actions.}
     \label{fig:human_mdp_viz}
 \end{figure}
 
@@ -344,9 +344,6 @@ To scale this to catalog-level pricing, we expand the base event transition matr
 \subsection{Second-Stage Classification}
 After contamination, we run a second classification stage. We remap events into a semantically aligned feature space, apply richer feature engineering, and retrain to obtain cleaner label probabilities across the full dataset. This classifier is then used directly in the reinforcement-learning reward structure.
 
-Now might be a good time to stand up and go for a quick walk before returning to the rest of this paper.
-
-
 \subsection{Distributionally Robust Reinforcement Learning (DR-RL)}
 
 We formulate pricing as a Stackelberg game: the platform (leader) sets prices $p_t$, and the population (follower) responds through trajectories and demand. A useful intuition is that the platform behaves like a distorted mirror at a 45-degree angle: what it mirrors is population demand into an estimated demand proxy, and that proxy drives revenue.
@@ -360,7 +357,7 @@ Because contamination level $\alpha$ and demand shift are non-stationary online,
   \Delta_A &= D_{KL}(\hat{\mathcal{T}}^\prime \parallel \bar{\mathcal{T}}_A)
 \end{align}
 
-This yields two centroid-like heuristics that guide contamination estimation at session granularity.
+This yields two centroid-like heuristics that act as a session-level agent score in the engine. On a per-customer or use-case basis a similar study should be done in order to obtain ground truth behavior models for humans and agents and their specific interaction with a given products website.
 
 In implementation, we maintain an alternating game-history stack (our \textit{Limbo} stack) and execute it explicitly every epoch with exactly two transitions: first the platform publishes a price vector (leader move), then the market responds with trajectory-derived demand (follower move).
 
@@ -430,40 +427,30 @@ We now present the complete pricing mechanism that integrates the behavioral sep
 \caption{PHANTOM defensive pricing loop}
 \label{alg:phantom_loop_clean}
 \DontPrintSemicolon
-\SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+\SetKwInput{Input}{Input}
+\SetKwInput{Output}{Output}
 
-\Input{catalog size \(N\); costs \(c\); reference prices \(p^{ref}\); behavior models \(\bar T_H,\bar T_A\);
-action weights \(\omega\); penalty \(\lambda\); nominal contamination \(\alpha_0\); ambiguity radius \(\epsilon_\alpha\);
-candidate count \(K\); horizon \(T\); sessions per step \(M\)}
-\Output{price/demand trajectory \(\{(p_t,\hat Q_t,\hat\alpha_t)\}_{t=0}^{T-1}\)}
-
-Initialize contamination estimate \(\hat\alpha \leftarrow 0.2\)\;
-
+\Input{catalog size \(N\); action scale grid \(\mathcal{S}_{act}\); nominal contamination \(\alpha_0\); ambiguity radius \(\epsilon_\alpha\); candidate count \(K\); horizon \(T\); sessions per step \(M\); behavior kernels \(\bar T_H,\bar T_A\); event weights \(\omega\); COI penalty \(\lambda\)}
+\Output{trajectory \(\{(p_t,\hat Q_t,\alpha_t^*)\}_{t=0}^{T-1}\)}
 \For{\(t \leftarrow 0\) \KwTo \(T-1\)}{
+  observe \(o_t=[\hat Q_{t-1}, p_{t-1}]\)\;
+  choose discrete action \(a_t \in \{1,\dots,|\mathcal{S}_{act}|\}\) from policy \(\pi\)\;
+  set \(p_t \leftarrow \mathrm{clip}(p_{t-1} \cdot \mathcal{S}_{act}[a_t])\)\;
 
-  set \(p_t \leftarrow \pi(\cdot) \) %c + (1 - \kappa \hat\alpha)\,(p^{ref}-c)\)\;
-  and clip \(p_t\) to a feasible range (e.g., near cost up to a max margin)\;
-
-
-  \(\hat Q_t \leftarrow 0\), \(\mathcal S_t \leftarrow \emptyset\); \tcp{Observe sessions and compute demand proxy (Eq.~2)}
-  \For{\(m \leftarrow 1\) \KwTo \(M\)}{
-    sample a session trajectory \(\tau_m\) using \(\bar T_H\) or \(\bar T_A\)\;
-    \(\hat Q_t \leftarrow \hat Q_t + \sum_{k}\omega(a_{m,k})\)\;
-    \(\mathcal S_t \leftarrow \mathcal S_t \cup \{\tau_m\}\)\;
+  define local ambiguity interval \(\mathcal{A}_{\epsilon_\alpha}(\alpha_0)=\{\alpha:\lvert\alpha-\alpha_0\rvert\le\epsilon_\alpha\}\)\;
+  \For{\(k \leftarrow 1\) \KwTo \(K\)}{
+    set \(\alpha_k \in \mathcal{A}_{\epsilon_\alpha}(\alpha_0)\) from a uniform grid\;
+    sample \(M\) sessions from mixture \((1-\alpha_k)\bar T_H + \alpha_k \bar T_A\)\;
+    compute demand proxy \(\hat Q_t^{(k)} = \sum_{m=1}^{M}\sum_j \omega(a_{m,j})\,\mathbf{1}[i_{m,j}=i]\)\;
+    compute \((\Delta_H^{(k)},\Delta_A^{(k)})\) and session score \(f_t^{(k)}\) from KL divergence\;
+    compute candidate reward \(r_t^{(k)} = R(p_t,\hat Q_t^{(k)}) - \lambda\,f_t^{(k)}\,c_{info}\)\;
   }
-
-  \tcp{Estimate contamination from behavioral separability}
-  compute \(\hat\alpha \leftarrow \frac{1}{M}\sum_{\tau\in\mathcal S_t} \Big[\sigma\big(\beta(\Delta_H(\tau)-\Delta_A(\tau))\big)\Big]\)\;
-
-  \tcp{Inner robust step over local ambiguity interval}
-  define \(\mathcal{A}_{\epsilon_\alpha}(\alpha_0)\) and sample \(K\) candidates\;
-  pick \(\alpha_t^* \leftarrow \arg\min_{\alpha\in\mathcal{A}_{\epsilon_\alpha}(\alpha_0)} \Big[\text{Revenue}(p_t,\hat Q_t^{\alpha}) - \lambda\cdot \text{COI}_{\text{leak}}(p_t,\tau_t^{\alpha})\Big]\)\;
-
-  compute \(J_t \leftarrow \text{Revenue}(p_t,\hat Q_t^{\alpha_t^*}) - \lambda\cdot \text{COI}_{\text{leak}}(p_t,\tau_t^{\alpha_t^*})\)\;
+  choose \(k^* \leftarrow \arg\min_k r_t^{(k)}\), set \(\alpha_t^* \leftarrow \alpha_{k^*}\)\;
+  set \(\hat Q_t \leftarrow \hat Q_t^{(k^*)}\), \(r_t \leftarrow r_t^{(k^*)}\)\;
 }
 \end{algorithm}
 
 
-The algorithm operates in discrete epochs indexed by $t$. At each epoch, the platform publishes prices (leader move), observes resulting session trajectories (follower response), and updates contamination estimates based on divergence from learned human and agent kernels $\bar{\mathcal{T}}_H$ and $\bar{\mathcal{T}}_A$. The history buffer $\mathcal{L}$ (``Limbo'' in our implementation) enforces the alternating Stackelberg structure by preserving the temporal sequence of price publications and demand observations.
+The algorithm operates in discrete epochs indexed by $t$. At each epoch, the platform applies one discrete multiplicative price action, the environment samples a batch of sessions, and demand is recomputed from weighted events. Robustness is implemented as an inner minimization over a small local grid of contamination candidates around nominal $\alpha_0$, matching the current engine implementation. The history buffer $\mathcal{L}$ (``Limbo'' in our implementation) enforces the alternating Stackelberg structure by preserving the temporal sequence of price publications and demand observations.
 
 %The defensive price update in Line 24 implements contamination-aware margin shrinkage: as estimated contamination $\hat{\alpha}_t$ rises, the margin $(p^{\mathrm{ref}} - c)$ is reduced by factor $\kappa\in[0,1]$, with projection $\Pi_{\mathcal{P}}$ ensuring feasibility. In subsequent experiments this heuristic rule is replaced by DR-RL policy $\pi^*$ from Eq.~\ref{eq:robust_policy}.
