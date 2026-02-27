@@ -457,6 +457,8 @@ def run_local(overrides: dict) -> dict:
             should_print = True
     if should_print:
         print(json.dumps(metrics, indent=2))
+        # sentinel line for machine-readable extraction; must stay on one line
+        print("PHANTOM_METRICS:" + json.dumps(metrics))
     return metrics
 
 
