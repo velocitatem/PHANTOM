@@ -1,21 +1,50 @@
+# environment and secrets
 **/.env
+.env.*
+!.env.*.example
 **/.venv
+
+# python build/cache artifacts
 **/__pycache__
+phantom.egg-info/
+*.egg-info/
+
+# notebook artifacts
 **/.ipynb_checkpoints/
 **/.virtual_documents/
+
+# editor/tool state
+**/.pdf-view-restore
+.nextstep
+.ignore-gitlogue
+.cloudflare
+
+# generated svg/graphics
 **/session_*.svg
 **/*graph.svg
 **/auto/*.el
+
+# misc generated
 *.old
 **/package-lock.json
 **/*.parquet
 **/_build/
 
+# paper build artifacts
 paper/src/bib/auto
-**/_build/
 paper/src/auto/*
 paper/src/bib/auto
 paper/template/*
+paper/build-cais/
+paper/src/main.pdf
+paper/src/main-blx.bib
+paper/src/svg-inkscape/
+paper/src/mirrors/
+paper/variations/
+paper/src/graphics/test_*.png
+thesis-latest.pdf
+
+# experiment run artifacts and logs
 docs/goals/*.md
 PHANTOM.wiki/
 experiments/airflow/logs/*
@@ -23,11 +52,35 @@ experiments/airflow/logs/scheduler/
 experiments/airflow/logs/dag_processor_manager/
 experiments/collected_data/
 experiments/agents/collected_data/
+tests/e2e/test-results/
+tests/e2e/node_modules/**
+
+# rl/sim run outputs
 sim/rl/behavior_loader/*.dot
 sim/rl/behavior_loader/*.png
 sim/rl/behavior_loader/*.svg
 sim/rl/behavior_loader/*.pdf
-tests/e2e/node_modules/**
+sim/rl/runs/
 lab/case/thesis/runs*/
 sim/case/thesis_simplified/runs*/
+
+# model binaries
+engine/models/*.zip
+*.zip
+
+# wandb local state
+wandb/
+
+# data directory (large datasets)
+data/
+
+# ktem local app data
+ktem_app_data/
+
+# generated visualization pdfs
+*_mdp_viz.pdf
+phantom_env_comparison.png
+sim/phantom_env_comparison.png
+
+# web clone
 PHANTOM_web/*

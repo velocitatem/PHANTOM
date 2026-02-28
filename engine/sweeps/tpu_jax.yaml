@@ -1,0 +1,93 @@
+method: bayes
+metric:
+  name: sweep/score
+  goal: maximize
+command:
+  - ${env}
+  - python
+  - -m
+  - engine.train
+parameters:
+  # fixed: always use JAX backend so TPU chips are actually exercised
+  use_jax:
+    value: true
+  # all four algos have JAX implementations
+  algo:
+    values: [ppo, a2c, dqn, qtable]
+  total_timesteps:
+    values: [50000, 80000, 120000]
+  checkpoint_interval:
+    value: 200000
+  seed:
+    values: [13, 42, 77]
+  n_products:
+    values: [8, 10, 12]
+  # COI framework parameters -- primary research variables
+  alpha:
+    distribution: uniform
+    min: 0.1
+    max: 0.6
+  lambda_coi:
+    distribution: uniform
+    min: 0.05
+    max: 0.6
+  robust_radius:
+    distribution: uniform
+    min: 0.0
+    max: 0.3
+  robust_points:
+    values: [3, 5, 7]
+  info_value:
+    distribution: uniform
+    min: 0.5
+    max: 2.0
+  revenue_weight:
+    values: [0.005, 0.01, 0.02]
+  # shared hyperparameters
+  learning_rate:
+    distribution: log_uniform_values
+    min: 1.0e-5
+    max: 1.0e-3
+  gamma:
+    values: [0.97, 0.99, 0.995]
+  # JAX parallelism -- key lever for TPU throughput
+  jax_num_envs:
+    values: [8, 16, 32]
+  jax_num_steps:
+    values: [64, 128, 256]
+  jax_num_minibatches:
+    values: [2, 4, 8]
+  jax_update_epochs:
+    values: [2, 4, 8]
+  # PPO/A2C specific
+  gae_lambda:
+    values: [0.9, 0.95, 0.98]
+  clip_range:
+    values: [0.1, 0.2, 0.3]
+  ent_coef:
+    values: [0.0, 0.005, 0.01]
+  # DQN specific
+  buffer_size:
+    values: [20000, 50000, 100000]
+  batch_size:
+    values: [128, 256, 512]
+  learning_starts:
+    values: [500, 1000, 3000]
+  exploration_fraction:
+    values: [0.1, 0.2, 0.3]
+  exploration_final_eps:
+    values: [0.01, 0.03, 0.05]
+  # QTable specific
+  q_lr:
+    values: [0.03, 0.05, 0.1, 0.2]
+  eps_end:
+    values: [0.02, 0.05, 0.1]
+  eps_decay:
+    values: [0.999, 0.9995, 0.9999]
+  # action space
+  action_levels:
+    values: [7, 9, 11]
+  action_scale_low:
+    values: [0.75, 0.8, 0.85]
+  action_scale_high:
+    values: [1.15, 1.2, 1.25]
