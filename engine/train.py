@@ -287,7 +287,7 @@ def _sb3_model_cls(algo: str):
     raise ValueError(f"unsupported algo '{algo}'")
 
 
-def train_qtable(cfg: dict) -> tuple[EventQTable, dict]:
+def train_qtable(cfg: dict) -> tuple["EventQTable", dict]:
     from .lib.discrete import EventQTable
 
     np.random.seed(int(cfg["seed"]))

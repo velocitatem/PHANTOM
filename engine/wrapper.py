@@ -48,6 +48,7 @@ class PHANTOM(gym.Env):
         robust_radius: float = 0.0,
         robust_points: int = 5,
         info_value: float = 1.0,
+        eta_ux: float = 0.5,
         action_levels: int = 9,
         action_scale_low: float = 0.9,
         action_scale_high: float = 1.1,
@@ -75,6 +76,7 @@ class PHANTOM(gym.Env):
         self.robust_radius = max(0.0, float(robust_radius))
         self.robust_points = max(1, int(robust_points))
         self.info_value = float(info_value)
+        self.eta_ux = float(eta_ux)
         self.action_levels = max(2, int(action_levels))
         self._action_scales = np.linspace(
             float(action_scale_low), float(action_scale_high), self.action_levels
@@ -179,11 +181,26 @@ class PHANTOM(gym.Env):
         revenue = float(np.dot(prices, demand_arr))
         purchases = extract_purchases(trajectories)
         coi_mix = compute_uplift_coi(prices, purchases, self.baseline_prices)
+
         # multiplicative penalty so COI term scales with revenue magnitude
         coi_leakage = float(agent_prob * self.info_value)
         discount = float(np.clip(1.0 - self.lambda_coi * coi_leakage, 0.0, 1.0))
         coi_penalty = revenue * (1.0 - discount)  # absolute penalty in revenue units
-        reward = revenue * discount
+
+        # calculate UX penalty based on price volatility
+        if len(self._price_history) > 0:
+            volatility = float(
+                np.mean(
+                    np.abs(prices - self._price_history[-1])
+                    / np.maximum(self.baseline_prices, 1.0)
+                )
+            )
+        else:
+            volatility = 0.0
+        ux_penalty = self.eta_ux * revenue * volatility
+
+        reward = revenue * discount - ux_penalty
+
         return reward, {
             "revenue": revenue,
             "coi_mix": float(coi_mix),
@@ -191,6 +208,8 @@ class PHANTOM(gym.Env):
             "coi_leakage": coi_leakage,
             "coi_penalty": coi_penalty,
             "coi_discount": discount,
+            "ux_penalty": ux_penalty,
+            "volatility": volatility,
         }
 
     def _alpha_candidates(self) -> np.ndarray:
@@ -200,27 +219,34 @@ class PHANTOM(gym.Env):
         hi = min(1.0, self.nominal_alpha + self.robust_radius)
         return np.linspace(lo, hi, self.robust_points)
 
+    def _evaluate_candidate(
+        self, alpha: float, prices: np.ndarray
+    ) -> tuple[float, dict, list, float]:
+        self._set_market_mix(alpha)
+        demand = self.market.act(prices)
+        trajectories = list(self.market.last_trajectories)
+        agent_prob = self._compute_agent_prob(trajectories)
+        reward, _ = self._compute_reward(prices, demand, agent_prob, trajectories)
+        return reward, demand, trajectories, agent_prob
+
     def _select_adversarial_alpha(
         self, prices: np.ndarray
     ) -> tuple[float, dict, list, float]:
-        """inner robust step: pick worst-case alpha and return its outcome directly to avoid double-sampling"""
+        """inner robust step: evaluate candidates and pick worst-case alpha"""
         candidates = self._alpha_candidates()
-        best_alpha, worst_reward = float(candidates[0]), np.inf
-        best_demand, best_trajectories, best_agent_prob = None, [], 0.0
-        for alpha in candidates:
-            self._set_market_mix(float(alpha))
-            demand = self.market.act(prices)
-            trajectories = list(self.market.last_trajectories)
-            agent_prob = self._compute_agent_prob(trajectories)
-            reward, _ = self._compute_reward(prices, demand, agent_prob, trajectories)
-            if reward < worst_reward:
-                worst_reward = reward
-                best_alpha, best_demand, best_trajectories, best_agent_prob = (
-                    float(alpha),
-                    demand,
-                    trajectories,
-                    agent_prob,
-                )
+        evaluations = [
+            (alpha, *self._evaluate_candidate(float(alpha), prices))
+            for alpha in candidates
+        ]
+
+        # min over alpha in Wasserstein interval
+        best_eval = min(evaluations, key=lambda x: x[1])  # index 1 is reward
+
+        best_alpha = best_eval[0]
+        best_demand = best_eval[2]
+        best_trajectories = best_eval[3]
+        best_agent_prob = best_eval[4]
+
         return best_alpha, best_demand, best_trajectories, best_agent_prob
 
     def _record_history(self):

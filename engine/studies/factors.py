@@ -1,7 +1,6 @@
 """shared factor definitions for experimental designs"""
 import numpy as np
-from dataclasses import dataclass, field
-from typing import Callable, Any
+from dataclasses import dataclass
 
 @dataclass
 class Factor:

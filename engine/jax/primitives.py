@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import partial
-from typing import Mapping, Sequence
+from typing import Mapping
 
 import numpy as np
 
@@ -484,11 +484,17 @@ if JAX_AVAILABLE:
 
 
 def reward_with_coi_penalty(
-    revenue, agent_prob: float, lambda_coi: float, info_value: float
+    revenue,
+    agent_prob: float,
+    lambda_coi: float,
+    info_value: float,
+    eta_ux: float = 0.0,
+    ux_volatility: float = 0.0,
 ):
     leakage = agent_prob * info_value
     discount = jnp.clip(1.0 - lambda_coi * leakage, 0.0, 1.0)
-    return revenue * discount, leakage, discount
+    ux_penalty = eta_ux * revenue * ux_volatility
+    return revenue * discount - ux_penalty, leakage, discount, ux_penalty
 
 
 if JAX_AVAILABLE:
