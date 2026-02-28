@@ -254,3 +254,5 @@ if __name__ == "__main__":
           f"{sum(len(t) for t in joint_mdp['transitions'].values())} transitions")
     if joint_mdp['states']:
         visualize_mdp(joint_model, threshold=0.05, output="joint_mdp_viz", fmt="pdf", export_dot=True)
+
+    # TODO: setup intra class divergence as baseline for evaluating and adding significance to the divergence which we observe across class

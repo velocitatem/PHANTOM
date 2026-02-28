@@ -91,10 +91,8 @@ DEFAULT_CFG = {
 
 
 def _truthy(value: str | bool | None) -> bool:
-    if isinstance(value, bool):
-        return value
-    if value is None:
-        return False
+    if isinstance(value, bool): return value
+    if value is None: return False
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
