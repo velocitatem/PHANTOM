@@ -36,7 +36,7 @@ try:
 except ImportError:
     HAS_WANDB = False
 
-from ..wandb_checkpoint import (
+from ..wandb_checkpoint import (  # noqa: E402
     checkpoint_artifact_name,
     download_latest_checkpoint,
     log_checkpoint_bytes,
@@ -83,7 +83,7 @@ except ImportError:
 
     HAS_JAX_STACK = False
 
-from .env import PHANTOMJAXEnv, make_env_params
+from .env import PHANTOMJAXEnv, make_env_params  # noqa: E402
 
 
 class ActorCritic(nn.Module):

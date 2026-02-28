@@ -4,7 +4,11 @@ import argparse
 import json
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 import numpy as np
+
+if TYPE_CHECKING:
+    from .lib.discrete import EventQTable
 
 from .wandb_checkpoint import checkpoint_artifact_name, download_latest_checkpoint
 

@@ -35,7 +35,6 @@ class EconomicMetricsWrapper(gym.Wrapper):
         prices = self.env.unwrapped._prices
         demand_dict = self.env.unwrapped._demand
         demand = np.array([demand_dict.get(i, 0.0) for i in range(len(prices))])
-        alpha = self.env.unwrapped.alpha
 
         # core calculations
         revenue = float(np.sum(prices * demand))
