@@ -48,6 +48,7 @@ DEFAULT_CFG = {
     "lambda_coi": 0.2,
     "robust_radius": 0.15,
     "robust_points": 5,
+    "no_robust": False,
     "info_value": 1.0,
     "price_low": 10.0,
     "price_high": 150.0,
@@ -91,8 +92,10 @@ DEFAULT_CFG = {
 
 
 def _truthy(value: str | bool | None) -> bool:
-    if isinstance(value, bool): return value
-    if value is None: return False
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
 
 
@@ -104,6 +107,11 @@ def _cfg(raw: dict | None = None) -> dict:
     cfg["use_jax"] = _truthy(cfg.get("use_jax")) or _truthy(
         os.environ.get("PHANTOM_USE_JAX")
     )
+    cfg["no_robust"] = _truthy(cfg.get("no_robust"))
+    if cfg["no_robust"]:
+        cfg["lambda_coi"] = 0.0
+        cfg["robust_radius"] = 0.0
+        cfg["robust_points"] = 1
     return cfg
 
 
@@ -473,6 +481,7 @@ def main():
     p.add_argument("--info-value", type=float)
     p.add_argument("--robust-radius", type=float)
     p.add_argument("--robust-points", type=int)
+    p.add_argument("--no-robust", action="store_true")
     p.add_argument("--learning-rate", type=float)
     p.add_argument("--gamma", type=float)
     p.add_argument("--gae-lambda", type=float)
@@ -514,6 +523,7 @@ def main():
         "info_value": args.info_value,
         "robust_radius": args.robust_radius,
         "robust_points": args.robust_points,
+        "no_robust": args.no_robust,
         "learning_rate": args.learning_rate,
         "gamma": args.gamma,
         "gae_lambda": args.gae_lambda,

@@ -8,15 +8,48 @@
 
 \subsection{Behavioral Analysis}
 
-Include markov chains of transition matrices, compare distributions (look at Divergence metrics)
+The transition-kernel analysis is evaluated with both between-class divergence and an intra-class bootstrap null baseline. This allows us to separate real behavioral differences from finite-sample estimation noise.
+
+\begin{table}[ht]
+\centering
+\caption{Divergence significance using intra-class bootstrap baseline (B=100 per class).}
+\label{tab:divergence_significance}
+\begin{tabular}{lcccc}
+\toprule
+Metric & Mean KL & Std & 5\% quantile & 95\% quantile \\
+\midrule
+Between-class (Human vs Agent) & 5.3067 & -- & -- & -- \\
+Human intra-class split & 2.5271 & 1.2501 & 0.6845 & 4.6015 \\
+Agent intra-class split & 1.2065 & 1.2607 & 0.2177 & 4.2345 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For this run ($n_H=11$, $n_A=7$, $B=100$), the pooled lift ratio is $2.84\times$ and the empirical one-sided p-value is $0.0149$, both computed as defined in Section~\ref{sec:tpe}. This places the between-class divergence clearly above the intra-class null and supports the use of divergence-derived contamination signals in downstream pricing control.
 
 
 \subsection{Experimental Outcomes}
 
-Align with defined objectives, show results and statistical significance (or not).
+To evaluate robustness contributions, we compare two policies on the same environment family: (i) robust pricing with COI-aware reward and adversarial contamination step, and (ii) non-robust baseline with revenue-only reward (\texttt{--no-robust}).
+
+\begin{table}[ht]
+\centering
+\caption{Pricing policy benchmark for robust vs non-robust training.}
+\label{tab:pricing_benchmark}
+\begin{tabular}{lcccc}
+\toprule
+Policy & Eval reward & Eval revenue & COI leakage & Margin collapse rate \\
+\midrule
+Robust policy & \textit{TBD} & \textit{TBD} & \textit{TBD} & \textit{TBD} \\
+Non-robust baseline (\texttt{--no-robust}) & \textit{TBD} & \textit{TBD} & \textit{TBD} & \textit{TBD} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This comparison isolates the effect of robustness terms from model capacity and optimization settings, and provides the benchmark needed for interpreting the value of COI-aware control.
 
 
 \subsection{Interpretation and Insights}
-Inference from given patterns and show key findings.
+Between-class divergence substantially above the intra-class null indicates that the two actor classes are behaviorally separable at the transition-kernel level. In pricing experiments, this is the condition required for separability to act as a useful control signal rather than just an auxiliary classifier score.
 
 \subsection{Anomalies}
