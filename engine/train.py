@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from typing import Any
 
+from .logging_utils import configure_logging
 from .orchestrators import run_benchmark_cli, run_sweep_agent, run_train_once
 from .spec import TrainSpec
 
@@ -174,6 +175,7 @@ def _overrides_from_args(args: argparse.Namespace) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> None:
     import sys
 
+    configure_logging()
     raw_args = list(sys.argv[1:] if argv is None else argv)
     run_kind = _probe_run_kind(raw_args)
     if run_kind == "benchmark":

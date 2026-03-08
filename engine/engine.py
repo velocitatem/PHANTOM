@@ -1,7 +1,7 @@
 from sys import platform
 import numpy as np
 from .lib.demand import generate_demand_for_actor, estimate_demand
-from .lib.behavior import sample_behavior
+from .lib.behavior import get_adjusted_transitions, sample_behavior_from_transitions
 from logging import INFO, getLogger
 
 logger = getLogger(__name__)
@@ -46,9 +46,17 @@ class MarketEngine:
             self.noise_std,
             distribution_method=self.demand_dist,
         )
+        human_transitions = get_adjusted_transitions(demand_h, human=True)
+        agent_transitions = get_adjusted_transitions(demand_a, human=False)
         # sample behavior trajectories from each demand distribution
-        human_t = [sample_behavior(demand_h, human=True) for _ in range(self.Nhumans)]
-        agent_t = [sample_behavior(demand_a, human=False) for _ in range(self.Nagents)]
+        human_t = [
+            sample_behavior_from_transitions(human_transitions)
+            for _ in range(self.Nhumans)
+        ]
+        agent_t = [
+            sample_behavior_from_transitions(agent_transitions)
+            for _ in range(self.Nagents)
+        ]
         # store trajectories for agent probability calculation
         self.last_trajectories = human_t + agent_t
         return estimate_demand(self.last_trajectories, self.action_weights)
