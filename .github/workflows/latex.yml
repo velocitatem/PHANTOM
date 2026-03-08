@@ -143,6 +143,8 @@ jobs:
 
               dated_mirror = f"thesis-{mirror_name}-{date}.pdf"
               latest_mirror = f"thesis-{mirror_name}-latest.pdf"
+              namespaced_dated = f"mirrors/{mirror_name}/thesis-{date}.pdf"
+              namespaced_latest = f"mirrors/{mirror_name}/thesis-latest.pdf"
 
               s3.upload_file(
                   source_path,
@@ -159,4 +161,20 @@ jobs:
                   ExtraArgs={'ContentType': 'application/pdf'}
               )
               print(f"Uploaded {latest_mirror}")
+
+              s3.upload_file(
+                  source_path,
+                  bucket,
+                  namespaced_dated,
+                  ExtraArgs={'ContentType': 'application/pdf'}
+              )
+              print(f"Uploaded {namespaced_dated}")
+
+              s3.upload_file(
+                  source_path,
+                  bucket,
+                  namespaced_latest,
+                  ExtraArgs={'ContentType': 'application/pdf'}
+              )
+              print(f"Uploaded {namespaced_latest}")
           EOF
