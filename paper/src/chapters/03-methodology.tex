@@ -18,7 +18,7 @@ where:
     \item $a_{s,k} \in \mathcal{A}$ is the action taken (e.g., \texttt{view\_item}, \texttt{add\_to\_cart}).
     \item $i_{s,k} \in \{1, \ldots, N\}$ is the target item index.
     \item $t_{s,k} \in \mathbb{R}_+$ is the continuous timestamp.
-\end{itemize}}
+\end{itemize}
 
 The platform does not directly observe the true underlying demand function $d(p)$. Instead, it observes a behavioral proxy $\hat{q}_t$, which is a composite signal derived from the mixture of actor types. We define the demand proxy for product $i$ at epoch $t$ as a weighted aggregation of events:
 \begin{equation}
@@ -179,7 +179,7 @@ We start from a practical constraint: we do not have access to proprietary produ
 The interface is organized as a product catalog where each product belongs to a time-bounded price vector (for example, a daily pricing period). During each period we collect interaction data by instrumenting UI components and predefined action templates that are still customizable. This gives us control without losing realism.
 
 Since users act with motivations, we define a pool of tasks (jobs to be done) and assign tasks randomly to participants.
-% TODO: describe the task pool in detail here -- list the specific tasks used in the experiments
+The task pool is stored as a structured table with fields \texttt{id}, \texttt{created\_at}, \texttt{task\_name}, \texttt{task\_description}, and \texttt{task\_def\_of\_done}. We formulate the tasks as compact jobs-to-be-done rather than as strict click scripts, because the target is to elicit realistic browsing and comparison behavior which can capture nuance of different people. In hotel mode the assigned tasks include \textit{Cheapest Room}, \textit{Cheapest Room w/ View}, \textit{MultiStep Cheapest Room}, \textit{The Digital Nomad (Executive)}, and \textit{The 3-Way Tradeoff (Desk + Quiet + Flexible)}. These prompts deliberately require critical thought in search, inspection of room details, comparison of amenities or images, return visits to the listing page, and a final booking decision which create a degree of cognitive load. In airline mode we use \textit{Last-Minute One-Way Flight}, where the actor must urgently travel to LAX from either SEA or JFK within the next 1--3 days, inspect at least a small set of candidate itineraries, and then book a reasonable earliest departure.
 A representative task is to find the cheapest feasible catalog item under explicit constraints while removing strict financial limits so we avoid trivial optimization behavior. Participants are also randomly assigned to one experimental platform mode (hotel or airline). Once assigned, they are dropped into the experiment with an actor ID. Under each experiment ID, we can observe multiple sessions across time and gather long interaction traces for the same actor.
 
 The human data collection involved 18 participants, all of whom provided explicit informed consent prior to their session. Participants had an average age of 21 years and were recruited from a university population. Alongside the 18 human sessions we ran 18 agent sessions of equivalent task scope, giving a balanced dataset of 36 labeled trajectories. Each participant was assigned a single platform mode and a single task drawn from the pool, and completed the session independently without guidance on navigation or pricing strategy.
