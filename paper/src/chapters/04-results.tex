@@ -6,9 +6,11 @@
     \label{fig:supra_heatmap}
 \end{figure}
 
+
+
 \subsection{Behavioral Analysis}
 
-The transition-kernel analysis is evaluated with both between-class divergence and an intra-class bootstrap null baseline. This allows us to separate real behavioral differences from finite-sample estimation noise.
+The transition-kernel analysis is evaluated with both between-class divergence and an intra-class bootstrap null baseline. This allows us to separate real behavioral differences from finite-sample estimation noise and bias.
 
 \begin{table}[ht]
 \centering
@@ -25,7 +27,9 @@ Agent intra-class split & 1.2065 & 1.2607 & 0.2177 & 4.2345 \\
 \end{tabular}
 \end{table}
 
-For this run ($n_H=11$, $n_A=7$, $B=100$), the pooled lift ratio is $2.84\times$ and the empirical one-sided p-value is $0.0149$, both computed as defined in Section~\ref{sec:tpe}. This places the between-class divergence clearly above the intra-class null and supports the use of divergence-derived contamination signals in downstream pricing control.
+For this run ($n_H=11$, $n_A=7$, $B=100$), the empirical p-value is $0.0149$, both computed as defined in Section~\ref{sec:tpe}. This places the between-class divergence clearly above the intra-class null and supports the use of divergence-derived contamination signals in downstream pricing control.
+
+% TODO: instead could we do a simple t test to see the difference in the means in some way? That way we can yield a P value
 
 
 \subsection{Experimental Outcomes}
