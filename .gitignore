@@ -68,6 +68,7 @@ sim/case/thesis_simplified/runs*/
 
 # model binaries
 engine/models/*.zip
+engine/studies/results/*
 *.zip
 
 # wandb local state

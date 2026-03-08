@@ -31,6 +31,26 @@
         "cwd": "."
       }
     },
+    "benchmark": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "bash scripts/nx_research.sh benchmark",
+        "cwd": "."
+      }
+    },
+    "benchmark-agent": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "bash scripts/nx_research.sh benchmark-agent",
+        "cwd": "."
+      }
+    },
     "train-agent": {
       "executor": "nx:run-commands",
       "dependsOn": [

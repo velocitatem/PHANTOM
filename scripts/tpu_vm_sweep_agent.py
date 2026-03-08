@@ -96,7 +96,11 @@ def _extract_metrics(output: str) -> dict:
             obj = json.loads(block)
         except Exception:
             continue
-        if isinstance(obj, dict) and ("sweep/score" in obj or "eval/reward" in obj):
+        if isinstance(obj, dict) and (
+            "objective/score" in obj
+            or "eval/reward_mean" in obj
+            or "sweep/score" in obj
+        ):
             return obj
     return {}
 

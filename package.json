@@ -19,6 +19,7 @@
     "platform:down": "nx run platform:down",
     "platform:logs": "nx run platform:logs",
     "research:test": "nx run research:test",
+    "research:benchmark": "nx run research:benchmark",
     "e2e:test": "nx run e2e:test"
   },
   "devDependencies": {

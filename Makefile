@@ -13,9 +13,11 @@ NX        := npx nx
 SWEEP_ENV_FILE ?= .env.sweep
 
 WANDB_ENTITY ?=
-WANDB_PROJECT ?= phantom-pricing
+WANDB_PROJECT ?= capstone
 SWEEP_ID ?=
 LOCAL_TRAIN_ARGS ?= --algo ppo --total-timesteps 50000
+LOCAL_BENCHMARK_ARGS ?= --tiers static,surge,linear,qtable,ppo --alpha-values 0.0,0.3 --episodes 3 --total-timesteps 3000 --max-steps 40 --device cpu
+BENCHMARK_AGENT_ARGS ?=
 AGENT_COUNT ?= 0
 
 REPO_URL ?=
@@ -36,7 +38,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 
 .PHONY: help
 help:
-	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch | test.backend test.e2e test.all | web.dev | install | train | train.agent | train.bootstrap | train.tpu.pod | train.tpu.vm | train.tpu.vm.sweep | stats.lines"
+	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.agent | train.agent | train.bootstrap | train.tpu.pod | train.tpu.vm | train.tpu.vm.sweep | stats.lines"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
 	@echo ""
 	@echo "Build general public version:"
@@ -44,6 +46,9 @@ help:
 	@echo ""
 	@echo "Local wandb run:"
 	@echo "  make train LOCAL_TRAIN_ARGS='--algo ppo --total-timesteps 50000'"
+	@echo ""
+	@echo "Local benchmark run:"
+	@echo "  make benchmark LOCAL_BENCHMARK_ARGS='--tiers static,surge,linear --alpha-values 0.0,0.3 --episodes 3 --no-wandb'"
 	@echo ""
 	@echo "Local sweep agent from this repo:"
 	@echo "  make train.agent SWEEP_ID=entity/project/id AGENT_COUNT=5"
@@ -103,6 +108,14 @@ install:
 .PHONY: train
 train:
 	@WANDB_ENTITY="$(WANDB_ENTITY)" WANDB_PROJECT="$(WANDB_PROJECT)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" LOCAL_TRAIN_ARGS="$(LOCAL_TRAIN_ARGS)" $(NX) run research:train
+
+.PHONY: benchmark
+benchmark:
+	@WANDB_ENTITY="$(WANDB_ENTITY)" WANDB_PROJECT="$(WANDB_PROJECT)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" LOCAL_BENCHMARK_ARGS="$(LOCAL_BENCHMARK_ARGS)" $(NX) run research:benchmark
+
+.PHONY: benchmark.agent
+benchmark.agent:
+	@WANDB_ENTITY="$(WANDB_ENTITY)" WANDB_PROJECT="$(WANDB_PROJECT)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" SWEEP_ID="$(SWEEP_ID)" AGENT_COUNT="$(AGENT_COUNT)" BENCHMARK_AGENT_ARGS="$(BENCHMARK_AGENT_ARGS)" $(NX) run research:benchmark-agent
 
 .PHONY: train.agent
 train.agent:

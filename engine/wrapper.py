@@ -381,7 +381,7 @@ if __name__ == "__main__":
         def predict(self, obs, **kwargs):
             return self.env.action_space.sample(), None
 
-    wandb.init(project="phantom-pricing", config={"policy": "random", "alpha": 0.3})
+    wandb.init(project="capstone", config={"policy": "random", "alpha": 0.3})
     env = EconomicMetricsWrapper(PHANTOM(n_products=15, alpha=0.3, render_mode=None))
 
     model = RandomPolicy(env)

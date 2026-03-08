@@ -55,6 +55,9 @@
     "train": {
       "cache": false
     },
+    "benchmark": {
+      "cache": false
+    },
     "up": {
       "cache": false
     },
