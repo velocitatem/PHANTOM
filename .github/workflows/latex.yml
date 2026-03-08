@@ -52,13 +52,24 @@ jobs:
       - name: Compute LaTeX roots
         id: roots
         run: |
-          roots="main.tex"
-          while IFS= read -r file; do
-            base=$(basename "$file")
-            roots="$roots,$base"
-          done < <(ls paper/src/main-mirror-*.tex 2>/dev/null || true)
-          echo "root_files=$roots" >> "$GITHUB_OUTPUT"
-          echo "Compiling roots: $roots"
+          {
+            echo "root_files<<EOF"
+            echo "main.tex"
+            for file in paper/src/main-mirror-*.tex; do
+              if [ -f "$file" ]; then
+                basename "$file"
+              fi
+            done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Compiling roots:"
+          echo "main.tex"
+          for file in paper/src/main-mirror-*.tex; do
+            if [ -f "$file" ]; then
+              basename "$file"
+            fi
+          done
 
       - name: Compile LaTeX documents
         uses: xu-cheng/latex-action@v3
