@@ -260,6 +260,29 @@ def _avg_event_kl(
     return float(np.mean([kl_divergence(src_evt[e], dst_evt[e]) for e in common]))
 
 
+def per_session_divergence(
+    model: BehaviorModel,
+    reference_evt: Dict[str, Dict[str, float]],
+) -> List[float]:
+    """KL from each session's event-level transition dist to a reference kernel. Returns one scalar per session."""
+    scores = []
+    for sid, evts in model.data.items():
+        if len(evts) < 2:
+            continue
+        subset_mdp = _build_subset_mdp(model, [sid])
+        sess_evt = aggregate_event_transitions(subset_mdp)
+        common = set(sess_evt.keys()) & set(reference_evt.keys())
+        if not common:
+            scores.append(0.0)
+            continue
+        scores.append(
+            float(
+                np.mean([kl_divergence(sess_evt[e], reference_evt[e]) for e in common])
+            )
+        )
+    return scores
+
+
 def bootstrap_intra_class_divergence(
     model: BehaviorModel,
     n_bootstrap: int = 100,
@@ -412,3 +435,36 @@ if __name__ == "__main__":
         f"  Lift vs pooled intra mean: {inter_class_avg / max(float(np.mean(pooled_null)), 1e-10):.2f}x"
     )
     print(f"  Empirical p-value (inter > intra): {p_empirical:.4f}")
+
+    # per-session divergence scores: delta_H - delta_A per session (positive means closer to agent behavior)
+    from scipy.stats import mannwhitneyu
+
+    human_dH = per_session_divergence(
+        human_model, human_evt
+    )  # human session vs human centroid
+    human_dA = per_session_divergence(
+        human_model, agent_evt
+    )  # human session vs agent centroid
+    agent_dH = per_session_divergence(
+        agent_model, human_evt
+    )  # agent session vs human centroid
+    agent_dA = per_session_divergence(
+        agent_model, agent_evt
+    )  # agent session vs agent centroid
+    # score = delta_H - delta_A: high means far from humans, close to agents
+    n_h = min(len(human_dH), len(human_dA))
+    n_a = min(len(agent_dH), len(agent_dA))
+    human_diff = [human_dH[i] - human_dA[i] for i in range(n_h)]
+    agent_diff = [agent_dH[i] - agent_dA[i] for i in range(n_a)]
+    print(f"\nPer-session divergence gap (delta_H - delta_A):")
+    print(
+        f"  Human sessions (n={n_h}): mean={np.mean(human_diff):.4f}, std={np.std(human_diff):.4f}"
+    )
+    print(
+        f"  Agent sessions (n={n_a}): mean={np.mean(agent_diff):.4f}, std={np.std(agent_diff):.4f}"
+    )
+    if n_h >= 2 and n_a >= 2:
+        U, mw_p = mannwhitneyu(human_diff, agent_diff, alternative="two-sided")
+        print(f"  Mann-Whitney U={U:.1f}, p={mw_p:.4f}")
+    else:
+        print("  Insufficient sessions for Mann-Whitney test")

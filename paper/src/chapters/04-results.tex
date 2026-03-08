@@ -10,26 +10,25 @@
 
 \subsection{Behavioral Analysis}
 
-The transition-kernel analysis is evaluated with both between-class divergence and an intra-class bootstrap null baseline. This allows us to separate real behavioral differences from finite-sample estimation noise and bias.
+Separability between human and agent sessions is evaluated by computing per-session divergence gap scores $\Delta_{H,s} - \Delta_{A,s}$ and comparing the two groups with a Mann-Whitney $U$ test. Table~\ref{tab:divergence_significance} reports the group-level descriptive statistics for the gap scores and the test result.
 
 \begin{table}[ht]
 \centering
-\caption{Divergence significance using intra-class bootstrap baseline (B=100 per class).}
+\caption{Per-session divergence gap ($\Delta_H - \Delta_A$) by actor class with Mann-Whitney $U$ test.}
 \label{tab:divergence_significance}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccc}
 \toprule
-Metric & Mean KL & Std & 5\% quantile & 95\% quantile \\
+Group & $n$ & Mean gap & Std \\
 \midrule
-Between-class (Human vs Agent) & 5.3067 & -- & -- & -- \\
-Human intra-class split & 2.5271 & 1.2501 & 0.6845 & 4.6015 \\
-Agent intra-class split & 1.2065 & 1.2607 & 0.2177 & 4.2345 \\
+Human sessions & 11 & $-3.3522$ & $2.6748$ \\
+Agent sessions & 6 & $+1.6482$ & $2.8349$ \\
+\midrule
+\multicolumn{4}{l}{Mann-Whitney $U = 2.0$, $p = 0.0006$ (two-sided)} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-For this run ($n_H=11$, $n_A=7$, $B=100$), the empirical p-value is $0.0149$, both computed as defined in Section~\ref{sec:tpe}. This places the between-class divergence clearly above the intra-class null and supports the use of divergence-derived contamination signals in downstream pricing control.
-
-% TODO: instead could we do a simple t test to see the difference in the means in some way? That way we can yield a P value
+The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided $p$-value of $0.0006$ indicates near-complete rank separation between the groups at $n_H=11$, $n_A=6$, providing strong evidence that the transition kernels are separable enough to justify their use as a control signal in downstream pricing.
 
 
 \subsection{Experimental Outcomes}
@@ -54,6 +53,6 @@ This comparison isolates the effect of robustness terms from model capacity and 
 
 
 \subsection{Interpretation and Insights}
-Between-class divergence substantially above the intra-class null indicates that the two actor classes are behaviorally separable at the transition-kernel level. In pricing experiments, this is the condition required for separability to act as a useful control signal rather than just an auxiliary classifier score.
+The Mann-Whitney result ($U=2.0$, $p<0.001$) confirms that per-session divergence gaps separate the two actor classes with near-zero overlap in rank ordering. This is the condition required for separability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
 
 \subsection{Anomalies}

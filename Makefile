@@ -8,6 +8,7 @@ VENV      := .venv
 PYTHON    := $(VENV)/bin/python
 PIP       := $(VENV)/bin/pip
 PYTEST    := $(VENV)/bin/pytest
+NX        := npx nx
 
 SWEEP_ENV_FILE ?= .env.sweep
 
@@ -36,7 +37,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 .PHONY: help
 help:
 	@echo "pdf.build pdf.watch pdf.clean | test.backend test.e2e test.all | web.dev | install | train | train.agent | train.bootstrap | train.tpu.pod | train.tpu.vm | train.tpu.vm.sweep | stats.lines"
-	@echo "docker.train.publish"
+	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
 	@echo ""
 	@echo "Local wandb run:"
 	@echo "  make train LOCAL_TRAIN_ARGS='--algo ppo --total-timesteps 50000'"
@@ -208,11 +209,43 @@ train.tpu.vm.sweep:
 		--tpu-repo-dir "$(TPU_REPO_DIR)" \
 		$(if $(filter-out 0,$(AGENT_COUNT)),--count $(AGENT_COUNT),)
 
+.PHONY: backend.server backend.provider backend.worker platform.up platform.down platform.logs
+backend.server:
+	@$(NX) run backend-server:dev
+
+backend.provider:
+	@$(NX) run pricing-provider:dev
+
+backend.worker:
+	@$(NX) run backend-worker:dev
+
+platform.up:
+	@$(NX) run platform:up
+
+platform.down:
+	@$(NX) run platform:down
+
+platform.logs:
+	@$(NX) run platform:logs
+
 .PHONY: pdf clean watch run.webapp test count-lines all
-pdf: pdf.build
-clean: pdf.clean
-watch: pdf.watch
-run.webapp: web.dev
-test: test.backend
-count-lines: stats.lines
-all: pdf.build
+pdf:
+	@$(NX) run paper:build
+
+clean:
+	@$(NX) run paper:clean
+
+watch:
+	@$(NX) run paper:watch
+
+run.webapp:
+	@$(NX) run web:dev
+
+test:
+	@$(NX) run research:test
+
+count-lines:
+	@$(NX) run research:stats
+
+all:
+	@$(NX) run paper:build

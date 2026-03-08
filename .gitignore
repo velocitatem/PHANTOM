@@ -18,6 +18,9 @@ phantom.egg-info/
 .nextstep
 .ignore-gitlogue
 .cloudflare
+.nx/
+node_modules/
+dist/
 
 # generated svg/graphics
 **/session_*.svg
