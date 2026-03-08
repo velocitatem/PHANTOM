@@ -7,7 +7,7 @@
     "install": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "make install",
+        "command": "bash scripts/nx_research.sh install",
         "cwd": "."
       }
     },
@@ -17,7 +17,7 @@
         "install"
       ],
       "options": {
-        "command": "make test.backend",
+        "command": ".venv/bin/pytest -v",
         "cwd": "."
       }
     },
@@ -27,14 +27,76 @@
         "install"
       ],
       "options": {
-        "command": "make train",
+        "command": "bash scripts/nx_research.sh train",
+        "cwd": "."
+      }
+    },
+    "train-agent": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "bash scripts/nx_research.sh train-agent",
+        "cwd": "."
+      }
+    },
+    "train-bootstrap": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh train-bootstrap",
         "cwd": "."
       }
     },
     "stats": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "make stats.lines",
+        "command": "bash scripts/nx_research.sh stats",
+        "cwd": "."
+      }
+    },
+    "docker-train-publish": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh docker-train-publish",
+        "cwd": "."
+      }
+    },
+    "train-tpu-pod": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh train-tpu-pod",
+        "cwd": "."
+      }
+    },
+    "train-tpu-vm-prepare": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh train-tpu-vm-prepare",
+        "cwd": "."
+      }
+    },
+    "train-tpu-vm-run": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh train-tpu-vm-run",
+        "cwd": "."
+      }
+    },
+    "train-tpu-vm": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "train-tpu-vm-prepare"
+      ],
+      "options": {
+        "command": "bash scripts/nx_research.sh train-tpu-vm-run",
+        "cwd": "."
+      }
+    },
+    "train-tpu-vm-sweep": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh train-tpu-vm-sweep",
         "cwd": "."
       }
     }

@@ -210,8 +210,7 @@ The simulator has multiple configurable factors. We design a multi-factor study 
 % Power analysis plan: apply a two-sample Mann-Whitney U (or permutation test) on per-session (delta_H - delta_A) divergence scores comparing the human and agent groups. Compute minimum detectable effect size at alpha=0.05, power=0.8, given n=18 per group. Bootstrap confidence intervals on mean KL are a cleaner complement given the non-normality of divergence distributions.
 While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable.
 
-% TODO: cite in the apendix the math to get to 160 petaflops of compute
-Our training budget is provisioned through TPU Research Cloud and spans 384 chips across TPU v4, v5e, and v6e generations, with a spot-heavy allocation plus an on-demand reserve. At peak BF16 throughput this corresponds to approximately 160 PFLOPS of aggregate compute, which makes repeated seeds, ablations, and sensitivity sweeps feasible within practical wall-clock limits. We allocate v6e capacity to the highest-intensity policy training jobs, use v5e for wider hyperparameter exploration where throughput-per-dollar is favorable, and reserve on-demand v4 capacity for runs that should not be interrupted.
+Our training budget is provisioned through TPU Research Cloud and spans 384 chips across TPU v4, v5e, and v6e generations, with a spot-heavy allocation plus an on-demand reserve. At peak BF16 throughput this corresponds to approximately 160\,PFLOPS of aggregate compute (derivation in Appendix~\ref{app:compute_budget}), which makes repeated seeds, ablations, and sensitivity sweeps feasible within practical wall-clock limits. We allocate v6e capacity to the highest-intensity policy training jobs, use v5e for wider hyperparameter exploration where throughput-per-dollar is favorable, and reserve on-demand v4 capacity for runs that should not be interrupted.
 
 \begin{table}[ht]
 \centering

@@ -10,21 +10,28 @@
         "{projectRoot}/build"
       ],
       "options": {
-        "command": "make pdf.build",
+        "command": "bash scripts/nx_paper.sh build",
         "cwd": "."
       }
     },
     "watch": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "make pdf.watch",
+        "command": "bash scripts/nx_paper.sh watch",
         "cwd": "."
       }
     },
     "clean": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "make pdf.clean",
+        "command": "bash scripts/nx_paper.sh clean",
+        "cwd": "."
+      }
+    },
+    "wordcount": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_paper.sh wordcount",
         "cwd": "."
       }
     }
