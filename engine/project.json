@@ -1,0 +1,46 @@
+{
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "name": "research",
+  "projectType": "application",
+  "sourceRoot": "engine",
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "make install",
+        "cwd": "."
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "make test.backend",
+        "cwd": "."
+      }
+    },
+    "train": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "make train",
+        "cwd": "."
+      }
+    },
+    "stats": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "make stats.lines",
+        "cwd": "."
+      }
+    }
+  },
+  "tags": [
+    "scope:research",
+    "type:python"
+  ]
+}

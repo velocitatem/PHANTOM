@@ -1,0 +1,27 @@
+{
+  "name": "phantom-monorepo",
+  "private": true,
+  "workspaces": [
+    "web",
+    "tests/e2e"
+  ],
+  "scripts": {
+    "nx": "nx",
+    "projects": "nx show projects",
+    "graph": "nx graph",
+    "web:dev": "nx run web:dev",
+    "web:build": "nx run web:build",
+    "backend:server": "nx run backend-server:dev",
+    "backend:provider": "nx run pricing-provider:dev",
+    "backend:worker": "nx run backend-worker:dev",
+    "paper:build": "nx run paper:build",
+    "platform:up": "nx run platform:up",
+    "platform:down": "nx run platform:down",
+    "platform:logs": "nx run platform:logs",
+    "research:test": "nx run research:test",
+    "e2e:test": "nx run e2e:test"
+  },
+  "devDependencies": {
+    "nx": "^20.4.0"
+  }
+}
