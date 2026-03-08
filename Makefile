@@ -27,10 +27,6 @@ AGENT_LOOP ?= 1
 RETRY_SECONDS ?= 20
 
 TRAIN_IMAGE_REF := us-central1-docker.pkg.dev/phantom-trc/phantom/phantom-trainer
-TPU_NAME ?=
-TPU_ZONE ?= us-central2-b
-TPU_PROJECT ?= phantom-trc
-TPU_REPO_DIR ?= /tmp/PHANTOM
 
 SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || true; set +a
 
@@ -38,7 +34,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 
 .PHONY: help
 help:
-	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.agent | train.agent | train.bootstrap | train.tpu.pod | train.tpu.vm | train.tpu.vm.sweep | stats.lines"
+	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.agent | train.agent | train.bootstrap | stats.lines"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
 	@echo ""
 	@echo "Build general public version:"
@@ -136,26 +132,6 @@ wordcount:
 .PHONY: docker.train.publish
 docker.train.publish:
 	@TRAIN_IMAGE_REF="$(TRAIN_IMAGE_REF)" $(NX) run research:docker-train-publish
-
-.PHONY: train.tpu.pod
-train.tpu.pod:
-	@TPU_NAME="$(TPU_NAME)" TPU_ZONE="$(TPU_ZONE)" TPU_PROJECT="$(TPU_PROJECT)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" SWEEP_ID="$(SWEEP_ID)" AGENT_COUNT="$(AGENT_COUNT)" $(NX) run research:train-tpu-pod
-
-.PHONY: train.tpu.vm.prepare
-train.tpu.vm.prepare:
-	@TPU_NAME="$(TPU_NAME)" TPU_ZONE="$(TPU_ZONE)" TPU_PROJECT="$(TPU_PROJECT)" TPU_REPO_DIR="$(TPU_REPO_DIR)" $(NX) run research:train-tpu-vm-prepare
-
-.PHONY: train.tpu.vm.run
-train.tpu.vm.run:
-	@TPU_NAME="$(TPU_NAME)" TPU_ZONE="$(TPU_ZONE)" TPU_PROJECT="$(TPU_PROJECT)" TPU_REPO_DIR="$(TPU_REPO_DIR)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" LOCAL_TRAIN_ARGS="$(LOCAL_TRAIN_ARGS)" $(NX) run research:train-tpu-vm-run
-
-.PHONY: train.tpu.vm
-train.tpu.vm:
-	@TPU_NAME="$(TPU_NAME)" TPU_ZONE="$(TPU_ZONE)" TPU_PROJECT="$(TPU_PROJECT)" TPU_REPO_DIR="$(TPU_REPO_DIR)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" LOCAL_TRAIN_ARGS="$(LOCAL_TRAIN_ARGS)" $(NX) run research:train-tpu-vm
-
-.PHONY: train.tpu.vm.sweep
-train.tpu.vm.sweep:
-	@TPU_NAME="$(TPU_NAME)" TPU_ZONE="$(TPU_ZONE)" TPU_PROJECT="$(TPU_PROJECT)" TPU_REPO_DIR="$(TPU_REPO_DIR)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" SWEEP_ID="$(SWEEP_ID)" AGENT_COUNT="$(AGENT_COUNT)" $(NX) run research:train-tpu-vm-sweep
 
 .PHONY: backend.server backend.provider backend.worker platform.up platform.down platform.logs
 backend.server:

@@ -81,44 +81,6 @@
         "command": "bash scripts/nx_research.sh docker-train-publish",
         "cwd": "."
       }
-    },
-    "train-tpu-pod": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "bash scripts/nx_research.sh train-tpu-pod",
-        "cwd": "."
-      }
-    },
-    "train-tpu-vm-prepare": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "bash scripts/nx_research.sh train-tpu-vm-prepare",
-        "cwd": "."
-      }
-    },
-    "train-tpu-vm-run": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "bash scripts/nx_research.sh train-tpu-vm-run",
-        "cwd": "."
-      }
-    },
-    "train-tpu-vm": {
-      "executor": "nx:run-commands",
-      "dependsOn": [
-        "train-tpu-vm-prepare"
-      ],
-      "options": {
-        "command": "bash scripts/nx_research.sh train-tpu-vm-run",
-        "cwd": "."
-      }
-    },
-    "train-tpu-vm-sweep": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "bash scripts/nx_research.sh train-tpu-vm-sweep",
-        "cwd": "."
-      }
     }
   },
   "tags": [

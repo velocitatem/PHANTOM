@@ -14,7 +14,6 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "EconomicMetricsWrapper": (".wrappers", "EconomicMetricsWrapper"),
     "MetricsCallback": (".callbacks", "MetricsCallback"),
     "EvalMetricsCallback": (".callbacks", "EvalMetricsCallback"),
-    "CheckpointArtifactCallback": (".callbacks", "CheckpointArtifactCallback"),
     "ProviderBenchmark": (".providers", "ProviderBenchmark"),
     "ProviderResult": (".providers", "ProviderResult"),
     "BenchmarkConfig": (".providers", "BenchmarkConfig"),
