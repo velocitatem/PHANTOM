@@ -31,6 +31,16 @@ case "$cmd" in
       paper/src/chapters/05-discussion.tex \
       paper/src/chapters/06-conclusion.tex
     ;;
+  build-genpop)
+    mkdir -p paper/build
+    cd paper/src
+    latexmk -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
+    ;;
+  watch-genpop)
+    mkdir -p paper/build
+    cd paper/src
+    latexmk -pvc -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
+    ;;
   *)
     printf '%s\n' "Unknown paper command: $cmd" >&2
     exit 1

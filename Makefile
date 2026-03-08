@@ -36,8 +36,11 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 
 .PHONY: help
 help:
-	@echo "pdf.build pdf.watch pdf.clean | test.backend test.e2e test.all | web.dev | install | train | train.agent | train.bootstrap | train.tpu.pod | train.tpu.vm | train.tpu.vm.sweep | stats.lines"
+	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch | test.backend test.e2e test.all | web.dev | install | train | train.agent | train.bootstrap | train.tpu.pod | train.tpu.vm | train.tpu.vm.sweep | stats.lines"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
+	@echo ""
+	@echo "Build general public version:"
+	@echo "  make pdf.genpop"
 	@echo ""
 	@echo "Local wandb run:"
 	@echo "  make train LOCAL_TRAIN_ARGS='--algo ppo --total-timesteps 50000'"
@@ -64,6 +67,14 @@ pdf.watch:
 .PHONY: pdf.clean
 pdf.clean:
 	@$(NX) run paper:clean
+
+.PHONY: pdf.genpop
+pdf.genpop:
+	@bash scripts/nx_paper.sh build-genpop
+
+.PHONY: pdf.genpop.watch
+pdf.genpop.watch:
+	@bash scripts/nx_paper.sh watch-genpop
 
 .PHONY: test.backend
 test.backend:

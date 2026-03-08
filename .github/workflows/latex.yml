@@ -14,24 +14,68 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compile LaTeX document
+
+      - name: Prepare appendix code snapshot
+        run: bash paper/concat_code.sh
+
+      - name: Generate mirrors with Codex
+        if: ${{ secrets.OPENAI_API_KEY != '' }}
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          working-directory: .
+          prompt: |
+            Read and follow the mirror instructions in `paper/src/mirrors/genpop/INSTRUCTIONS.md`.
+
+            Source chapters are in `paper/src/chapters/`:
+            - 01-intro.tex
+            - 02-literature-review.tex
+            - 03-methodology.tex
+            - 04-results.tex
+            - 05-discussion.tex
+            - 06-conclusion.tex
+
+            Update `paper/src/mirrors/genpop/*.tex` so they mirror the thesis for a general audience according to the instruction file.
+            Keep LaTeX valid and preserve citation commands and section order.
+
+            Then create or update `paper/src/main-mirror-genpop.tex` by using `paper/src/main.tex` as the base and replacing chapter inputs from `chapters/...` to `mirrors/genpop/...`.
+            Do not change any other project files.
+
+      - name: Compute LaTeX roots
+        id: roots
+        run: |
+          roots="main.tex"
+          while IFS= read -r file; do
+            base=$(basename "$file")
+            roots="$roots,$base"
+          done < <(ls paper/src/main-mirror-*.tex 2>/dev/null || true)
+          echo "root_files=$roots" >> "$GITHUB_OUTPUT"
+          echo "Compiling roots: $roots"
+
+      - name: Compile LaTeX documents
         uses: xu-cheng/latex-action@v3
         with:
-          root_file: main.tex
+          root_file: ${{ steps.roots.outputs.root_files }}
           working_directory: paper/src
-          args: -pdf -f -interaction=nonstopmode -file-line-error -outdir=../build
-          pre_compile: bash ../concat_code.sh
-      - name: Upload PDF
+          args: -pdf -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build
+
+      - name: Upload PDF artifacts
         uses: actions/upload-artifact@v4
         with:
           name: thesis-pdf
-          path: paper/build/main.pdf
+          path: |
+            paper/build/main.pdf
+            paper/build/main-mirror-*.pdf
 
       - name: Get current date
         id: date
+        if: ${{ github.event_name == 'push' }}
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Upload to Cloudflare R2
+        if: ${{ github.event_name == 'push' && secrets.R2_ACCESS_KEY_ID != '' && secrets.R2_SECRET_ACCESS_KEY != '' && secrets.R2_ENDPOINT != '' && secrets.R2_BUCKET_NAME != '' }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -71,4 +115,31 @@ jobs:
               ExtraArgs={'ContentType': 'application/pdf'}
           )
           print(f"Uploaded thesis-latest.pdf")
+
+          # upload mirror versions (if generated)
+          build_dir = 'paper/build'
+          for filename in os.listdir(build_dir):
+              if not filename.startswith('main-mirror-') or not filename.endswith('.pdf'):
+                  continue
+              mirror_name = filename[len('main-mirror-'):-4]
+              source_path = os.path.join(build_dir, filename)
+
+              dated_mirror = f"thesis-{mirror_name}-{date}.pdf"
+              latest_mirror = f"thesis-{mirror_name}-latest.pdf"
+
+              s3.upload_file(
+                  source_path,
+                  bucket,
+                  dated_mirror,
+                  ExtraArgs={'ContentType': 'application/pdf'}
+              )
+              print(f"Uploaded {dated_mirror}")
+
+              s3.upload_file(
+                  source_path,
+                  bucket,
+                  latest_mirror,
+                  ExtraArgs={'ContentType': 'application/pdf'}
+              )
+              print(f"Uploaded {latest_mirror}")
           EOF

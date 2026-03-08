@@ -1,0 +1,441 @@
+% CAIS 2026 submission — ACM sigconf double-column
+% 9 pages (excluding references and appendices)
+\documentclass[sigconf]{acmart}
+
+% math
+\usepackage{amsmath,amsthm}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+% figures / tables
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{positioning, shapes, arrows.meta, fit, backgrounds}
+
+% algorithm
+\usepackage[ruled,vlined]{algorithm2e}
+
+% inline enumerations
+\usepackage[inline]{enumitem}
+
+% bibliography — acmart expects biber by default
+\bibliographystyle{ACM-Reference-Format}
+
+% remove ACM copyright block for submission draft
+\setcopyright{none}
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+\begin{document}
+
+\title{PHANTOM: A Compound System for Robust Dynamic Pricing\\under Agentic Traffic Contamination}
+
+% Double-blind submission: author information withheld for review
+\author{Anonymous Submission}
+\affiliation{}
+\email{}
+
+\begin{abstract}
+Dynamic pricing pipelines in e-commerce consume behavioral demand signals to set prices, but the growing presence of LLM-powered agents introduces a novel contamination vector: these agents decouple information gathering from transaction execution across isolated sessions, eroding the platform's pricing power.
+We present PHANTOM, a modular compound system that addresses this threat end-to-end. The system is composed of five orchestrated components: (1)~a configurable e-commerce research platform with dual-stream Kafka ingestion for behavioral and price-exposure events, (2)~a GOFAI-based weak labeling stage that partitions sessions into human and agent classes using rule-based predicates, (3)~a transition-kernel estimator that learns separable Markov models for each actor type and constructs a Contamination Generator for controlled simulation, (4)~a Distributionally Robust Reinforcement Learning policy that optimizes pricing under a Wasserstein ambiguity set conditioned on per-session divergence signals, and (5)~an Airflow-orchestrated pipeline that connects online data collection to offline policy training via Redis-backed model serving.
+We formally derive the Cost of Information Theorem, proving that standard pricing mechanisms become incentive-incompatible as agent query volume grows. The system architecture, interaction schema, and factorial experiment harness are designed for reproducibility and are released as open artifacts. We evaluate system-level tradeoffs between revenue protection, information leakage, and user-experience degradation through a three-objective reward structure.
+\end{abstract}
+
+\keywords{Compound AI Systems, Dynamic Pricing, LLM Agents, System Architecture, Behavioral Detection, Distributionally Robust Optimization, Evaluation Testbed}
+
+\maketitle
+
+%% ====================================================================
+%% 1  INTRODUCTION
+%% ====================================================================
+\section{Introduction}
+
+The current innovation boom in generative artificial intelligence and its applications to knowledge-based work tasks has brought many competing technologies for browser-use automation, with benchmarks and evaluations~\cite{xia_evaluation-driven_2025} motivating the development of capabilities focused on commercial research, understanding, and transaction execution~\cite{xie_osworld_2024}. The ``AI Agent'' market is forecasted to grow from around USD 5--8 billion in 2025 to USD 42--52 billion by 2030. This surge reflects adoption in e-commerce, customer service, and enterprise automation, where agents handle interactions previously done by humans, raising the question of how these systems should be designed for future robustness as well as how to maintain a competitive edge in the analytical components of e-commerce platforms~\cite{markntel_advisors_global_2025}.
+
+The key technical risk is not ``agents buying things'' per se, but agents shaping the behavioral and demand signals that downstream pricing systems consume and depend on. Dynamic pricing algorithms rely on directly translating demand features $q$ to new price assignments $\hat{p}$ across a catalogue of products of size $N$. When agent-driven reconnaissance traffic contaminates these demand signals, the pricing pipeline produces biased estimates that erode margins. This is not a single-model failure but a \textit{compound system} failure: the data ingestion, demand estimation, policy optimization, and model serving stages each propagate and amplify the contamination.
+
+Existing work treats bot detection and dynamic pricing as separate concerns. Dynamic pricing assumes demand proxies are behaviorally meaningful, while bot detection aims at security and access control. The missing bridge is a principled framework for separating non-human reconnaissance from genuine human demand expression and integrating that separation into pricing heuristics without degrading legitimate user experience. This gap is what our contribution aims to address.
+
+\subsection{System-Level Contributions}
+
+We frame our contribution along the four CAIS pillars---architectural patterns, system optimization, engineering and operations, and evaluation---rather than as a standalone pricing algorithm:
+
+\begin{enumerate}
+    \item \textbf{Architectural Pattern.} We present PHANTOM as a modular pipeline: ingestion (Kafka dual-stream) $\to$ weak labeling (GOFAI predicates) $\to$ transition-kernel estimation $\to$ contamination-aware robust policy (DR-RL) $\to$ model serving (Redis). Each component has a clean interface and can be independently replaced or extended.
+
+    \item \textbf{System Optimization.} The pipeline includes a non-differentiable decision stage (the RL policy operating through a Stackelberg game simulator). We address cost--performance tradeoffs by designing a factorial experiment grid ($4\times4\times3\times2\times2$) executed on a TPU cluster, and define a three-objective reward that explicitly trades off revenue, leakage prevention, and user-experience preservation.
+
+    \item \textbf{Engineering and Operations.} The system is deployed as a set of containerized microservices orchestrated by Airflow, with Kafka for event streaming, Redis for low-latency price serving, and PostgreSQL for experiment tracking. We describe the observability design including dual-stream event logging and session-level contamination monitoring.
+
+    \item \textbf{Evaluation Testbed.} We release a configurable e-commerce platform (hotel and airline modes) with instrumented UI components, a pool of assignable tasks for controlled experiments, and a reproducible interaction schema. This testbed enables evaluation of pricing systems under controlled agentic contamination with metrics for stability, regret, revenue, and safety constraints.
+\end{enumerate}
+
+\subsection{Research Questions}
+
+This work addresses three core research questions:
+\begin{enumerate}
+    \item[\textbf{RQ1}] \textit{Separability}: Can agent and human sessions be reliably distinguished from behavioral interaction signals alone, without relying on network-level or device fingerprinting?
+    \item[\textbf{RQ2}] \textit{Theoretical Impact}: What is the formal relationship between agent contamination levels and the erosion of pricing power in dynamic pricing systems?
+    \item[\textbf{RQ3}] \textit{Robust Mitigation}: How can pricing policies be constructed to maintain margin integrity under unknown and non-stationary levels of agent contamination?
+\end{enumerate}
+
+
+%% ====================================================================
+%% 2  RELATED WORK
+%% ====================================================================
+\section{Related Work}
+
+An agent in the context of artificial intelligence is generally defined by anything that can reason and act upon observations of its environments and carry out actions through effectors. This definition by Russell and Norvig~\cite{russell_artificial_2021} is further developed in an economic context by Parkes and Wellman~\cite{parkes_economic_2015}, suggesting AI research attempts to construct a synthetic \textit{homo economicus}, which may also be termed \textit{machina economicus}. A specific class of this \textit{machina economicus}, the Large Language Model (LLM) agent, is defined as an autonomous system capable of achieving goals and adapting post-training, often without needing explicit code or fundamental model changes~\cite{xia_evaluation-driven_2025}.
+
+We must however acknowledge the current SOTA as presented by OSWORLD simulations by Xie et al.~\cite{xie_osworld_2024} have demonstrated that multi-modal tasks across desktop and web interaction modes have a top-performing score of only 12.24\% success, whereas humans have a higher 72\% success rate. This weakness matters because it clarifies the near-term threat model: practical exploitation does not require a fully competent ``computer assistant'', only enough automation to perform high-volume reconnaissance actions that can contaminate behavioral signals.
+
+The introduction of these mediating actor entities into economic systems is further creating a threat of false-name bidding~\cite{yokoo_effect_2004}. Other research on pseudonyms in dynamic systems demonstrate whitewashing in AI agents which can ignore defensive mechanisms by re-entry with different identities~\cite{feldman_free-riding_2004}. The transaction costs related to information gathering and negotiation are bound to collapse towards zero as proposed by Shahidi et al.~\cite{shahidi_coasean_2025}, calling for a re-evaluation of the boundaries between firms and markets.
+
+Explorations of algorithmic collusion by LLMs~\cite{fish_algorithmic_2025} have demonstrated a cross-model tendency of market division with a strong sensitivity to instructions provided in the ``system prompt''. Our effort to combat contamination stems from research by Hardt et al.~\cite{hardt_strategic_2015} on strategic classification, in conjunction with Liu et al.~\cite{liu_contextual_2024} who demonstrate a linear regret if contamination is ignored. To bridge the gap between detection and robust pricing, we look at Distributionally Robust Optimization (DRO). As defined by Kuhn et al.~\cite{kuhn_wasserstein_2024}, DRO provides a framework for decision-making under ambiguity, where the true data distribution is unknown but lies within a ``Wasserstein ball'' of a target distribution. In our context, the ``ambiguity set'' represents the uncertainty introduced by agentic reconnaissance.
+
+In order to create an environment in which prices can be tested against a demand estimate generated by some behavioral model, we take inspiration from the architecture proposed by Ie et al.~\cite{ie_recsim_2019} in the RecSim platform built for recommendation systems. The contribution of RecSim enables researchers to better understand learning algorithms in fixed environments, a gap we identify as needing to be bridged within the space of dynamic pricing.
+
+
+%% ====================================================================
+%% 3  SYSTEM ARCHITECTURE
+%% ====================================================================
+\section{System Architecture}
+
+We present the PHANTOM system as a compound pipeline with five modules connected by clean interfaces. Each module is independently deployable and replaceable. The architecture is designed around two operational loops: an \textit{online loop} for data collection and price serving, and an \textit{offline loop} for policy training and evaluation.
+
+\subsection{Online Loop: Data Ingestion and Price Serving}
+
+The architecture begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a Kafka cluster. This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to. Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into Kafka. This dual-stream architecture enables joint analysis of price exposure and behavioral response.
+
+Each price query generates a record $(i, p, \text{sid}, \phi, t)$ associating the product, displayed price, requesting session, platform mode, and timestamp. The final stage of the pricing pipeline submits computed dynamic pricing results into a Redis database for quick updates which is then read by the pricing provider and displayed on the webapp.
+
+\subsection{Offline Loop: Policy Training}
+
+The Kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The offline loop consumes collected trajectories, performs weak labeling and transition-kernel estimation (Section~\ref{sec:separability}), trains the DR-RL policy (Section~\ref{sec:drrl}) in a simulator, and pushes the resulting policy to Redis for the pricing provider to read.
+
+\subsection{Online Dynamic Pricing (Baseline)}
+
+In order to collect data from actors under correct conditions we replicate a naive and simple dynamic pricing algorithm which runs in the background during the experiments. The dynamic pricing pipeline computes a demand estimate vector $\hat{q} \in \mathbb{R}^N$ by a weighted sum of interactions for each product. The transformation that governs this baseline pricing is a surge-based policy:
+\begin{equation}
+\hat{p}_i = \begin{cases}
+p_{0,i} \cdot \lambda_{\text{surge}} & \text{if } \hat{q}_i \geq \theta_{\text{high}} \\
+p_{0,i} \cdot \lambda_{\text{disc}} & \text{if } \hat{q}_i \leq \theta_{\text{low}} \\
+p_{0,i} & \text{otherwise}
+\end{cases}
+\quad \forall i \in \{1, \ldots, N\}
+\end{equation}
+where $p_0 \in \mathbb{R}^N$ is the base price vector, $\theta_{\text{high}}, \theta_{\text{low}} \in \mathbb{R}$ are demand thresholds, and $\lambda_{\text{surge}} = 1.2$, $\lambda_{\text{disc}} = 0.9$ are multiplicative factors. This baseline is the component that the DR-RL policy replaces once trained.
+
+\subsection{Interaction Schema}
+
+We extend the basic event tuple $e_{s,k}$ to capture the full observational signal available to the platform:
+\begin{equation}
+e_{s,k} = \left( a_{s,k}, \, i_{s,k}, \, t_{s,k}, \, \mu_{s,k}, \, \delta_{s,k} \right)
+\end{equation}
+where $\mu_{s,k} \in \mathcal{M}$ is a metadata record containing action-specific context (e.g., price observed, filter parameters, element text), and $\delta_{s,k} \in \mathbb{R}_+$ is the dwell time in milliseconds for attention-based actions.
+
+The action space $\mathcal{A}$ is partitioned into four semantic categories based on the behavioral signal each action conveys:
+
+\begin{table}[t]
+\centering
+\small
+\caption{Action space partition $\mathcal{A} = \mathcal{A}_{\text{nav}} \cup \mathcal{A}_{\text{cart}} \cup \mathcal{A}_{\text{filter}} \cup \mathcal{A}_{\text{dwell}}$ with signal interpretation.}
+\label{tab:action_space}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Category} & \textbf{Actions} & \textbf{Signal} & $\boldsymbol{\omega}$ \\
+\midrule
+$\mathcal{A}_{\text{cart}}$ & add, remove, checkout, purchase & Purchase intent & High \\
+$\mathcal{A}_{\text{dwell}}$ & hover\_title, hover\_paragraph & Sustained attention & Medium \\
+$\mathcal{A}_{\text{nav}}$ & page\_view, view\_item, learn\_more & Discovery & Low \\
+$\mathcal{A}_{\text{filter}}$ & search, filter\_date, filter\_price, sort & Preference refinement & Lowest \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The metadata record $\mu$ varies by action type. This heterogeneous structure is captured via a schema-on-read approach in our Kafka ingestion pipeline, where events are validated against type-specific schemas before storage.
+
+
+%% ====================================================================
+%% 4  METHODOLOGY
+%% ====================================================================
+\section{Methodology: Pipeline Components}
+
+This section details the theoretical and practical framework behind each pipeline component. We formalize the problem environment, derive the \textit{Cost of Information} (COI) theorem that motivates the system design, describe the separability and contamination modules, and formulate the robust pricing policy.
+
+\subsection{Problem Formalization}
+
+We define a commercial environment where the platform interacts with a stream of sessions. Let $\mathcal{S}$ denote the set of all sessions. Each session $s \in \mathcal{S}$ is generated by an actor belonging to a latent class $Y_s \in \{H, A\}$, where $H$ denotes Human and $A$ denotes Agent.
+
+Each session produces a trajectory of observable events $\tau_s = (e_{s,1}, \ldots, e_{s,L_s})$. The platform does not directly observe the true underlying demand function $d(p)$. Instead, it observes a behavioral proxy $\hat{q}_t$, which is a composite signal derived from the mixture of actor types. We define the demand proxy for product $i$ at epoch $t$ as a weighted aggregation of events:
+\begin{equation}
+\label{eq:qhat}
+\hat{q}_{t,i} = \sum_{s \in \mathcal{S}_t} \sum_{k=1}^{L_s} \omega(a_{s,k}) \cdot \mathbb{1}[i_{s,k} = i]
+\end{equation}
+where $\omega: \mathcal{A} \to \mathbb{R}_+$ assigns weights to actions based on their signal strength regarding willingness to pay, with $\omega(\mathcal{A}_{\text{cart}}) > \omega(\mathcal{A}_{\text{dwell}}) > \omega(\mathcal{A}_{\text{nav}}) > \omega(\mathcal{A}_{\text{filter}})$ reflecting decreasing commitment (Table~\ref{tab:action_space}).
+
+The total observed demand is a stochastic process governed by the mixture:
+\begin{equation}
+\label{eq:mixture_demand}
+Q(p) = (1-\alpha) \cdot \mathbb{E}_{\theta \sim \mathcal{D}_H}[d(p; \theta)] + \alpha \cdot \mathbb{E}_{\theta \sim \mathcal{D}_A}[d(p; \theta)] + \epsilon_t
+\end{equation}
+where $\alpha \in [0, 1]$ represents the contamination parameter (proportion of agents) and $\epsilon_t$ is non-stationary market noise. This mixture is the source of the compound-system failure: each downstream component inherits the bias introduced by $\alpha$.
+
+\subsection{Cost of Information: Why Standard Pipelines Fail}
+
+The platform's pricing power comes from information asymmetry: users who express strong interest signals pay more than the base price. We quantify this markup as the \textit{Cost of Information} (COI), which represents the average premium extracted above marginal cost.
+
+\begin{definition}[Cost of Information]
+Let $\pi(\tau)$ be a pricing policy mapping interaction histories to prices. The COI is defined as:
+\begin{equation}
+\text{COI} = \mathbb{E}[P] - \underline{p}
+\end{equation}
+where $\mathbb{E}[P]$ is the expected price charged by the policy and $\underline{p}$ is the minimum viable price (marginal cost).
+\end{definition}
+
+We now formally demonstrate that any pricing pipeline without a contamination-aware component is structurally vulnerable.
+
+\begin{theorem}[COI Erosion in the Limit]
+Let $N$ be the number of independent, utility-maximizing agents querying the platform. Let $p_{(1)}$ be the first order statistic (minimum) of the prices offered to these agents. As $N \to \infty$, the Cost of Information converges to 0.
+\end{theorem}
+
+\begin{proof}
+Consider $N$ independent agents querying the platform, each receiving a price sample $p_i$ drawn from the pricing policy's distribution $F(p)$ with support $[\underline{p}, \bar{p}]$. A strategic agent conducting reconnaissance will select the minimum observed price: $p_{(1)} = \min(p_1, \ldots, p_N)$.
+
+The probability that the minimum price exceeds some threshold $t$ is:
+\begin{equation}
+P(p_{(1)} > t) = [1 - F(t)]^N
+\end{equation}
+
+For any price $t > \underline{p}$, the CDF satisfies $F(t) > 0$, so $1 - F(t) < 1$. The expected minimum price can be written as:
+\begin{equation}
+\mathbb{E}[p_{(1)}] = \underline{p} + \int_{\underline{p}}^{\bar{p}} [1 - F(t)]^N \, dt
+\end{equation}
+
+Since the integrand vanishes as $N \to \infty$ for all $t > \underline{p}$, the integral converges to zero:
+\begin{equation}
+\lim_{N \to \infty} \text{COI} = \lim_{N \to \infty} (\mathbb{E}[p_{(1)}] - \underline{p}) = 0
+\end{equation}
+\end{proof}
+
+This result is the theoretical motivation for the system design: it proves that standard pricing policies $\pi$ fail to extract surplus in the presence of large-scale agentic search, necessitating a contamination-aware component in the pipeline.
+
+
+\subsection{Module: Separability and Contamination Generation}
+\label{sec:separability}
+
+To train a robust pricing learner, we need a simulator that can generate realistic interaction data under controlled contamination. We build this from collected data using a two-stage approach.
+
+\subsubsection{GOFAI-Based Weak Labeling.}
+We use Good Old-Fashioned AI (GOFAI) heuristics to generate weak labels for separability. A set of rule-based predicates $\phi_j: \tau \to \{0,1\}$ partitions dataset $\mathcal{D}$ into high-confidence sets $\mathcal{D}_H$ and $\mathcal{D}_A$. We then estimate separate transition models for both groups and ask a direct methodological question: are the kernels separable enough to justify downstream pricing control that depends on that separability?
+
+To answer this, we compute average KL divergence between transition probability matrices. This statistic gives global separability and event-level diagnostics at the same time. In our balanced dataset (50\% human, 50\% agent), the average divergence is approximately $1.8$.
+
+\begin{definition}[KL Divergence for Transition Distributions]
+Let $P_e$ and $Q_e$ be categorical distributions over destination states following event $e$, derived from human and agent trajectories respectively. The KL divergence between these distributions is:
+\begin{equation}
+  D_{\mathrm{KL}}(P_e \parallel Q_e) = \sum_{k \in \mathcal{S}_e} P_e(k) \log \frac{P_e(k)}{Q_e(k)}
+\end{equation}
+where $\mathcal{S}_e$ denotes the set of destination events that follow $e$ in the human trajectories.
+\end{definition}
+
+With these divergence features we train a contrastive model to estimate a weak agent probability $f(\tau)\in[0,1]$, which serves as the interface between the separability module and the downstream pricing policy.
+
+\subsubsection{Transition-Kernel Estimation and Contamination Generator.}
+\label{sec:tpe}
+For both subsets, we model session dynamics as an MDP and estimate transition kernel $\mathcal{T}$. For each actor type we estimate global kernels $\hat{\mathcal{T}}_A$ and $\hat{\mathcal{T}}_H$, then cluster into behavioral sub-kernels $\hat{\mathcal{T}}_y^i$ to avoid collapsing all behavior into one average profile. Transition probabilities are estimated by maximum likelihood:
+\begin{equation}
+    \hat{P}(s' \mid s) = \frac{N(s, s')}{\sum_{k \in \mathcal{S}} N(s, k)}
+\end{equation}
+where $N(s, s')$ is the observed transition count. This allows us to construct a \textit{Contamination Generator} $\mathcal{G}(\alpha)$. Given a clean trajectory dataset, $\mathcal{G}$ injects synthetic agent trajectories sampled from $\hat{\mathcal{T}}_A$ until the effective mixing ratio reaches $\alpha$. The generator is the key enabler of the offline training loop: it produces the empirical distribution that centers the ambiguity set for robust optimization.
+
+
+\subsection{Module: Distributionally Robust Pricing Policy}
+\label{sec:drrl}
+
+We formalize the interaction between the dynamic pricing system and non-human actors as a \textit{Stackelberg Game} (Leader-Follower) with incomplete information. This framework captures the hierarchical nature of the problem: the Platform (Leader) sets a pricing policy, and the Actors (Followers)---both Humans and Agents---observe these prices and react strategically.
+
+\subsubsection{Players and Objectives.}
+Let $t \in \{1, \dots, T\}$ denote discrete time steps. At each step $t$, given a state $s_t \in \mathcal{S}$ (representing inventory, time of day, and historical interactions), the platform sets a price $p_t \in [p_{\min}, p_{\max}]$. The platform's goal is to maximize the cumulative revenue from genuine human transactions while mitigating the distortion caused by agent interactions.
+
+\begin{itemize}
+    \item \textbf{The Human ($H$):} Acts as a \textit{myopic utility maximizer}. A human $i$ has a private valuation $v_i$ for the product. They execute a purchase decision $d_i \in \{0, 1\}$ based on the consumer surplus:
+    \begin{equation}
+        d_i(p_t) = \mathbb{I}(v_i - p_t \geq 0)
+    \end{equation}
+
+    \item \textbf{The Agent ($A$):} Acts as an \textit{information maximizer} (reconnaissance). The agent generates interaction events to estimate the platform's pricing function. The agent's reward function is defined by Information Gain:
+    \begin{equation}
+        R_A(p_t) = H(\mathcal{P}) - H(\mathcal{P} \mid p_t) - c_{\text{query}}
+    \end{equation}
+    where $H(\mathcal{P})$ is the entropy of the agent's belief regarding the price distribution, and $c_{\text{query}} \approx 0$ for LLMs.
+\end{itemize}
+
+\subsubsection{Contamination-Conditioned Demand.}
+Given a newly observed partial trajectory $\tau'$, we compute its empirical transition kernel $\hat{\mathcal{T}}'$ and measure divergence against the learned prototypes $\bar{\mathcal{T}}_H$ and $\bar{\mathcal{T}}_A$ from Section~\ref{sec:tpe}:
+\begin{align}
+  \Delta_H(\tau') &= D_{KL}(\hat{\mathcal{T}}^\prime \parallel \bar{\mathcal{T}}_H) \\
+  \Delta_A(\tau') &= D_{KL}(\hat{\mathcal{T}}^\prime \parallel \bar{\mathcal{T}}_A)
+\end{align}
+
+These divergence statistics serve as the operational connector between the separability module and the pricing policy. We define the per-session contamination estimate as:
+\begin{equation}
+\label{eq:alpha_hat}
+    \hat{\alpha}(\tau') = \sigma\big(\beta(\Delta_H(\tau') - \Delta_A(\tau'))\big)
+\end{equation}
+where $\sigma$ is the logistic function and $\beta > 0$ is a temperature parameter. This maps separability directly into a scalar control input for the pricing objective.
+
+\subsubsection{Ambiguity Set Construction.}
+Because the contamination level $\alpha$ and demand shift are non-stationary, a point estimate of the demand distribution is insufficient. Let $\hat{P}_N$ denote the empirical reference distribution induced by the Contamination Generator $\mathcal{G}(\alpha)$. We define the Wasserstein ambiguity set:
+\begin{equation}
+\mathcal{U}_\epsilon(\hat{P}_N) = \left\{ Q \in \mathcal{P}(\Xi) : W_p(Q, \hat{P}_N) \le \epsilon \right\}
+\end{equation}
+where $W_p$ is the $p$-Wasserstein distance and $\epsilon > 0$ is the ambiguity radius. The choice of Wasserstein distance is deliberate: unlike $f$-divergence based ambiguity sets, Wasserstein balls do not require absolute continuity between the nominal and adversarial distributions~\cite{kuhn_wasserstein_2024}, which is critical when the adversary can introduce distributional ``black swans'' through novel agent behaviors not present in training data.
+
+\subsubsection{Robust Pricing Objective.}
+The platform seeks a policy $\pi^*$ that maximizes worst-case revenue over the ambiguity set while penalizing information leakage to suspected agents:
+\begin{equation}
+\label{eq:robust_policy}
+\pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \; \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}_{\text{leak}}(p, \tau') - \eta \cdot \text{UX}(\tau', p) \right]
+\end{equation}
+where $R(p, d) = p \cdot d$ is the revenue function.
+
+\begin{definition}[COI Leakage]
+The per-query information leakage cost is:
+\begin{equation}
+\text{COI}_{\text{leak}}(p,\tau') = \hat{\alpha}(\tau') \cdot \text{InfoValue}(p,\tau')
+\end{equation}
+where $\hat{\alpha}(\tau')$ is the session contamination estimate from Eq.~\ref{eq:alpha_hat}. The $\text{InfoValue}$ admits two instantiations:
+\begin{enumerate}
+    \item \textbf{Query-tax surrogate:} $\text{InfoValue} = 1$. Each suspected agent query incurs a constant leakage cost, reflecting the COI Erosion Theorem where more queries drive COI to zero.
+    \item \textbf{Revelation surrogate:} $\text{InfoValue} = -\log \pi(p \mid \tau')$. Rare or precise prices reveal more information about the policy's support and are more valuable to a reconnaissance agent.
+\end{enumerate}
+\end{definition}
+
+\begin{definition}[UX Index]
+The user-experience penalty $\text{UX}(\tau', p) \in [0, 1]$ measures degradation to legitimate human users from defensive pricing actions. A false-positive (human misclassified as agent) incurs a UX penalty proportional to the price distortion applied. The coefficient $\eta > 0$ governs the platform's tolerance for UX degradation relative to revenue protection.
+\end{definition}
+
+The three-term structure captures a fundamental trilemma in defensive pricing: revenue maximization, leakage prevention, and user-experience preservation. The parameters $\lambda$ and $\eta$ define the platform's operating point on the Pareto frontier between these objectives.
+
+
+%% ====================================================================
+%% 5  EVALUATION FRAMEWORK
+%% ====================================================================
+\section{Evaluation Framework}
+
+We present the evaluation design as a reproducible testbed for pricing systems under agentic contamination.
+
+\subsection{Platform as Testbed}
+
+We start from a practical constraint: we do not have access to proprietary production data. Because of that, we design our own fictional platform that still represents how commercial platforms work in the real world. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our web framework defines a highly agnostic boilerplate which can be seeded with any data-modality, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are individually deployed via an environment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode.
+
+Since users act with motivations, we define a pool of tasks (jobs to be done) and assign tasks randomly to participants. A representative task is to find the cheapest feasible catalog item under explicit constraints while removing strict financial limits so we avoid trivial optimization behavior. Participants are also randomly assigned to one experimental platform mode (hotel or airline).
+
+To speak to realism, user interviews reported that the platform architecture mirrored standard booking interfaces and reduced the cognitive load required to learn the system. The dynamic pricing mechanism elicited immediate behavioral adjustments. Participants were sensitive to price volatility: sudden boosts triggered urgency and faster booking attempts, while large listing-to-final discrepancies triggered deeper comparison behavior.
+
+\subsection{Factorial Experiment Design}
+
+The simulator has multiple configurable factors, including valuation distributions, demand parametrization, contamination ratio, and policy settings. We therefore design a multi-factor study (current grid: $4\times4\times3\times2\times2$). While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable.
+
+Our training budget spans 384 TPU chips across v4, v5e, and v6e generations, distributed across Europe and U.S. regions with a spot-heavy mix and an on-demand reserve. At peak BF16 throughput this corresponds to roughly 160 PFLOPS of aggregate compute. We allocate v6e capacity to the heaviest policy training, use v5e for broad hyperparameter sweeps, and reserve on-demand v4 quota for runs that should not be preempted \parencite{noauthor_tpu_2026,noauthor_tpu_2025-1,noauthor_tpu_2025}.
+
+Our process follows three stages: (1)~observe and \textit{vectorize} behavioral interactions, (2)~learn separability to characterize human versus agent patterns, and (3)~use the learned signal to train a defensive policy in a controlled dynamic-pricing simulator.
+
+Operationally, goals and experiment runs are tracked in PostgreSQL (goal table, run table, and assignment mapping). This data-acquisition phase is intentionally a disconnected component that feeds the later contributions.
+
+\subsection{Defensive Pricing Loop}
+
+Algorithm~\ref{alg:phantom_loop_clean} formalizes the end-to-end defensive pricing loop, integrating all pipeline components into the Stackelberg game structure.
+
+\begin{algorithm}[t]
+\caption{PHANTOM defensive pricing loop}
+\label{alg:phantom_loop_clean}
+\DontPrintSemicolon
+\SetKwInput{Input}{Input}
+\SetKwInput{Output}{Output}
+
+\Input{catalog size $N$; costs $c$; reference prices $p^{ref}$; behavior models $\bar T_H,\bar T_A$; action weights $\omega$; penalty $\lambda$; horizon $T$; sessions per step $M$}
+\Output{price/demand trajectory $\{(p_t,\hat Q_t,\hat\alpha_t)\}_{t=0}^{T-1}$}
+Initialize contamination estimate $\hat\alpha \leftarrow 0.2$\;
+
+\For{$t \leftarrow 0$ \KwTo $T-1$}{
+
+  set $p_t \leftarrow \pi(\cdot)$
+  and clip $p_t$ to a feasible range\;
+
+  $\hat Q_t \leftarrow 0$, $\mathcal S_t \leftarrow \emptyset$\; \tcp{Observe sessions}
+  \For{$m \leftarrow 1$ \KwTo $M$}{
+    sample a session trajectory $\tau_m$ using $\bar T_H$ or $\bar T_A$\;
+    $\hat Q_t \leftarrow \hat Q_t + \sum_{k}\omega(a_{m,k})$\;
+    $\mathcal S_t \leftarrow \mathcal S_t \cup \{\tau_m\}$\;
+  }
+
+  \tcp{Estimate contamination from separability module}
+  compute $\hat\alpha \leftarrow \frac{1}{M}\sum_{\tau\in\mathcal S_t} \Big[\sigma\big(\beta(\Delta_H(\tau)-\Delta_A(\tau))\big)\Big]$\;
+
+  compute $J_t \leftarrow \text{Revenue}(p_t,\hat Q_t) - \lambda\cdot \text{COILeak}(\hat\alpha) - \eta\cdot \text{UX}(\hat\alpha)$\;
+}
+\end{algorithm}
+
+
+\subsection{System-Level Metrics}
+
+The characteristics of our evaluation environment can be summarized as:
+\begin{enumerate*}[label=(\roman*)]
+\item non-stationary demand with temporal noise $\epsilon_t$,
+\item contaminated behavioral signals from mixed human-agent traffic with unknown mixing ratio $\alpha$,
+\item partial observability where only demand proxies $\hat{q}$ are available, not true demand $d(\cdot)$,
+\item strategic actors capable of feature manipulation to influence pricing outcomes,
+\item session-based interactions modeled as POMDPs with trajectories $\tau_s$,
+\item low conversion probability for agents: $P(\text{purchase} \mid A) < P(\text{purchase} \mid H)$, and
+\item distributional uncertainty requiring robust optimization within Wasserstein ambiguity sets.
+\end{enumerate*}
+
+These properties define the evaluation surface: any pricing system deployed in this testbed must handle all seven simultaneously, making it a stress test for compound pipeline robustness rather than isolated component performance.
+
+
+%% ====================================================================
+%% 6  DISCUSSION
+%% ====================================================================
+\section{Discussion}
+
+\subsection{System Tradeoffs and Operational Considerations}
+
+The three-objective reward structure (Eq.~\ref{eq:robust_policy}) surfaces a fundamental operational tradeoff. Our analysis of the interaction dynamics between the platform and non-human actors suggests that the current static pricing models are insufficient for an agent-mediated economy. If we assume a transition toward a direct revelation mechanism, where actors must reveal their true valuation of a good through bidding dynamics, we inevitably introduce significant stochasticity into the pricing system.
+
+However, ecommerce commodities differ fundamentally from financial securities: they possess a hard floor defined by unit economics and reservation prices. The platform must establish an initial valuation anchor defined by the marginal cost plus a target margin, around which the market price is permitted to fluctuate. The parameters $\lambda$ and $\eta$ in the reward function are system-level knobs that must be tuned per deployment context: a platform with low false-positive tolerance (luxury retail) will set $\eta \gg \lambda$, while a platform under heavy bot attack (airline flash sales) will invert this.
+
+\subsection{Component Replaceability}
+
+The modular architecture is deliberately designed so that each component can be upgraded independently. The GOFAI weak labeling stage can be replaced by a neural classifier without changing the interface to the transition-kernel estimator. The surge-based baseline can be swapped for any policy that reads from Redis. The Wasserstein ambiguity set can be replaced by a KL-ball if absolute continuity can be assumed. This composability is the primary engineering contribution: the theoretical results (COI theorem, Stackelberg formulation) motivate and constrain the system design, but the system itself is the deployable artifact.
+
+\subsection{Limitations}
+
+The key stakeholders affected by the threat of increasing agent-driven traffic include online businesses and platform operators (especially in bot-heavy sectors like retail, travel, and financial services), their security, fraud, and engineering teams, end users whose accounts and data are exposed and whose experience degrades, regulators and legal stakeholders responding to breaches and fraud, and the attackers or bot operators driving the automation~\cite{imperva_rapid_2025}. We acknowledge that our testbed operates on synthetic and small-sample data rather than production traffic at scale. We also acknowledge the difficulty in similarly affected fields such as authorship, where Ganie~\cite{ganie_uncertainty_2025} demonstrates the theoretical limits of the distributional divergence between text authored by a human or large language model.
+
+
+%% ====================================================================
+%% 7  CONCLUSION
+%% ====================================================================
+\section{Conclusion}
+
+We have presented PHANTOM, a compound system for defending dynamic pricing pipelines against exploitation by LLM-powered agents. Rather than proposing a standalone pricing algorithm, we contribute a modular end-to-end architecture: ingestion, weak labeling, transition-kernel estimation, contamination-aware robust policy, and model serving, connected by clean interfaces and deployed as containerized microservices.
+
+We formally defined the Cost of Information and proved that as the saturation of independent agents increases, standard pricing mechanisms become incentive-incompatible---motivating the need for a contamination-aware component in any production pricing pipeline. We demonstrated that human and agent behaviors exhibit distinct transition probability kernels, enabling the construction of discriminative models based on Kullback-Leibler divergence. These behavioral signals serve as inputs for a Distributionally Robust Reinforcement Learning policy that formulates the pricing problem as a Stackelberg game, optimizing against an ambiguity set of demand distributions defined by the Wasserstein distance.
+
+The system architecture, interaction schema, configurable e-commerce testbed, and factorial experiment harness are designed for reproducibility and released as open artifacts. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks. We intentionally put emphasis on the development of this infrastructure to establish a reproducible framework for interaction and to minimize any noise.
+
+Future work includes full factorial evaluation of the DR-RL policy across contamination levels, online adaptation of the ambiguity radius $\epsilon$ as a function of live divergence estimates, extension to multi-agent market maker settings, and integration of the HAP protocol~\cite{dhir_http_2025} as an additional signal source for the separability module.
+
+
+%% ====================================================================
+%% REFERENCES
+%% ====================================================================
+\bibliography{references}
+
+\end{document}
