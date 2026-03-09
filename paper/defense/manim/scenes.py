@@ -33,7 +33,7 @@ from manim import (
     Scene,
     SurroundingRectangle,
     Text,
-    TransformMatchingTex,
+    Transform,
     UP,
     ValueTracker,
     VGroup,
@@ -57,21 +57,30 @@ def scene_title(text: str) -> Text:
 
 
 def card(
-    label: str, color: str = BLUE_D, width: float = 3.3, height: float = 1.15
+    label: str,
+    color: str = BLUE_D,
+    width: float = 3.3,
+    height: float = 1.15,
+    font_size: float = 24,
 ) -> VGroup:
     box = RoundedRectangle(corner_radius=0.15, width=width, height=height)
     box.set_stroke(color=color, width=2.0)
     box.set_fill(color=color, opacity=0.12)
-    text = Text(label, font_size=24).move_to(box.get_center())
+    text = Text(label, font_size=font_size).move_to(box.get_center())
     return VGroup(box, text)
 
 
-def to_matrix(values: Iterable[Iterable[float]], title: str, color: str) -> VGroup:
+def to_matrix(
+    values: Iterable[Iterable[float]],
+    title: str,
+    color: str,
+    header_buff: float = 0.28,
+) -> VGroup:
     mat = Matrix(
         [[f"{v:.2f}" for v in row] for row in values], h_buff=1.15, v_buff=0.75
     )
     header = Text(title, font_size=25, weight="BOLD", color=color).next_to(
-        mat, UP, buff=0.2
+        mat, UP, buff=header_buff
     )
     frame = SurroundingRectangle(mat, color=color, buff=0.2)
     return VGroup(header, frame, mat)
@@ -101,6 +110,87 @@ class DefenseOpening(Scene):
                 *[FadeIn(item, shift=RIGHT * 0.25) for item in roadmap], lag_ratio=0.18
             )
         )
+
+        dist_axes = Axes(
+            x_range=[-6, 6, 2],
+            y_range=[0.0, 0.2, 0.05],
+            x_length=2.7,
+            y_length=1.5,
+            tips=False,
+            axis_config={"stroke_width": 1.8},
+        )
+        dist_h = dist_axes.plot(
+            lambda x: normal_pdf(x, -1.9, 1.6),
+            x_range=[-6, 6],
+            color=BLUE_D,
+            stroke_width=4,
+        )
+        dist_a = dist_axes.plot(
+            lambda x: normal_pdf(x, 1.8, 1.8),
+            x_range=[-6, 6],
+            color=RED_C,
+            stroke_width=4,
+        )
+        dist_block = VGroup(
+            dist_axes,
+            dist_h,
+            dist_a,
+            Text("behavior gap g", font_size=16, color=GREY_B).next_to(
+                dist_axes, DOWN, buff=0.03
+            ),
+        )
+
+        tail_axes = Axes(
+            x_range=[0, 1, 0.2],
+            y_range=[0, 1, 0.2],
+            x_length=2.7,
+            y_length=1.5,
+            tips=False,
+            axis_config={"stroke_width": 1.8},
+        )
+        tail_n1 = tail_axes.plot(
+            lambda x: (1 - x) ** 1,
+            x_range=[0, 1],
+            color=GREEN_C,
+            stroke_width=4,
+        )
+        tail_n8 = tail_axes.plot(
+            lambda x: (1 - x) ** 8,
+            x_range=[0, 1],
+            color=YELLOW_C,
+            stroke_width=4,
+        )
+        tail_block = VGroup(
+            tail_axes,
+            tail_n1,
+            tail_n8,
+            Text("order-statistic tail", font_size=16, color=GREY_B).next_to(
+                tail_axes, DOWN, buff=0.03
+            ),
+        )
+
+        control_eq = MathTex(
+            r"\hat\alpha(\tau')\Rightarrow\pi^*",
+            font_size=34,
+            color=YELLOW_C,
+        )
+        control_box = SurroundingRectangle(control_eq, color=YELLOW_C, buff=0.12)
+        control_block = VGroup(control_box, control_eq)
+
+        preview = VGroup(dist_block, tail_block, control_block).arrange(
+            RIGHT, buff=0.45
+        )
+        preview.next_to(roadmap, DOWN, buff=0.58)
+        preview_caption = Text("Math flow preview", font_size=21, color=GREY_B).next_to(
+            preview, UP, buff=0.08
+        )
+
+        f_arrow_1 = Arrow(dist_block.get_right(), tail_block.get_left(), buff=0.08)
+        f_arrow_2 = Arrow(tail_block.get_right(), control_block.get_left(), buff=0.08)
+
+        self.play(FadeIn(preview_caption, shift=UP * 0.1))
+        self.play(FadeIn(dist_block), FadeIn(tail_block), FadeIn(control_block))
+        self.play(FadeIn(f_arrow_1), FadeIn(f_arrow_2))
         self.wait(0.9)
 
 
@@ -111,7 +201,7 @@ class COIFirstPrinciplesScene(Scene):
 
         setup = VGroup(
             MathTex(r"P\sim\pi(\tau)", font_size=44),
-            MathTex(r"\underline p=\text{minimum viable price}", font_size=38),
+            MathTex(r"\underline p=\text{reservation price}", font_size=38),
             MathTex(r"M=P-\underline p", font_size=46, color=YELLOW_C),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.22)
         setup.to_edge(LEFT).shift(UP * 0.55)
@@ -195,34 +285,41 @@ class COIFirstPrinciplesScene(Scene):
             chart.animate.scale(0.82).to_edge(RIGHT).shift(UP * 0.6),
         )
 
-        eq1 = MathTex(r"\mathrm{COI}:=\mathbb{E}[M]", font_size=40)
-        eq2 = MathTex(r"\mathrm{COI}=\mathbb{E}[P-\underline p]", font_size=40)
-        eq3 = MathTex(
-            r"\mathrm{COI}=\mathbb{E}[P]-\underline p", font_size=44, color=YELLOW_C
-        )
-        eq1.to_edge(LEFT).shift(UP * 0.45)
-        eq2.move_to(eq1)
-        eq3.move_to(eq1)
+        coi_left = MathTex(r"\mathrm{COI}:=\mathbb{E}[", font_size=42)
+        coi_mid = MathTex(r"M", font_size=42)
+        coi_right = MathTex(r"]", font_size=42)
+        coi_eq = VGroup(coi_left, coi_mid, coi_right).arrange(RIGHT, buff=0.04)
+        coi_eq.to_edge(LEFT).shift(UP * 0.45)
 
-        self.play(Write(eq1))
-        self.play(TransformMatchingTex(eq1, eq2))
-        self.play(TransformMatchingTex(eq2, eq3))
+        self.play(Write(coi_left), FadeIn(coi_mid, shift=UP * 0.05), Write(coi_right))
+
+        expanded_mid = MathTex(r"P-\underline p", font_size=42)
+        expanded_mid.move_to(coi_mid, aligned_edge=LEFT)
+        self.play(
+            Transform(coi_mid, expanded_mid),
+            coi_right.animate.next_to(coi_mid, RIGHT, buff=0.04),
+        )
+        self.play(coi_eq.animate.set_color(YELLOW_C))
 
         survival = MathTex(
             r"\mathrm{COI}=\int_{\underline p}^{\bar p}(1-F_\pi(p))\,dp",
             font_size=33,
             color=GREY_B,
-        ).next_to(eq3, DOWN, aligned_edge=LEFT, buff=0.2)
+        ).next_to(coi_eq, DOWN, aligned_edge=LEFT, buff=0.2)
         self.play(Write(survival))
 
-        rationale = VGroup(
-            Text("Why this definition is useful:", font_size=23, weight="BOLD"),
-            Text("1) monetary meaning: premium over floor", font_size=20, color=GREY_B),
-            Text("2) comparable across policies and runs", font_size=20, color=GREY_B),
-            Text("3) maps directly to erosion analysis", font_size=20, color=GREY_B),
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.08)
-        rationale.next_to(survival, DOWN, aligned_edge=LEFT, buff=0.22).shift(UP * 0.1)
-        self.play(FadeIn(rationale, shift=UP * 0.1))
+        identity_1 = MathTex(
+            r"\mathbb E[X]=\int_0^{\infty}\mathbb P(X>u)\,du\quad (X\ge 0)",
+            font_size=31,
+            color=GREY_B,
+        ).next_to(survival, DOWN, aligned_edge=LEFT, buff=0.2)
+        identity_2 = MathTex(
+            r"X=P-\underline p,\;u=p-\underline p\Rightarrow\int_{\underline p}^{\bar p}(1-F_\pi(p))\,dp",
+            font_size=31,
+            color=GREY_B,
+        ).next_to(identity_1, DOWN, aligned_edge=LEFT, buff=0.14)
+        self.play(Write(identity_1))
+        self.play(Write(identity_2))
         self.wait(1.0)
 
 
@@ -237,7 +334,7 @@ class COIOrderStatisticProofScene(Scene):
 
         number_line = NumberLine(
             x_range=[P_MIN, P_MAX, 10],
-            length=10.8,
+            length=9.8,
             include_numbers=True,
             decimal_number_config={"num_decimal_places": 0},
         ).shift(DOWN * 1.5)
@@ -270,13 +367,7 @@ class COIOrderStatisticProofScene(Scene):
                 .scale(0.65)
                 .next_to(min_dot, UP, buff=0.08)
             )
-            coi_n = Line(
-                number_line.n2p(P_MIN) + UP * 0.68,
-                number_line.n2p(float(draws[0])) + UP * 0.68,
-                color=YELLOW_C,
-                stroke_width=6,
-            )
-            step_group = VGroup(dots, min_dot, min_tag, coi_n)
+            step_group = VGroup(dots, min_dot, min_tag)
 
             info = VGroup(
                 Text(f"N = {n}", font_size=28),
@@ -302,23 +393,33 @@ class COIOrderStatisticProofScene(Scene):
             r"\mathbb{P}(p_{(1)}>t)=\mathbb{P}(p_1>t,\ldots,p_N>t)", font_size=36
         )
         p2 = MathTex(r"\mathbb{P}(p_{(1)}>t)=[1-F(t)]^N", font_size=42, color=YELLOW_C)
-        p1.to_edge(RIGHT).shift(UP * 0.55)
-        p2.move_to(p1)
+        prob_group = VGroup(p1, p2).arrange(DOWN, aligned_edge=LEFT, buff=0.16)
+        prob_group.to_edge(RIGHT).shift(UP * 0.75)
 
         self.play(Write(p1))
-        self.play(TransformMatchingTex(p1, p2))
+        self.play(Write(p2))
+
+        cleanup_items: list = [key, number_line, floor_marker, floor_label]
+        if current_group is not None:
+            cleanup_items.append(current_group)
+        if current_info is not None:
+            cleanup_items.append(current_info)
+        self.play(
+            FadeOut(VGroup(*cleanup_items), shift=DOWN * 0.12),
+            prob_group.animate.shift(UP * 0.26),
+        )
 
         tail_axes = (
             Axes(
                 x_range=[0, 1, 0.2],
                 y_range=[0, 1, 0.2],
-                x_length=4.5,
-                y_length=2.7,
+                x_length=4.1,
+                y_length=2.45,
                 tips=False,
                 axis_config={"stroke_width": 2},
             )
             .to_edge(RIGHT)
-            .shift(DOWN * 0.85)
+            .shift(DOWN * 1.0 + LEFT * 0.2)
         )
         curve_1 = tail_axes.plot(
             lambda x: (1 - x) ** 1, x_range=[0, 1], color=BLUE_D, stroke_width=4
@@ -334,7 +435,7 @@ class COIOrderStatisticProofScene(Scene):
             Text("N=4", font_size=18, color=GREEN_C),
             Text("N=16", font_size=18, color=RED_C),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.08)
-        c_labels.next_to(tail_axes, RIGHT, buff=0.1)
+        c_labels.next_to(tail_axes, UP, buff=0.08).align_to(tail_axes, RIGHT)
         tail_x = MathTex(r"F(t)", font_size=24).next_to(tail_axes, DOWN, buff=0.05)
         tail_y = MathTex(r"[1-F(t)]^N", font_size=24).next_to(
             tail_axes, LEFT, buff=0.05
@@ -345,16 +446,37 @@ class COIOrderStatisticProofScene(Scene):
 
         e1 = MathTex(
             r"\mathbb{E}[p_{(1)}]=\underline p+\int_{\underline p}^{\bar p}[1-F(t)]^N\,dt",
-            font_size=34,
+            font_size=32,
         )
         e2 = MathTex(
-            r"\lim_{N\to\infty}(\mathbb{E}[p_{(1)}]-\underline p)=0",
-            font_size=42,
+            r"X:=p_{(1)}-\underline p\ge 0,\quad \mathbb E[X]=\int_0^{\infty}\mathbb P(X>u)\,du",
+            font_size=27,
+            color=GREY_B,
+        )
+        e3 = MathTex(
+            r"\mathbb P(X>u)=\mathbb P\!\left(p_{(1)}>\underline p+u\right)=[1-F(\underline p+u)]^N",
+            font_size=27,
+            color=GREY_B,
+        )
+        e4 = MathTex(
+            r"0\le[1-F(t)]^N\le1,\quad [1-F(t)]^N\to0\ \text{for } t>\underline p",
+            font_size=27,
+            color=GREY_B,
+        )
+        e5 = MathTex(
+            r"\Rightarrow\ \lim_{N\to\infty}(\mathbb{E}[p_{(1)}]-\underline p)=0",
+            font_size=38,
             color=YELLOW_C,
         )
-        e1.to_edge(LEFT).shift(DOWN * 0.35)
-        e2.next_to(e1, DOWN, aligned_edge=LEFT, buff=0.2)
-        self.play(Write(e1), Write(e2))
+        proof_block = VGroup(e1, e2, e3, e4, e5).arrange(
+            DOWN, aligned_edge=LEFT, buff=0.12
+        )
+        proof_block.to_edge(LEFT).shift(UP * 0.45)
+        self.play(Write(e1))
+        self.play(Write(e2))
+        self.play(Write(e3))
+        self.play(Write(e4))
+        self.play(Write(e5))
 
         conclusion = Text(
             "As independent query count grows, realizable markup collapses.",
@@ -372,17 +494,17 @@ class BehaviorKernelConstructionScene(Scene):
         self.play(Write(title))
 
         traj_h = Text(
-            "human: start -> view -> detail -> cart -> purchase -> end",
-            font_size=27,
+            "human: start -> view -> detail -> cart -> purchase",
+            font_size=26,
             color=GREEN_C,
         )
         traj_a = Text(
-            "agent: start -> view -> detail -> view -> detail -> end",
-            font_size=27,
+            "agent: start -> view -> detail -> view -> detail",
+            font_size=26,
             color=RED_C,
         )
         trajectories = VGroup(traj_h, traj_a).arrange(
-            DOWN, aligned_edge=LEFT, buff=0.18
+            DOWN, aligned_edge=LEFT, buff=0.16
         )
         trajectories.next_to(title, DOWN, buff=0.45).align_to(title, LEFT)
         self.play(
@@ -393,10 +515,10 @@ class BehaviorKernelConstructionScene(Scene):
 
         mle = MathTex(
             r"\hat P(s'\mid s)=\frac{N(s,s')}{\sum_k N(s,k)}",
-            font_size=42,
+            font_size=40,
             color=YELLOW_C,
         )
-        mle.next_to(trajectories, DOWN, aligned_edge=LEFT, buff=0.35)
+        mle.next_to(trajectories, DOWN, aligned_edge=LEFT, buff=0.28)
         self.play(Write(mle))
 
         counts = to_matrix(
@@ -418,26 +540,55 @@ class BehaviorKernelConstructionScene(Scene):
             ),
             "normalized kernel T",
             color=GREEN_C,
+            header_buff=0.4,
         )
         mats = (
-            VGroup(counts, probs).arrange(RIGHT, buff=1.0).to_edge(DOWN).shift(UP * 0.2)
+            VGroup(counts, probs)
+            .arrange(RIGHT, buff=0.95)
+            .scale(0.92)
+            .to_edge(DOWN)
+            .shift(UP * 0.34)
         )
-        arrow = Arrow(counts.get_right(), probs.get_left(), buff=0.2, stroke_width=4)
-        self.play(FadeIn(mats, shift=UP * 0.15), FadeIn(arrow))
+        arrow = Arrow(counts.get_right(), probs.get_left(), buff=0.18, stroke_width=4)
+        arrow_tag = Text("row normalize", font_size=18, color=GREY_B).next_to(
+            arrow, UP, buff=0.08
+        )
+        kernel_arrow = Arrow(
+            mle.get_bottom(),
+            mats.get_top() + UP * 0.05,
+            buff=0.1,
+            color=GREY_B,
+            stroke_width=3.2,
+        )
+        self.play(
+            FadeIn(mats, shift=UP * 0.12),
+            FadeIn(arrow),
+            FadeIn(arrow_tag),
+            FadeIn(kernel_arrow, shift=DOWN * 0.06),
+        )
+        self.play(
+            FadeOut(mle, shift=UP * 0.08),
+            FadeOut(kernel_arrow, shift=DOWN * 0.08),
+        )
 
         note = Text(
             "Kernel shape is the compact behavioral signature used downstream.",
-            font_size=23,
+            font_size=21,
             color=GREY_B,
         )
-        note.next_to(mats, UP, buff=0.18)
+        note.next_to(mats, DOWN, buff=0.16)
         self.play(FadeIn(note, shift=UP * 0.1))
         self.wait(1.0)
 
 
 class SeparabilitySignalScene(Scene):
     def construct(self) -> None:
-        title = scene_title("Separability into a Control Signal")
+        title = Text(
+            "Separability into a Control Signal",
+            font_size=40,
+            weight="BOLD",
+            color=WHITE,
+        ).to_edge(UP, buff=0.18)
         self.play(Write(title))
 
         human = to_matrix(
@@ -463,28 +614,39 @@ class SeparabilitySignalScene(Scene):
         kernels = VGroup(human, agent).arrange(RIGHT, buff=0.95).shift(UP * 0.45)
         self.play(FadeIn(kernels, shift=UP * 0.15))
 
+        self.play(
+            kernels.animate.scale(0.6)
+            .arrange(DOWN, aligned_edge=LEFT, buff=0.24)
+            .to_edge(LEFT)
+            .shift(UP * 0.18)
+        )
+
         d_h = MathTex(r"\Delta_H=D_{KL}(\hat T'\parallel\bar T_H)", font_size=36)
         d_a = MathTex(r"\Delta_A=D_{KL}(\hat T'\parallel\bar T_A)", font_size=36)
         gap = MathTex(r"g=\Delta_H-\Delta_A", font_size=44, color=YELLOW_C)
         alpha = MathTex(r"\hat\alpha(\tau')=\sigma(\beta g)", font_size=40)
         eqs = VGroup(d_h, d_a, gap, alpha).arrange(DOWN, aligned_edge=LEFT, buff=0.2)
-        eqs.next_to(kernels, DOWN, buff=0.32)
+        eqs.to_edge(RIGHT).shift(UP * 0.38)
         self.play(LaggedStart(*[Write(eq) for eq in eqs], lag_ratio=0.18))
 
         self.play(
-            FadeOut(kernels, shift=UP * 0.1), eqs.animate.to_edge(UP).shift(DOWN * 0.45)
+            eqs.animate.scale(0.66).next_to(kernels, DOWN, aligned_edge=LEFT, buff=0.16)
         )
 
         mu_h, sigma_h = -3.35, 2.67
         mu_a, sigma_a = 1.65, 2.83
-        axis = Axes(
-            x_range=[-10, 10, 2],
-            y_range=[0.0, 0.18, 0.03],
-            x_length=10.3,
-            y_length=3.6,
-            tips=False,
-            axis_config={"stroke_width": 2},
-        ).next_to(eqs, DOWN, buff=0.45)
+        axis = (
+            Axes(
+                x_range=[-10, 10, 2],
+                y_range=[0.0, 0.18, 0.03],
+                x_length=6.8,
+                y_length=3.7,
+                tips=False,
+                axis_config={"stroke_width": 2},
+            )
+            .to_edge(RIGHT)
+            .shift(DOWN * 0.75 + LEFT * 0.15)
+        )
         x_tag = MathTex(r"g=\Delta_H-\Delta_A", font_size=30).next_to(
             axis, DOWN, buff=0.15
         )
@@ -501,12 +663,10 @@ class SeparabilitySignalScene(Scene):
             color=RED_C,
             stroke_width=6,
         )
-        h_label = Text("human", font_size=23, color=BLUE_D).next_to(
-            axis.c2p(mu_h - 2.7, 0.09), LEFT, buff=0.12
+        h_label = Text("human", font_size=22, color=BLUE_D).move_to(
+            axis.c2p(-6.4, 0.108)
         )
-        a_label = Text("agent", font_size=23, color=RED_C).next_to(
-            axis.c2p(mu_a + 2.5, 0.08), RIGHT, buff=0.12
-        )
+        a_label = Text("agent", font_size=22, color=RED_C).move_to(axis.c2p(5.8, 0.095))
 
         boundary = DashedLine(
             axis.c2p(0.0, 0.0), axis.c2p(0.0, 0.165), color=GREY_B, stroke_width=2
@@ -514,6 +674,7 @@ class SeparabilitySignalScene(Scene):
         boundary_tag = Text("decision boundary", font_size=17, color=GREY_B).next_to(
             boundary, UP, buff=0.08
         )
+        boundary_tag.shift(RIGHT * 0.8)
 
         g_obs = 1.6
         g_line = Line(
@@ -534,11 +695,12 @@ class SeparabilitySignalScene(Scene):
         self.play(FadeIn(g_line), FadeIn(g_dot), FadeIn(g_tag))
 
         hint = Text(
-            "Positive gap pushes the session score toward agent probability.",
-            font_size=22,
+            "Positive gap shifts score toward agent traffic.",
+            font_size=20,
             color=GREY_B,
         )
         hint.next_to(x_tag, DOWN, buff=0.1)
+        hint.match_x(axis)
         self.play(FadeIn(hint, shift=UP * 0.1))
         self.wait(1.0)
 
@@ -575,19 +737,22 @@ class ContaminationGeneratorScene(Scene):
         self.play(FadeIn(top, shift=UP * 0.12), FadeIn(mixed_pool, shift=UP * 0.12))
         self.play(FadeIn(a1), FadeIn(a2))
 
-        alpha_tracker = ValueTracker(0.15)
+        flow = VGroup(top, mixed_pool, a1, a2)
+        self.play(flow.animate.scale(0.68).to_edge(LEFT).shift(UP * 0.58))
+
+        alpha_tracker = ValueTracker(0.18)
         bar_outline = Rectangle(
-            width=6.1, height=0.42, stroke_color=WHITE, stroke_width=2
-        ).next_to(mixed_pool, DOWN, buff=0.45)
+            width=7.0, height=0.46, stroke_color=WHITE, stroke_width=2
+        ).move_to(RIGHT * 0.55 + DOWN * 0.12)
         base_h = Rectangle(
-            width=6.1, height=0.36, stroke_width=0, fill_color=BLUE_D, fill_opacity=0.35
+            width=7.0, height=0.4, stroke_width=0, fill_color=BLUE_D, fill_opacity=0.35
         ).move_to(bar_outline)
 
         def make_agent_fill() -> Rectangle:
-            width = max(0.02, 6.1 * alpha_tracker.get_value())
+            width = max(0.02, 7.0 * alpha_tracker.get_value())
             rect = Rectangle(
                 width=width,
-                height=0.36,
+                height=0.4,
                 stroke_width=0,
                 fill_color=RED_C,
                 fill_opacity=0.68,
@@ -607,10 +772,10 @@ class ContaminationGeneratorScene(Scene):
                 color=YELLOW_C,
             ).next_to(alpha_label, RIGHT, buff=0.1)
         )
-        left_tag = Text("human share", font_size=19, color=BLUE_D).next_to(
+        left_tag = Text("human share (1-alpha)", font_size=18, color=BLUE_D).next_to(
             bar_outline, LEFT, buff=0.15
         )
-        right_tag = Text("agent share", font_size=19, color=RED_C).next_to(
+        right_tag = Text("agent share (alpha)", font_size=18, color=RED_C).next_to(
             bar_outline, RIGHT, buff=0.15
         )
 
@@ -623,20 +788,20 @@ class ContaminationGeneratorScene(Scene):
         )
 
         mix_eq = MathTex(
-            r"Q(p)=(1-\alpha)\,\mathbb{E}_{\theta\sim D_H}[d(p;\theta)] + \alpha\,\mathbb{E}_{\theta\sim D_A}[d(p;\theta)]",
-            font_size=30,
+            r"\hat Q(p\mid\tau')=(1-\alpha)\,\hat Q_H(p\mid\tau')+\alpha\,\hat Q_A(p\mid\tau')",
+            font_size=31,
         ).next_to(bar_outline, DOWN, buff=0.45)
         interval = MathTex(
-            r"\mathcal{A}_{\epsilon_\alpha}(\alpha_0)=\{\alpha:|\alpha-\alpha_0|\le\epsilon_\alpha\}",
+            r"\alpha\in[\alpha_0-\epsilon_\alpha,\,\alpha_0+\epsilon_\alpha]",
             font_size=31,
             color=GREY_B,
         )
         interval.next_to(mix_eq, DOWN, buff=0.2)
         self.play(Write(mix_eq), Write(interval))
 
-        self.play(alpha_tracker.animate.set_value(0.35), run_time=1.2)
-        self.play(alpha_tracker.animate.set_value(0.60), run_time=1.2)
-        self.play(alpha_tracker.animate.set_value(0.28), run_time=1.1)
+        self.play(alpha_tracker.animate.set_value(0.32), run_time=1.2)
+        self.play(alpha_tracker.animate.set_value(0.55), run_time=1.2)
+        self.play(alpha_tracker.animate.set_value(0.24), run_time=1.1)
         self.wait(0.9)
 
 
@@ -647,15 +812,20 @@ class RobustControlScene(Scene):
 
         objective = MathTex(
             r"\pi^*=\arg\max_\pi\min_{Q\in\mathcal U_\epsilon}\mathbb E_{d\sim Q}[R(p,d)-\lambda\,COI_{leak}(p,\tau') ]",
-            font_size=32,
+            font_size=31,
         ).next_to(title, DOWN, buff=0.4)
         reward = MathTex(
-            r"r_t=R(p_t,\tilde q_t)-\lambda f(\tau_t')c_{info}",
-            font_size=38,
+            r"r_t=R(p_t,d_t)-\lambda f(\tau_t')c_{info},\quad d_t\sim Q(\cdot\mid p_t,\tau_t')",
+            font_size=31,
             color=YELLOW_C,
         )
         reward.next_to(objective, DOWN, buff=0.25)
-        self.play(Write(objective), Write(reward))
+        demand_link = MathTex(
+            r"\hat Q(p_t,\tau_t')=\mathbb E_Q[d_t\mid p_t,\tau_t']",
+            font_size=29,
+            color=GREY_B,
+        ).next_to(reward, DOWN, buff=0.16)
+        self.play(Write(objective), Write(reward), Write(demand_link))
 
         plane = (
             Axes(
@@ -667,7 +837,7 @@ class RobustControlScene(Scene):
                 axis_config={"stroke_width": 1.8},
             )
             .to_edge(LEFT)
-            .shift(DOWN * 0.45)
+            .shift(DOWN * 0.55)
         )
         center = Dot(plane.c2p(0, 0), color=BLUE_D, radius=0.08)
         center_tag = (
@@ -697,22 +867,58 @@ class RobustControlScene(Scene):
         )
         self.play(FadeIn(q2_tag, shift=UP * 0.08))
 
+        inner_step = card(
+            "inner min picks Q*", color=RED_C, width=4.6, height=0.9, font_size=20
+        )
+        demand_step = card(
+            "sample demand from Q*", color=ORANGE, width=4.6, height=0.9, font_size=20
+        )
+        update_step = card(
+            "outer max updates policy",
+            color=GREEN_C,
+            width=4.6,
+            height=0.9,
+            font_size=20,
+        )
+        pipeline = (
+            VGroup(inner_step, demand_step, update_step)
+            .arrange(DOWN, buff=0.32)
+            .to_edge(RIGHT)
+            .shift(DOWN * 0.95)
+        )
         chooser = Arrow(
             q2.get_right() + RIGHT * 0.15,
-            q2.get_right() + RIGHT * 0.95,
-            buff=0.05,
+            inner_step.get_left(),
+            buff=0.08,
             color=RED_C,
             stroke_width=4,
         )
-        policy_card = (
-            card("policy update", color=RED_C, width=2.8, height=0.85)
-            .to_edge(RIGHT)
-            .shift(DOWN * 0.6)
+        stage_arrow_1 = Arrow(
+            inner_step.get_bottom(),
+            demand_step.get_top(),
+            buff=0.08,
+            stroke_width=3.6,
         )
-        self.play(FadeIn(chooser), FadeIn(policy_card, shift=LEFT * 0.15))
+        stage_arrow_2 = Arrow(
+            demand_step.get_bottom(),
+            update_step.get_top(),
+            buff=0.08,
+            stroke_width=3.6,
+        )
+        feedback = CurvedArrow(
+            update_step.get_left() + DOWN * 0.12,
+            center.get_right() + UP * 0.15,
+            angle=0.92,
+            color=GREEN_C,
+            stroke_width=3.6,
+        )
+        self.play(FadeIn(pipeline, shift=LEFT * 0.15))
+        self.play(FadeIn(chooser))
+        self.play(FadeIn(stage_arrow_1), FadeIn(stage_arrow_2))
+        self.play(FadeIn(feedback))
 
         note = Text(
-            "Train against plausible demand shifts, not just one estimate.",
+            "Reward is evaluated on demand drawn from Q*, then used for the policy step.",
             font_size=22,
             color=GREY_B,
         )
@@ -726,50 +932,91 @@ class SystemLoopScene(Scene):
         title = scene_title("Online + Offline Defense Loop")
         self.play(Write(title))
 
-        web = card("Web App", color=BLUE_D)
-        kafka = card("Kafka Streams", color=YELLOW_C)
-        kernels = card("Kernel + KL estimator", color=GREEN_C, width=4.0)
-        generator = card("Generator G(alpha)", color=GREEN_C)
-        policy = card("DR-RL policy", color=ORANGE)
-        provider = card("Pricing provider", color=BLUE_D)
+        web = card("Web app", color=BLUE_D, width=2.9)
+        provider = card("Pricing provider", color=BLUE_D, width=3.5)
+        kafka = card("Kafka streams", color=YELLOW_C, width=3.1)
+        kernels = card("Kernel + KL estimator", color=GREEN_C, width=3.9)
+        generator = card("Generator G(alpha)", color=GREEN_C, width=3.5)
+        policy = card("DR-RL trainer", color=ORANGE, width=3.0)
 
-        top = VGroup(web, kafka, kernels).arrange(RIGHT, buff=0.55).shift(UP * 0.95)
-        bottom = (
-            VGroup(generator, policy, provider)
-            .arrange(RIGHT, buff=0.7)
-            .next_to(top, DOWN, buff=1.15)
+        web.move_to(LEFT * 4.6 + UP * 1.35)
+        provider.move_to(RIGHT * 4.2 + UP * 1.35)
+        kafka.move_to(LEFT * 4.6 + DOWN * 1.1)
+        kernels.move_to(LEFT * 1.3 + DOWN * 1.1)
+        generator.move_to(RIGHT * 2.0 + DOWN * 1.1)
+        policy.move_to(RIGHT * 5.1 + DOWN * 1.1)
+
+        online_tag = Text("online serving", font_size=22, weight="BOLD", color=GREY_B)
+        online_tag.next_to(web, UP, buff=0.38).align_to(web, LEFT)
+        offline_tag = Text(
+            "offline defense training", font_size=22, weight="BOLD", color=GREY_B
         )
-        arrows = VGroup(
-            Arrow(web.get_right(), kafka.get_left(), buff=0.12, stroke_width=4),
-            Arrow(kafka.get_right(), kernels.get_left(), buff=0.12, stroke_width=4),
-            Arrow(kernels.get_bottom(), generator.get_top(), buff=0.12, stroke_width=4),
-            Arrow(generator.get_right(), policy.get_left(), buff=0.12, stroke_width=4),
-            Arrow(policy.get_right(), provider.get_left(), buff=0.12, stroke_width=4),
-            CurvedArrow(
-                provider.get_top(), web.get_bottom(), angle=1.3, stroke_width=4
-            ),
+        offline_tag.next_to(kafka, UP, buff=0.38).align_to(kafka, LEFT)
+
+        request_arrow = CurvedArrow(
+            web.get_right() + UP * 0.2,
+            provider.get_left() + UP * 0.2,
+            angle=-0.24,
+            stroke_width=4,
+        )
+        response_arrow = CurvedArrow(
+            provider.get_left() + DOWN * 0.2,
+            web.get_right() + DOWN * 0.2,
+            angle=-0.24,
+            stroke_width=4,
+        )
+        log_arrow = Arrow(web.get_bottom(), kafka.get_top(), buff=0.08, stroke_width=4)
+        k_to_kl = Arrow(kafka.get_right(), kernels.get_left(), buff=0.1, stroke_width=4)
+        kl_to_g = Arrow(
+            kernels.get_right(), generator.get_left(), buff=0.1, stroke_width=4
+        )
+        g_to_pi = Arrow(
+            generator.get_right(), policy.get_left(), buff=0.1, stroke_width=4
+        )
+        pi_to_provider = Arrow(
+            policy.get_top(), provider.get_bottom(), buff=0.08, stroke_width=4
         )
 
+        nodes = VGroup(web, provider, kafka, kernels, generator, policy)
+        self.play(
+            FadeIn(online_tag, shift=UP * 0.08), FadeIn(offline_tag, shift=UP * 0.08)
+        )
         self.play(
             LaggedStart(
-                *[FadeIn(node, shift=UP * 0.1) for node in VGroup(top, bottom)],
-                lag_ratio=0.14,
+                *[FadeIn(node, shift=UP * 0.08) for node in nodes], lag_ratio=0.12
             )
         )
-        self.play(LaggedStart(*[FadeIn(a) for a in arrows], lag_ratio=0.08))
+        self.play(
+            LaggedStart(
+                *[
+                    FadeIn(a)
+                    for a in [
+                        request_arrow,
+                        response_arrow,
+                        log_arrow,
+                        k_to_kl,
+                        kl_to_g,
+                        g_to_pi,
+                        pi_to_provider,
+                    ]
+                ],
+                lag_ratio=0.08,
+            )
+        )
 
         labels = VGroup(
-            Text("behavior events + price queries", font_size=19).next_to(
-                arrows[1], UP, buff=0.08
+            Text("request quote", font_size=17).next_to(request_arrow, UP, buff=0.06),
+            Text("serve price", font_size=17).next_to(response_arrow, DOWN, buff=0.06),
+            Text("events + quote logs", font_size=17).next_to(
+                log_arrow, RIGHT, buff=0.08
             ),
-            Text("inner worst-case step", font_size=19).next_to(
-                arrows[3], DOWN, buff=0.12
-            ),
-            Text("serve updated prices", font_size=19).next_to(
-                arrows[4], UP, buff=0.08
+            Text("fit kernels + alpha", font_size=17).next_to(kl_to_g, UP, buff=0.08),
+            Text("robust policy train", font_size=17).next_to(g_to_pi, UP, buff=0.08),
+            Text("publish model", font_size=17).next_to(
+                pi_to_provider, RIGHT, buff=0.08
             ),
         )
-        self.play(LaggedStart(*[FadeIn(l) for l in labels], lag_ratio=0.2))
+        self.play(LaggedStart(*[FadeIn(l) for l in labels], lag_ratio=0.15))
         self.wait(1.0)
 
 
