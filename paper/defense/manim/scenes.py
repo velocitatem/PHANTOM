@@ -37,14 +37,25 @@ from manim import (
     UP,
     ValueTracker,
     VGroup,
-    WHITE,
     Write,
-    YELLOW_C,
     always_redraw,
+    config,
 )
 
 P_MIN = 80.0
 P_MAX = 160.0
+LIGHT_BG = "#F8F8F4"
+INK = "#1E1E1E"
+AXIS_INK = "#2C2C2C"
+HIGHLIGHT = "#8F5F00"
+
+config.background_color = LIGHT_BG
+Text.set_default(color=INK)
+MathTex.set_default(color=INK)
+Line.set_default(color=AXIS_INK)
+Arrow.set_default(color=AXIS_INK)
+CurvedArrow.set_default(color=AXIS_INK)
+DashedLine.set_default(color=AXIS_INK)
 
 
 def normal_pdf(x: float, mu: float, sigma: float) -> float:
@@ -53,7 +64,7 @@ def normal_pdf(x: float, mu: float, sigma: float) -> float:
 
 
 def scene_title(text: str) -> Text:
-    return Text(text, font_size=44, weight="BOLD", color=WHITE).to_edge(UP)
+    return Text(text, font_size=44, weight="BOLD", color=INK).to_edge(UP)
 
 
 def card(
@@ -84,6 +95,102 @@ def to_matrix(
     )
     frame = SurroundingRectangle(mat, color=color, buff=0.2)
     return VGroup(header, frame, mat)
+
+
+def rank_from_scale(scale: int) -> str:
+    clamped = max(1, min(scale, 10))
+    return "A" if clamped == 1 else str(clamped)
+
+
+def actor_face_card(
+    rank: str,
+    role: str,
+    accent: str,
+    width: float = 1.6,
+    height: float = 2.25,
+    show_role: bool = True,
+) -> VGroup:
+    frame = RoundedRectangle(corner_radius=0.1, width=width, height=height)
+    frame.set_stroke(color=AXIS_INK, width=2.0)
+    frame.set_fill(color="#FFFFFF", opacity=1.0)
+
+    top_rank = Text(rank, font_size=30, color=accent).move_to(
+        frame.get_corner(UP + LEFT) + RIGHT * 0.2 + DOWN * 0.22
+    )
+    bottom_rank = (
+        Text(rank, font_size=30, color=accent)
+        .rotate(np.pi)
+        .move_to(frame.get_corner(DOWN + RIGHT) + LEFT * 0.2 + UP * 0.22)
+    )
+    center_rank = Text(rank, font_size=56, weight="BOLD", color=accent).move_to(
+        frame.get_center() + UP * 0.03
+    )
+
+    parts = [frame, top_rank, bottom_rank, center_rank]
+    if show_role:
+        role_label = Text(role, font_size=18, color=GREY_B).next_to(
+            frame, DOWN, buff=0.08
+        )
+        parts.append(role_label)
+    return VGroup(*parts)
+
+
+def product_suit_card(
+    suit: str,
+    scale: int,
+    accent: str,
+    width: float = 1.86,
+    height: float = 1.04,
+    show_label: bool = False,
+) -> tuple[VGroup, Text]:
+    frame = RoundedRectangle(corner_radius=0.08, width=width, height=height)
+    frame.set_stroke(color=AXIS_INK, width=2.0)
+    frame.set_fill(color="#FFFFFF", opacity=1.0)
+
+    suit_left = Text(suit, font_size=28, color=accent).move_to(
+        frame.get_left() + RIGHT * 0.22
+    )
+    suit_right = Text(suit, font_size=28, color=accent).move_to(
+        frame.get_right() + LEFT * 0.22
+    )
+    scale_text = Text(
+        rank_from_scale(scale),
+        font_size=40,
+        weight="BOLD",
+        color=accent,
+    ).move_to(frame.get_center())
+
+    parts = [frame, suit_left, suit_right, scale_text]
+    if show_label:
+        scale_label = Text("scale", font_size=14, color=GREY_B).next_to(
+            frame, DOWN, buff=0.04
+        )
+        parts.append(scale_label)
+    return VGroup(*parts), scale_text
+
+
+def private_valuation_card(value: int, show_label: bool = False) -> VGroup:
+    frame = RoundedRectangle(corner_radius=0.08, width=1.86, height=1.04)
+    frame.set_stroke(color=AXIS_INK, width=2.0)
+    frame.set_fill(color="#FFFFFF", opacity=1.0)
+
+    rank = Text(
+        rank_from_scale(value), font_size=40, weight="BOLD", color=GREEN_C
+    ).move_to(frame.get_center())
+    left_tag = Text("v", font_size=28, color=INK).move_to(
+        frame.get_left() + RIGHT * 0.22
+    )
+    right_tag = Text("*", font_size=28, color=INK).move_to(
+        frame.get_right() + LEFT * 0.22
+    )
+
+    parts = [frame, left_tag, right_tag, rank]
+    if show_label:
+        title = Text("private value", font_size=14, color=GREY_B).next_to(
+            frame, DOWN, buff=0.04
+        )
+        parts.append(title)
+    return VGroup(*parts)
 
 
 class DefenseOpening(Scene):
@@ -117,7 +224,7 @@ class DefenseOpening(Scene):
             x_length=2.7,
             y_length=1.5,
             tips=False,
-            axis_config={"stroke_width": 1.8},
+            axis_config={"stroke_width": 1.8, "color": AXIS_INK},
         )
         dist_h = dist_axes.plot(
             lambda x: normal_pdf(x, -1.9, 1.6),
@@ -146,7 +253,7 @@ class DefenseOpening(Scene):
             x_length=2.7,
             y_length=1.5,
             tips=False,
-            axis_config={"stroke_width": 1.8},
+            axis_config={"stroke_width": 1.8, "color": AXIS_INK},
         )
         tail_n1 = tail_axes.plot(
             lambda x: (1 - x) ** 1,
@@ -157,7 +264,7 @@ class DefenseOpening(Scene):
         tail_n8 = tail_axes.plot(
             lambda x: (1 - x) ** 8,
             x_range=[0, 1],
-            color=YELLOW_C,
+            color=HIGHLIGHT,
             stroke_width=4,
         )
         tail_block = VGroup(
@@ -172,9 +279,9 @@ class DefenseOpening(Scene):
         control_eq = MathTex(
             r"\hat\alpha(\tau')\Rightarrow\pi^*",
             font_size=34,
-            color=YELLOW_C,
+            color=HIGHLIGHT,
         )
-        control_box = SurroundingRectangle(control_eq, color=YELLOW_C, buff=0.12)
+        control_box = SurroundingRectangle(control_eq, color=HIGHLIGHT, buff=0.12)
         control_block = VGroup(control_box, control_eq)
 
         preview = VGroup(dist_block, tail_block, control_block).arrange(
@@ -194,6 +301,182 @@ class DefenseOpening(Scene):
         self.wait(0.9)
 
 
+class CardMarketAnalogyScene(Scene):
+    def construct(self) -> None:
+        title = scene_title("Card Analogy: Platform, Customer, Agent")
+        self.play(Write(title))
+
+        subtitle = Text(
+            "K = platform, Q = customer, J = search agent, suit cards = products",
+            font_size=20,
+            color=GREY_B,
+        ).next_to(title, DOWN, buff=0.16)
+        self.play(FadeIn(subtitle, shift=UP * 0.05))
+
+        king = actor_face_card(
+            rank="K", role="platform", accent=ORANGE, show_role=False
+        )
+        king.move_to(LEFT * 5.35 + DOWN * 0.35)
+
+        queen_home = RIGHT * 3.2 + DOWN * 0.28
+        queen = actor_face_card(
+            rank="Q", role="customer", accent=BLUE_D, show_role=False
+        )
+        queen.move_to(queen_home)
+
+        valuation = private_valuation_card(value=5).next_to(queen, RIGHT, buff=0.35)
+
+        specs = [
+            ("C", INK, 4),
+            ("H", RED_C, 6),
+            ("S", INK, 5),
+            ("D", RED_C, 3),
+        ]
+        scales = [initial for _, _, initial in specs]
+        products = VGroup()
+        scale_tokens: list[Text] = []
+        for suit, color, initial in specs:
+            product_card, token = product_suit_card(
+                suit=suit, scale=initial, accent=color
+            )
+            products.add(product_card)
+            scale_tokens.append(token)
+
+        products.arrange(DOWN, buff=0.15).move_to(LEFT * 1.75 + DOWN * 0.55)
+
+        actor_link = Arrow(
+            king.get_right(),
+            products.get_left(),
+            buff=0.15,
+            color=HIGHLIGHT,
+            stroke_width=3.6,
+        )
+
+        self.play(
+            FadeIn(king, shift=RIGHT * 0.2),
+            FadeIn(products, shift=UP * 0.15),
+            FadeIn(queen, shift=LEFT * 0.2),
+            FadeIn(valuation, shift=LEFT * 0.2),
+        )
+        self.play(FadeIn(actor_link))
+
+        stage = Text(
+            "Stage 1: queen browses directly and visited products rise in scale.",
+            font_size=21,
+            color=GREY_B,
+        ).to_edge(DOWN)
+        self.play(FadeIn(stage, shift=UP * 0.08))
+
+        direct_visits = [1, 2]
+        for idx in direct_visits:
+            target = products[idx]
+            demand_box = SurroundingRectangle(target, color=BLUE_D, buff=0.06)
+            king_box = SurroundingRectangle(king[0], color=HIGHLIGHT, buff=0.07)
+
+            self.play(
+                queen.animate.move_to(target.get_right() + RIGHT * 0.9),
+                run_time=0.7,
+            )
+            self.play(Create(demand_box), run_time=0.2)
+
+            scales[idx] = min(10, scales[idx] + 2)
+            new_scale = Text(
+                rank_from_scale(scales[idx]),
+                font_size=40,
+                weight="BOLD",
+                color=specs[idx][1],
+            ).move_to(scale_tokens[idx])
+            self.play(
+                Create(king_box),
+                Transform(scale_tokens[idx], new_scale),
+                run_time=0.5,
+            )
+            self.play(FadeOut(king_box), FadeOut(demand_box), run_time=0.18)
+
+        self.play(queen.animate.move_to(queen_home), run_time=0.7)
+
+        stage_two = Text(
+            "Stage 2: queen hires jack to search every card before deciding.",
+            font_size=21,
+            color=GREY_B,
+        ).to_edge(DOWN)
+        self.play(Transform(stage, stage_two))
+
+        jack = actor_face_card(
+            rank="J", role="agent", accent=RED_C, show_role=False
+        ).scale(0.95)
+        jack.next_to(queen, LEFT, buff=0.35)
+        hire_arrow = Arrow(
+            queen.get_left(),
+            jack.get_right(),
+            buff=0.08,
+            color=HIGHLIGHT,
+            stroke_width=2.6,
+        )
+        self.play(FadeIn(jack, shift=RIGHT * 0.16), FadeIn(hire_arrow))
+        self.play(FadeOut(hire_arrow), run_time=0.2)
+
+        for idx, target in enumerate(products):
+            demand_box = SurroundingRectangle(target, color=RED_C, buff=0.05)
+            king_box = SurroundingRectangle(king[0], color=HIGHLIGHT, buff=0.07)
+
+            self.play(
+                jack.animate.move_to(target.get_right() + RIGHT * 0.62),
+                run_time=0.32,
+            )
+            self.play(Create(demand_box), run_time=0.17)
+
+            scales[idx] = min(10, scales[idx] + 1)
+            new_scale = Text(
+                rank_from_scale(scales[idx]),
+                font_size=40,
+                weight="BOLD",
+                color=specs[idx][1],
+            ).move_to(scale_tokens[idx])
+            self.play(
+                Create(king_box), Transform(scale_tokens[idx], new_scale), run_time=0.38
+            )
+            self.play(
+                FadeOut(king_box),
+                FadeOut(demand_box),
+                run_time=0.15,
+            )
+
+        self.play(jack.animate.next_to(queen, LEFT, buff=0.35), run_time=0.55)
+
+        report_arrow = Arrow(
+            jack.get_right(),
+            queen.get_left(),
+            buff=0.08,
+            color=GREEN_C,
+            stroke_width=2.6,
+        )
+        self.play(FadeIn(report_arrow))
+
+        best_idx = int(np.argmin(scales))
+        best_card = products[best_idx]
+        choice_box = SurroundingRectangle(best_card, color=GREEN_C, buff=0.07)
+        stage_three = Text(
+            "Decision rule: buy when private value v* exceeds shown scale.",
+            font_size=21,
+            color=GREY_B,
+        ).to_edge(DOWN)
+
+        self.play(
+            Transform(stage, stage_three),
+            queen.animate.move_to(best_card.get_right() + RIGHT * 0.9),
+            Create(choice_box),
+            run_time=0.95,
+        )
+        self.play(
+            FadeOut(jack),
+            FadeOut(report_arrow),
+            FadeOut(actor_link),
+            FadeOut(subtitle),
+        )
+        self.wait(1.0)
+
+
 class COIFirstPrinciplesScene(Scene):
     def construct(self) -> None:
         title = scene_title("Cost of Information from First Principles")
@@ -202,7 +485,7 @@ class COIFirstPrinciplesScene(Scene):
         setup = VGroup(
             MathTex(r"P\sim\pi(\tau)", font_size=44),
             MathTex(r"\underline p=\text{reservation price}", font_size=38),
-            MathTex(r"M=P-\underline p", font_size=46, color=YELLOW_C),
+            MathTex(r"M=P-\underline p", font_size=46, color=HIGHLIGHT),
         ).arrange(DOWN, aligned_edge=LEFT, buff=0.22)
         setup.to_edge(LEFT).shift(UP * 0.55)
 
@@ -221,7 +504,7 @@ class COIFirstPrinciplesScene(Scene):
                 x_length=7.0,
                 y_length=3.3,
                 tips=False,
-                axis_config={"stroke_width": 2},
+                axis_config={"stroke_width": 2, "color": AXIS_INK},
             )
             .to_edge(RIGHT)
             .shift(DOWN * 0.2)
@@ -257,11 +540,11 @@ class COIFirstPrinciplesScene(Scene):
         coi_span = Line(
             axes.c2p(floor_x, 0.032),
             axes.c2p(mean_x, 0.032),
-            color=YELLOW_C,
+            color=HIGHLIGHT,
             stroke_width=6,
         )
         coi_tag = Text(
-            "average information rent", font_size=18, color=YELLOW_C
+            "average information rent", font_size=18, color=HIGHLIGHT
         ).next_to(coi_span, UP, buff=0.05)
 
         chart = VGroup(
@@ -299,7 +582,7 @@ class COIFirstPrinciplesScene(Scene):
             Transform(coi_mid, expanded_mid),
             coi_right.animate.next_to(coi_mid, RIGHT, buff=0.04),
         )
-        self.play(coi_eq.animate.set_color(YELLOW_C))
+        self.play(coi_eq.animate.set_color(HIGHLIGHT))
 
         survival = MathTex(
             r"\mathrm{COI}=\int_{\underline p}^{\bar p}(1-F_\pi(p))\,dp",
@@ -328,15 +611,16 @@ class COIOrderStatisticProofScene(Scene):
         title = scene_title("Why COI Erodes with Agent Saturation")
         self.play(Write(title))
 
-        key = MathTex(r"p_{(1)}=\min(p_1,\ldots,p_N)", font_size=42, color=YELLOW_C)
+        key = MathTex(r"p_{(1)}=\min(p_1,\ldots,p_N)", font_size=42, color=HIGHLIGHT)
         key.next_to(title, DOWN, buff=0.35)
         self.play(Write(key))
 
         number_line = NumberLine(
             x_range=[P_MIN, P_MAX, 10],
             length=9.8,
+            color=AXIS_INK,
             include_numbers=True,
-            decimal_number_config={"num_decimal_places": 0},
+            decimal_number_config={"num_decimal_places": 0, "color": INK},
         ).shift(DOWN * 1.5)
         floor_marker = Line(
             number_line.n2p(P_MIN),
@@ -392,7 +676,7 @@ class COIOrderStatisticProofScene(Scene):
         p1 = MathTex(
             r"\mathbb{P}(p_{(1)}>t)=\mathbb{P}(p_1>t,\ldots,p_N>t)", font_size=36
         )
-        p2 = MathTex(r"\mathbb{P}(p_{(1)}>t)=[1-F(t)]^N", font_size=42, color=YELLOW_C)
+        p2 = MathTex(r"\mathbb{P}(p_{(1)}>t)=[1-F(t)]^N", font_size=42, color=HIGHLIGHT)
         prob_group = VGroup(p1, p2).arrange(DOWN, aligned_edge=LEFT, buff=0.16)
         prob_group.to_edge(RIGHT).shift(UP * 0.75)
 
@@ -416,7 +700,7 @@ class COIOrderStatisticProofScene(Scene):
                 x_length=4.1,
                 y_length=2.45,
                 tips=False,
-                axis_config={"stroke_width": 2},
+                axis_config={"stroke_width": 2, "color": AXIS_INK},
             )
             .to_edge(RIGHT)
             .shift(DOWN * 1.0 + LEFT * 0.2)
@@ -466,7 +750,7 @@ class COIOrderStatisticProofScene(Scene):
         e5 = MathTex(
             r"\Rightarrow\ \lim_{N\to\infty}(\mathbb{E}[p_{(1)}]-\underline p)=0",
             font_size=38,
-            color=YELLOW_C,
+            color=HIGHLIGHT,
         )
         proof_block = VGroup(e1, e2, e3, e4, e5).arrange(
             DOWN, aligned_edge=LEFT, buff=0.12
@@ -516,7 +800,7 @@ class BehaviorKernelConstructionScene(Scene):
         mle = MathTex(
             r"\hat P(s'\mid s)=\frac{N(s,s')}{\sum_k N(s,k)}",
             font_size=40,
-            color=YELLOW_C,
+            color=HIGHLIGHT,
         )
         mle.next_to(trajectories, DOWN, aligned_edge=LEFT, buff=0.28)
         self.play(Write(mle))
@@ -587,7 +871,7 @@ class SeparabilitySignalScene(Scene):
             "Separability into a Control Signal",
             font_size=40,
             weight="BOLD",
-            color=WHITE,
+            color=INK,
         ).to_edge(UP, buff=0.18)
         self.play(Write(title))
 
@@ -623,7 +907,7 @@ class SeparabilitySignalScene(Scene):
 
         d_h = MathTex(r"\Delta_H=D_{KL}(\hat T'\parallel\bar T_H)", font_size=36)
         d_a = MathTex(r"\Delta_A=D_{KL}(\hat T'\parallel\bar T_A)", font_size=36)
-        gap = MathTex(r"g=\Delta_H-\Delta_A", font_size=44, color=YELLOW_C)
+        gap = MathTex(r"g=\Delta_H-\Delta_A", font_size=44, color=HIGHLIGHT)
         alpha = MathTex(r"\hat\alpha(\tau')=\sigma(\beta g)", font_size=40)
         eqs = VGroup(d_h, d_a, gap, alpha).arrange(DOWN, aligned_edge=LEFT, buff=0.2)
         eqs.to_edge(RIGHT).shift(UP * 0.38)
@@ -642,7 +926,7 @@ class SeparabilitySignalScene(Scene):
                 x_length=6.8,
                 y_length=3.7,
                 tips=False,
-                axis_config={"stroke_width": 2},
+                axis_config={"stroke_width": 2, "color": AXIS_INK},
             )
             .to_edge(RIGHT)
             .shift(DOWN * 0.75 + LEFT * 0.15)
@@ -678,11 +962,14 @@ class SeparabilitySignalScene(Scene):
 
         g_obs = 1.6
         g_line = Line(
-            axis.c2p(g_obs, 0.0), axis.c2p(g_obs, 0.145), color=YELLOW_C, stroke_width=4
+            axis.c2p(g_obs, 0.0),
+            axis.c2p(g_obs, 0.145),
+            color=HIGHLIGHT,
+            stroke_width=4,
         )
-        g_dot = Dot(axis.c2p(g_obs, 0.145), color=YELLOW_C, radius=0.06)
+        g_dot = Dot(axis.c2p(g_obs, 0.145), color=HIGHLIGHT, radius=0.06)
         g_tag = (
-            MathTex(r"g_{obs}", color=YELLOW_C)
+            MathTex(r"g_{obs}", color=HIGHLIGHT)
             .scale(0.72)
             .next_to(g_dot, UP, buff=0.04)
         )
@@ -712,7 +999,7 @@ class ContaminationGeneratorScene(Scene):
 
         human_pool = card("labeled human sessions", color=BLUE_D, width=4.1)
         agent_pool = card("synthetic agent sessions", color=RED_C, width=4.1)
-        mixed_pool = card("mixed batch for training", color=YELLOW_C, width=4.4)
+        mixed_pool = card("mixed batch for training", color=HIGHLIGHT, width=4.4)
 
         top = (
             VGroup(human_pool, agent_pool)
@@ -742,7 +1029,7 @@ class ContaminationGeneratorScene(Scene):
 
         alpha_tracker = ValueTracker(0.18)
         bar_outline = Rectangle(
-            width=7.0, height=0.46, stroke_color=WHITE, stroke_width=2
+            width=7.0, height=0.46, stroke_color=AXIS_INK, stroke_width=2
         ).move_to(RIGHT * 0.55 + DOWN * 0.12)
         base_h = Rectangle(
             width=7.0, height=0.4, stroke_width=0, fill_color=BLUE_D, fill_opacity=0.35
@@ -769,7 +1056,7 @@ class ContaminationGeneratorScene(Scene):
                 alpha_tracker.get_value(),
                 num_decimal_places=2,
                 font_size=28,
-                color=YELLOW_C,
+                color=HIGHLIGHT,
             ).next_to(alpha_label, RIGHT, buff=0.1)
         )
         left_tag = Text("human share (1-alpha)", font_size=18, color=BLUE_D).next_to(
@@ -817,7 +1104,7 @@ class RobustControlScene(Scene):
         reward = MathTex(
             r"r_t=R(p_t,d_t)-\lambda f(\tau_t')c_{info},\quad d_t\sim Q(\cdot\mid p_t,\tau_t')",
             font_size=31,
-            color=YELLOW_C,
+            color=HIGHLIGHT,
         )
         reward.next_to(objective, DOWN, buff=0.25)
         demand_link = MathTex(
@@ -834,7 +1121,7 @@ class RobustControlScene(Scene):
                 x_length=5.6,
                 y_length=5.6,
                 tips=False,
-                axis_config={"stroke_width": 1.8},
+                axis_config={"stroke_width": 1.8, "color": AXIS_INK},
             )
             .to_edge(LEFT)
             .shift(DOWN * 0.55)
@@ -845,9 +1132,9 @@ class RobustControlScene(Scene):
             .scale(0.75)
             .next_to(center, UP, buff=0.07)
         )
-        ball = Circle(radius=1.75, color=YELLOW_C, stroke_width=3).move_to(center)
+        ball = Circle(radius=1.75, color=HIGHLIGHT, stroke_width=3).move_to(center)
         ball_tag = (
-            MathTex(r"\mathcal U_\epsilon", color=YELLOW_C)
+            MathTex(r"\mathcal U_\epsilon", color=HIGHLIGHT)
             .scale(0.72)
             .next_to(ball, UP, buff=0.08)
         )
@@ -934,7 +1221,7 @@ class SystemLoopScene(Scene):
 
         web = card("Web app", color=BLUE_D, width=2.9)
         provider = card("Pricing provider", color=BLUE_D, width=3.5)
-        kafka = card("Kafka streams", color=YELLOW_C, width=3.1)
+        kafka = card("Kafka streams", color=HIGHLIGHT, width=3.1)
         kernels = card("Kernel + KL estimator", color=GREEN_C, width=3.9)
         generator = card("Generator G(alpha)", color=GREEN_C, width=3.5)
         policy = card("DR-RL trainer", color=ORANGE, width=3.0)
@@ -1103,7 +1390,7 @@ class TakeawayScene(Scene):
         final = Text(
             "From mechanism failure to implementable defense loop.",
             font_size=29,
-            color=YELLOW_C,
+            color=HIGHLIGHT,
         )
         final.to_edge(DOWN)
         self.play(FadeIn(final, shift=UP * 0.1))
@@ -1112,6 +1399,7 @@ class TakeawayScene(Scene):
 
 SCENE_ORDER = [
     "DefenseOpening",
+    "CardMarketAnalogyScene",
     "COIFirstPrinciplesScene",
     "COIOrderStatisticProofScene",
     "BehaviorKernelConstructionScene",
