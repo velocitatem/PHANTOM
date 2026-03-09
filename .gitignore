@@ -39,6 +39,8 @@ paper/src/auto/*
 paper/src/bib/auto
 paper/template/*
 paper/build-cais/
+paper/defense/manim/media/
+paper/defense/manim/.manim/
 paper/src/main.pdf
 paper/src/main-blx.bib
 paper/src/svg-inkscape/
