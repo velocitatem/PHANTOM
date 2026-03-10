@@ -17,6 +17,7 @@ WANDB_PROJECT ?= capstone
 SWEEP_ID ?=
 LOCAL_TRAIN_ARGS ?= --algo ppo --total-timesteps 50000
 LOCAL_BENCHMARK_ARGS ?= --tiers static,surge,linear,qtable,ppo --alpha-values 0.0,0.3 --episodes 3 --total-timesteps 3000 --max-steps 40 --device cpu
+SIMPLE_BENCHMARK_ARGS ?= --tiers qtable,ppo,dqn,a2c --alpha-values 0.0,0.15,0.3,0.45,0.6 --episodes 8 --total-timesteps 8000 --max-steps 40 --device cpu
 BENCHMARK_AGENT_ARGS ?=
 AGENT_COUNT ?= 0
 
@@ -34,7 +35,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 
 .PHONY: help
 help:
-	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.agent | train.agent | train.bootstrap | stats.lines"
+	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
 	@echo ""
 	@echo "Build general public version:"
@@ -45,6 +46,9 @@ help:
 	@echo ""
 	@echo "Local benchmark run:"
 	@echo "  make benchmark LOCAL_BENCHMARK_ARGS='--tiers static,surge,linear --alpha-values 0.0,0.3 --episodes 3 --no-wandb'"
+	@echo ""
+	@echo "Simple benchmark run (.env.sweep defaults, robust+no_robust compare by default):"
+	@echo "  make benchmark.simple"
 	@echo ""
 	@echo "Local sweep agent from this repo:"
 	@echo "  make train.agent SWEEP_ID=entity/project/id AGENT_COUNT=5"
@@ -108,6 +112,10 @@ train:
 .PHONY: benchmark
 benchmark:
 	@WANDB_ENTITY="$(WANDB_ENTITY)" WANDB_PROJECT="$(WANDB_PROJECT)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" LOCAL_BENCHMARK_ARGS="$(LOCAL_BENCHMARK_ARGS)" $(NX) run research:benchmark
+
+.PHONY: benchmark.simple
+benchmark.simple:
+	@WANDB_ENTITY="$(WANDB_ENTITY)" WANDB_PROJECT="$(WANDB_PROJECT)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" SIMPLE_BENCHMARK_ARGS="$(SIMPLE_BENCHMARK_ARGS)" PHANTOM_BENCHMARK_COMPARE_ROBUST="$(PHANTOM_BENCHMARK_COMPARE_ROBUST)" $(NX) run research:benchmark-simple
 
 .PHONY: benchmark.agent
 benchmark.agent:
