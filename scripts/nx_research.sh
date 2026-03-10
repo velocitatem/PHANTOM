@@ -44,6 +44,17 @@ case "$cmd" in
     WANDB_API_KEY="${WANDB_API_KEY:-}" \
       .venv/bin/python -m engine.train --run-kind benchmark ${LOCAL_BENCHMARK_ARGS:---tiers static,surge,linear,qtable,ppo --alpha-values 0.0,0.3 --episodes 3 --total-timesteps 3000 --max-steps 40 --device cpu}
     ;;
+  benchmark-simple)
+    load_sweep_env
+    if [[ " ${SIMPLE_BENCHMARK_ARGS:-} " != *" --no-wandb "* ]]; then
+      require_var WANDB_API_KEY "WANDB_API_KEY required - set it in $env_file"
+    fi
+    WANDB_ENTITY="${WANDB_ENTITY:-}" \
+    WANDB_PROJECT="${WANDB_PROJECT:-capstone}" \
+    WANDB_API_KEY="${WANDB_API_KEY:-}" \
+    PHANTOM_BENCHMARK_COMPARE_ROBUST="${PHANTOM_BENCHMARK_COMPARE_ROBUST:-1}" \
+      .venv/bin/python -m engine.train --run-kind benchmark ${SIMPLE_BENCHMARK_ARGS:---tiers qtable,ppo,dqn,a2c --alpha-values 0.0,0.15,0.3,0.45,0.6 --episodes 8 --total-timesteps 8000 --max-steps 40 --device cpu}
+    ;;
   train-agent)
     load_sweep_env
     require_var WANDB_API_KEY "WANDB_API_KEY required - set it in $env_file"

@@ -64,7 +64,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--info-value", type=float)
     parser.add_argument("--robust-radius", type=float)
     parser.add_argument("--robust-points", type=int)
+    parser.add_argument("--robust-rollouts", type=int)
     parser.add_argument("--no-robust", action="store_true")
+    parser.add_argument("--eta-ux", type=float)
+    parser.add_argument("--reward-profit-weight", type=float)
     parser.add_argument("--revenue-weight", type=float)
 
     parser.add_argument("--price-low", type=float)
@@ -132,7 +135,10 @@ def _overrides_from_args(args: argparse.Namespace) -> dict[str, Any]:
         "info_value": args.info_value,
         "robust_radius": args.robust_radius,
         "robust_points": args.robust_points,
+        "robust_rollouts": args.robust_rollouts,
         "no_robust": args.no_robust,
+        "eta_ux": args.eta_ux,
+        "reward_profit_weight": args.reward_profit_weight,
         "revenue_weight": args.revenue_weight,
         "price_low": args.price_low,
         "price_high": args.price_high,

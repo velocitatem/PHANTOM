@@ -31,7 +31,10 @@ def _normalize_keys(raw: Mapping[str, Any]) -> dict[str, Any]:
         "study.lambda_coi": "lambda_coi",
         "study.robust_radius": "robust_radius",
         "study.robust_points": "robust_points",
+        "study.robust_rollouts": "robust_rollouts",
         "study.info_value": "info_value",
+        "study.eta_ux": "eta_ux",
+        "study.reward_profit_weight": "reward_profit_weight",
         "study.revenue_weight": "revenue_weight",
         "optimizer.learning_rate": "learning_rate",
         "optimizer.gamma": "gamma",
@@ -77,7 +80,10 @@ class StudySpec:
     lambda_coi: float = 0.2
     robust_radius: float = 0.15
     robust_points: int = 5
+    robust_rollouts: int = 1
     info_value: float = 1.0
+    eta_ux: float = 0.5
+    reward_profit_weight: float = 1.0
     revenue_weight: float = 0.01
     no_robust: bool = False
 
@@ -165,7 +171,10 @@ class TrainSpec:
             "lambda_coi": self.study.lambda_coi,
             "robust_radius": self.study.robust_radius,
             "robust_points": self.study.robust_points,
+            "robust_rollouts": self.study.robust_rollouts,
             "info_value": self.study.info_value,
+            "eta_ux": self.study.eta_ux,
+            "reward_profit_weight": self.study.reward_profit_weight,
             "revenue_weight": self.study.revenue_weight,
             "no_robust": self.study.no_robust,
             "learning_rate": self.optimizer.learning_rate,
@@ -222,6 +231,7 @@ class TrainSpec:
             base["lambda_coi"] = 0.0
             base["robust_radius"] = 0.0
             base["robust_points"] = 1
+            base["robust_rollouts"] = 1
 
         return cls(
             algorithm=AlgorithmSpec(name=str(base["algo"]).lower().strip()),
@@ -242,7 +252,10 @@ class TrainSpec:
                 lambda_coi=float(base["lambda_coi"]),
                 robust_radius=float(base["robust_radius"]),
                 robust_points=int(base["robust_points"]),
+                robust_rollouts=int(base["robust_rollouts"]),
                 info_value=float(base["info_value"]),
+                eta_ux=float(base["eta_ux"]),
+                reward_profit_weight=float(base["reward_profit_weight"]),
                 revenue_weight=float(base["revenue_weight"]),
                 no_robust=no_robust,
             ),

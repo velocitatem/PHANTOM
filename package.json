@@ -20,6 +20,7 @@
     "platform:logs": "nx run platform:logs",
     "research:test": "nx run research:test",
     "research:benchmark": "nx run research:benchmark",
+    "research:benchmark:simple": "nx run research:benchmark-simple",
     "e2e:test": "nx run e2e:test"
   },
   "devDependencies": {

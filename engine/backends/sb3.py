@@ -144,7 +144,9 @@ def train_sb3(cfg: Mapping[str, Any]) -> tuple[object, dict[str, Any]]:
         pass
 
     metrics_callback = MetricsCallback(
-        log_histograms=False, log_freq=int(cfg["log_freq"])
+        log_histograms=False,
+        log_freq=int(cfg["log_freq"]),
+        step_offset=int(cfg.get("wandb_step_offset", 0)),
     )
     callbacks = [metrics_callback]
     callbacks.append(
@@ -175,6 +177,7 @@ def train_sb3(cfg: Mapping[str, Any]) -> tuple[object, dict[str, Any]]:
         model,
         eval_env,
         int(cfg["eval_episodes"]),
+        cfg=cfg,
     )
     metrics["train/global_step"] = int(model.num_timesteps)
     metrics["model/path"] = str(model_path.with_suffix(".zip"))

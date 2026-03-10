@@ -7,6 +7,7 @@ from typing import Any, Mapping
 import numpy as np
 
 from .common import evaluate, make_env
+from ..telemetry.wandb import get_wandb_module
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,9 @@ def train_qtable(
     console_progress = bool(cfg.get("console_progress", False))
     obs, _ = env.reset(seed=int(cfg["seed"]))
     started_at = time.perf_counter()
+    wandb = get_wandb_module()
+    wandb_live = bool(wandb is not None and wandb.run is not None)
+    step_offset = max(0, int(cfg.get("wandb_step_offset", 0)))
 
     interval_sums = {
         "reward": 0.0,
@@ -75,7 +79,10 @@ def train_qtable(
                 "train/epsilon": float(epsilon),
                 "train/global_step": int(steps),
             }
-            train_events.append(event)
+            if wandb_live:
+                wandb.log(dict(event), step=step_offset + int(steps))
+            else:
+                train_events.append(event)
             if console_progress:
                 elapsed = max(time.perf_counter() - started_at, 1e-6)
                 speed = steps / elapsed
@@ -96,17 +103,19 @@ def train_qtable(
 
     if interval_count > 0:
         denom = float(interval_count)
-        train_events.append(
-            {
-                "train/reward_mean": interval_sums["reward"] / denom,
-                "train/revenue_mean": interval_sums["revenue"] / denom,
-                "train/agent_prob": interval_sums["agent_prob"] / denom,
-                "train/alpha_adv": interval_sums["alpha_adv"] / denom,
-                "train/coi_leakage": interval_sums["coi_leakage"] / denom,
-                "train/epsilon": float(epsilon),
-                "train/global_step": int(steps),
-            }
-        )
+        tail_event = {
+            "train/reward_mean": interval_sums["reward"] / denom,
+            "train/revenue_mean": interval_sums["revenue"] / denom,
+            "train/agent_prob": interval_sums["agent_prob"] / denom,
+            "train/alpha_adv": interval_sums["alpha_adv"] / denom,
+            "train/coi_leakage": interval_sums["coi_leakage"] / denom,
+            "train/epsilon": float(epsilon),
+            "train/global_step": int(steps),
+        }
+        if wandb_live:
+            wandb.log(dict(tail_event), step=step_offset + int(steps))
+        else:
+            train_events.append(tail_event)
 
     metrics: dict[str, Any] = {
         "train/reward_mean": total_reward / max(steps, 1),
@@ -114,7 +123,7 @@ def train_qtable(
         "train/epsilon": float(epsilon),
         "train/global_step": int(cfg["total_timesteps"]),
     }
-    metrics.update(evaluate(agent, eval_env, int(cfg["eval_episodes"])))
+    metrics.update(evaluate(agent, eval_env, int(cfg["eval_episodes"]), cfg=cfg))
     metrics["_train_events"] = train_events
 
     env.close()

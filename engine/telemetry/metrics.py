@@ -34,9 +34,14 @@ def canonicalize_metrics(raw: Mapping[str, Any], spec: TrainSpec) -> dict[str, A
 
     metrics.setdefault("train/global_step", spec.runtime.total_timesteps)
 
-    eval_reward = _as_float(metrics.get("eval/reward_mean"), 0.0) or 0.0
-    eval_revenue = _as_float(metrics.get("eval/revenue_mean"), 0.0) or 0.0
-    metrics["objective/score"] = eval_reward + spec.study.revenue_weight * eval_revenue
+    eval_reward = (
+        _as_float(
+            metrics.get("eval/robust_reward_worst", metrics.get("eval/reward_mean")),
+            0.0,
+        )
+        or 0.0
+    )
+    metrics["objective/score"] = eval_reward
 
     margin_mean = _as_float(metrics.get("eval/margin_mean"), None)
     if margin_mean is not None:
