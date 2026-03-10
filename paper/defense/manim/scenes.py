@@ -1397,6 +1397,171 @@ class TakeawayScene(Scene):
         self.wait(1.0)
 
 
+class ThesisBannerPosterScene(Scene):
+    def construct(self) -> None:
+        title = Text("PHANTOM", font_size=72, weight="BOLD", color=INK).to_edge(UP)
+        subtitle = Text(
+            "Pricing Heuristics Against Non-human Transaction Orchestration",
+            font_size=24,
+            color=GREY_B,
+        ).next_to(title, DOWN, buff=0.05)
+
+        coi_axes = Axes(
+            x_range=[0, 1, 0.2],
+            y_range=[0, 1, 0.2],
+            x_length=3.15,
+            y_length=1.75,
+            tips=False,
+            axis_config={"stroke_width": 1.8, "color": AXIS_INK},
+        )
+        coi_n1 = coi_axes.plot(
+            lambda x: (1 - x) ** 1,
+            x_range=[0, 1],
+            color=BLUE_D,
+            stroke_width=4,
+        )
+        coi_n8 = coi_axes.plot(
+            lambda x: (1 - x) ** 8,
+            x_range=[0, 1],
+            color=ORANGE,
+            stroke_width=4,
+        )
+        coi_hint = Text(
+            "Order-statistic tail compresses as query count grows", font_size=15
+        )
+        coi_hint.set_color(GREY_B).next_to(coi_axes, DOWN, buff=0.06)
+        coi_title = Text("1) COI erosion", font_size=23, weight="BOLD", color=ORANGE)
+        coi_body = VGroup(coi_axes, coi_n1, coi_n8, coi_hint)
+        coi_group = VGroup(coi_title, coi_body).arrange(DOWN, buff=0.08)
+        coi_frame = SurroundingRectangle(coi_group, color=ORANGE, buff=0.14)
+        coi_frame.set_fill(color=ORANGE, opacity=0.05)
+        coi_panel = VGroup(coi_frame, coi_group)
+
+        gap_axes = Axes(
+            x_range=[-8, 8, 2],
+            y_range=[0.0, 0.2, 0.05],
+            x_length=3.15,
+            y_length=1.75,
+            tips=False,
+            axis_config={"stroke_width": 1.8, "color": AXIS_INK},
+        )
+        gap_h = gap_axes.plot(
+            lambda x: normal_pdf(x, -3.35, 2.67),
+            x_range=[-8, 8],
+            color=BLUE_D,
+            stroke_width=4,
+        )
+        gap_a = gap_axes.plot(
+            lambda x: normal_pdf(x, 1.65, 2.83),
+            x_range=[-8, 8],
+            color=RED_C,
+            stroke_width=4,
+        )
+        gap_boundary = DashedLine(
+            gap_axes.c2p(0, 0),
+            gap_axes.c2p(0, 0.17),
+            color=GREY_B,
+            stroke_width=2,
+        )
+        gap_hint = Text(
+            "Gap score g = Delta_H - Delta_A drives alpha-hat", font_size=15
+        )
+        gap_hint.set_color(GREY_B).next_to(gap_axes, DOWN, buff=0.06)
+        gap_title = Text(
+            "2) Behavioral separability", font_size=23, weight="BOLD", color=GREEN_C
+        )
+        gap_body = VGroup(gap_axes, gap_h, gap_a, gap_boundary, gap_hint)
+        gap_group = VGroup(gap_title, gap_body).arrange(DOWN, buff=0.08)
+        gap_frame = SurroundingRectangle(gap_group, color=GREEN_C, buff=0.14)
+        gap_frame.set_fill(color=GREEN_C, opacity=0.05)
+        gap_panel = VGroup(gap_frame, gap_group)
+
+        ctrl_title = Text(
+            "3) Robust pricing control", font_size=23, weight="BOLD", color=HIGHLIGHT
+        )
+        ctrl_signal = MathTex(r"\hat\alpha(\tau')=\sigma(\beta g)", font_size=31)
+        ctrl_policy = MathTex(
+            r"\pi^*=\arg\max_\pi\min_{Q\in\mathcal U_\epsilon}\mathbb E[r]",
+            font_size=29,
+            color=HIGHLIGHT,
+        )
+        ctrl_steps = VGroup(
+            card(
+                "estimate contamination from behavior",
+                color=GREEN_C,
+                width=4.0,
+                height=0.72,
+                font_size=16,
+            ),
+            card(
+                "optimize price policy under uncertainty",
+                color=ORANGE,
+                width=4.0,
+                height=0.72,
+                font_size=16,
+            ),
+        ).arrange(DOWN, buff=0.18)
+        ctrl_arrow = Arrow(
+            ctrl_steps[0].get_bottom(),
+            ctrl_steps[1].get_top(),
+            buff=0.06,
+            color=AXIS_INK,
+            stroke_width=3,
+        )
+        ctrl_body = VGroup(ctrl_signal, ctrl_policy, ctrl_steps, ctrl_arrow).arrange(
+            DOWN, buff=0.14
+        )
+        ctrl_group = VGroup(ctrl_title, ctrl_body).arrange(DOWN, buff=0.08)
+        ctrl_frame = SurroundingRectangle(ctrl_group, color=HIGHLIGHT, buff=0.14)
+        ctrl_frame.set_fill(color=HIGHLIGHT, opacity=0.05)
+        ctrl_panel = VGroup(ctrl_frame, ctrl_group)
+
+        panels = VGroup(coi_panel, gap_panel, ctrl_panel).arrange(RIGHT, buff=0.3)
+        panels.scale(0.92).next_to(subtitle, DOWN, buff=0.28)
+
+        web = card("web sessions", color=BLUE_D, width=2.2, height=0.7, font_size=17)
+        kafka = card(
+            "quote + event logs", color=HIGHLIGHT, width=2.6, height=0.7, font_size=17
+        )
+        kernel = card(
+            "transition kernels", color=GREEN_C, width=2.5, height=0.7, font_size=17
+        )
+        policy = card(
+            "robust policy", color=ORANGE, width=2.2, height=0.7, font_size=17
+        )
+        flow_nodes = VGroup(web, kafka, kernel, policy).arrange(RIGHT, buff=0.22)
+        flow_nodes.to_edge(DOWN, buff=0.52)
+        flow_arrows = VGroup(
+            Arrow(web.get_right(), kafka.get_left(), buff=0.05, stroke_width=2.8),
+            Arrow(kafka.get_right(), kernel.get_left(), buff=0.05, stroke_width=2.8),
+            Arrow(kernel.get_right(), policy.get_left(), buff=0.05, stroke_width=2.8),
+        )
+
+        status = VGroup(
+            Text("Mann-Whitney p = 0.0006", font_size=19, color=GREEN_C),
+            Text("Pairwise robust wins: 13/40 objective, 16/40 revenue", font_size=19),
+        ).arrange(DOWN, buff=0.06)
+        status[1].set_color(GREY_B)
+        status.next_to(flow_nodes, UP, buff=0.15)
+
+        footer = Text(
+            "From mechanism failure to an implementable defense loop",
+            font_size=25,
+            color=HIGHLIGHT,
+        ).next_to(flow_nodes, DOWN, buff=0.13)
+
+        self.add(
+            title,
+            subtitle,
+            panels,
+            flow_nodes,
+            flow_arrows,
+            status,
+            footer,
+        )
+        self.wait(0.1)
+
+
 SCENE_ORDER = [
     "DefenseOpening",
     "CardMarketAnalogyScene",
@@ -1410,3 +1575,7 @@ SCENE_ORDER = [
     "ObjectiveAndResultsScene",
     "TakeawayScene",
 ]
+
+POSTER_SCENES = ["ThesisBannerPosterScene"]
+
+AVAILABLE_SCENES = SCENE_ORDER + POSTER_SCENES

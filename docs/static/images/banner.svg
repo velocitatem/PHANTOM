@@ -1,0 +1,246 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" style="background-color: #FAFAFA; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <defs>
+        <!-- Soft Drop Shadow for Panels -->
+        <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="2" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.06"/>
+        </filter>
+        <filter id="light-shadow" x="-5%" y="-5%" width="110%" height="110%">
+            <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.04"/>
+        </filter>
+
+        <!-- Arrowhead Marker -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#888888" />
+        </marker>
+        <marker id="arrow-dark" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#555555" />
+        </marker>
+    </defs>
+
+    <!-- COLUMN DIVIDERS -->
+    <line x1="640" y1="60" x2="640" y2="1020" stroke="#EAEAEA" stroke-width="2" stroke-dasharray="10,10"/>
+    <line x1="1280" y1="60" x2="1280" y2="1020" stroke="#EAEAEA" stroke-width="2" stroke-dasharray="10,10"/>
+
+
+    <!-- ========================================================= -->
+    <!-- COLUMN 1: THE THREAT (COI & SATURATION)                   -->
+    <!-- ========================================================= -->
+    <text x="60" y="80" font-family="Georgia, serif" font-size="28" font-weight="bold" fill="#333333">1. The Vulnerability</text>
+    <line x1="60" y1="100" x2="580" y2="100" stroke="#DDDDDD" stroke-width="2"/>
+
+    <!-- Top: COI Bell Curve -->
+    <g transform="translate(60, 130)">
+        <text x="0" y="30" font-size="24" font-weight="bold" fill="#444">Cost of Information from First Principles</text>
+        <text x="0" y="70" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">P ~ π(τ)</text>
+        <text x="0" y="105" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B"><tspan text-decoration="underline">p</tspan> = reservation price</text>
+        <text x="0" y="140" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">M = P - <tspan text-decoration="underline">p</tspan></text>
+
+        <!-- Bell Curve -->
+        <path d="M 40 340 C 140 340, 160 160, 260 160 C 360 160, 380 340, 480 340" stroke="#3AB09E" stroke-width="5" fill="none"/>
+        <line x1="40" y1="340" x2="500" y2="340" stroke="#333" stroke-width="2"/>
+
+        <!-- Markers p and E[P] -->
+        <line x1="150" y1="340" x2="150" y2="160" stroke="#E37862" stroke-width="2" stroke-dasharray="6,4"/>
+        <text x="150" y="375" font-family="Georgia" font-style="italic" font-size="22" fill="#E37862" text-anchor="middle">p</text>
+
+        <line x1="260" y1="340" x2="260" y2="160" stroke="#85B589" stroke-width="2" stroke-dasharray="6,4"/>
+        <text x="260" y="375" font-family="Georgia" font-style="italic" font-size="22" fill="#85B589" text-anchor="middle">E[P]</text>
+
+        <!-- COI Annotation -->
+        <line x1="150" y1="150" x2="260" y2="150" stroke="#E37862" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+        <text x="310" y="138" font-size="16" fill="#E37862" text-anchor="middle">average information rent</text>
+        <text x="310" y="118" font-family="Georgia" font-style="italic" font-size="22" fill="#E37862" font-weight="bold" text-anchor="middle">COI := E[P] - p</text>
+    </g>
+
+    <!-- Bottom: Agent Saturation -->
+    <g transform="translate(60, 580)">
+        <text x="0" y="30" font-size="24" font-weight="bold" fill="#444">Why COI Erodes with Agent Saturation</text>
+        <text x="0" y="75" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">p<tspan font-size="14" dy="5">(1)</tspan><tspan dy="-5"> = min(p</tspan><tspan font-size="14" dy="5">1</tspan><tspan dy="-5">, ..., p</tspan><tspan font-size="14" dy="5">N</tspan><tspan dy="-5">)</tspan></text>
+        <text x="0" y="115" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">P(p<tspan font-size="14" dy="5">(1)</tspan><tspan dy="-5"> > t) = [1 - F(t)]</tspan><tspan font-size="14" dy="-10">N</tspan></text>
+
+        <!-- Erosion Graph -->
+        <rect x="120" y="150" width="280" height="230" fill="#FFFFFF" filter="url(#shadow)" rx="8"/>
+        <line x1="140" y1="350" x2="380" y2="350" stroke="#333" stroke-width="2"/>
+        <line x1="140" y1="350" x2="140" y2="170" stroke="#333" stroke-width="2"/>
+        <text x="260" y="375" font-size="16" font-style="italic" fill="#555" text-anchor="middle">F(t)</text>
+        <text x="120" y="260" font-size="16" font-style="italic" fill="#555" text-anchor="middle" transform="rotate(-90 120 260)">[1 - F(t)]^N</text>
+
+        <!-- Curves -->
+        <path d="M 140 170 C 220 250, 300 320, 380 350" stroke="#4EA5D9" stroke-width="3" fill="none"/>
+        <text x="390" y="220" font-size="16" fill="#4EA5D9" font-weight="bold">N=1</text>
+
+        <path d="M 140 170 C 180 260, 240 330, 380 350" stroke="#85B589" stroke-width="3" fill="none"/>
+        <text x="390" y="250" font-size="16" fill="#85B589" font-weight="bold">N=4</text>
+
+        <path d="M 140 170 C 150 290, 180 340, 380 350" stroke="#E37862" stroke-width="3" fill="none"/>
+        <text x="390" y="280" font-size="16" fill="#E37862" font-weight="bold">N=16</text>
+
+        <text x="260" y="420" font-size="20" fill="#555" text-anchor="middle">As independent query count grows,</text>
+        <text x="260" y="445" font-size="20" fill="#E37862" font-weight="bold" text-anchor="middle">realizable markup collapses.</text>
+    </g>
+
+
+    <!-- ========================================================= -->
+    <!-- COLUMN 2: THE BEHAVIORAL SIGNAL                           -->
+    <!-- ========================================================= -->
+    <text x="700" y="80" font-family="Georgia, serif" font-size="28" font-weight="bold" fill="#333333">2. The Behavioral Signals</text>
+    <line x1="700" y1="100" x2="1220" y2="100" stroke="#DDDDDD" stroke-width="2"/>
+
+    <!-- Top: Transition Kernels -->
+    <g transform="translate(700, 130)">
+        <text x="0" y="30" font-size="24" font-weight="bold" fill="#444">From Session Paths to Transition Kernels</text>
+
+        <text x="0" y="75" font-size="20" fill="#85B589" font-weight="bold">human: start → view → detail → cart → purchase</text>
+        <text x="0" y="115" font-size="20" fill="#E37862" font-weight="bold">agent: start → view → detail → view → detail</text>
+
+        <text x="0" y="170" font-family="Georgia, serif" font-style="italic" font-size="24" fill="#8C7A6B">
+            P&#770;(s'|s) = <tspan font-size="18" dy="-12">N(s,s')</tspan> / <tspan font-size="18" dy="12">Σ N(s,k)</tspan>
+        </text>
+
+        <!-- Matrix Representation -->
+        <rect x="0" y="220" width="500" height="180" fill="#FFFFFF" filter="url(#shadow)" rx="8"/>
+
+        <text x="125" y="250" font-size="16" fill="#4EA5D9" text-anchor="middle">transition counts N(s,s')</text>
+        <text x="375" y="250" font-size="16" fill="#85B589" text-anchor="middle">normalized kernel T</text>
+
+        <!-- Matrix 1 -->
+        <g transform="translate(45, 270)">
+            <rect x="-6" y="-8" width="172" height="128" rx="6" fill="none" stroke="#DDDDDD" stroke-width="1.5"/>
+            <path d="M 10 0 L 0 0 L 0 110 L 10 110 M 150 0 L 160 0 L 160 110 L 150 110" stroke="#A0A0A0" stroke-width="2.5" fill="none"/>
+            <text x="80" y="20" font-family="monospace" font-size="14" fill="#555" text-anchor="middle" textLength="142" lengthAdjust="spacingAndGlyphs">0.00 8.00 0.00 0.00</text>
+            <text x="80" y="50" font-family="monospace" font-size="14" fill="#555" text-anchor="middle" textLength="142" lengthAdjust="spacingAndGlyphs">0.00 2.00 5.00 1.00</text>
+            <text x="80" y="80" font-family="monospace" font-size="14" fill="#555" text-anchor="middle" textLength="142" lengthAdjust="spacingAndGlyphs">0.00 3.00 2.00 4.00</text>
+            <text x="80" y="110" font-family="monospace" font-size="14" fill="#555" text-anchor="middle" textLength="142" lengthAdjust="spacingAndGlyphs">0.00 1.00 0.00 6.00</text>
+        </g>
+
+        <!-- Arrow -->
+        <line x1="225" y1="320" x2="265" y2="320" stroke="#999" stroke-width="3" marker-end="url(#arrow-dark)"/>
+
+        <!-- Matrix 2 -->
+        <g transform="translate(295, 270)">
+            <rect x="-6" y="-8" width="172" height="128" rx="6" fill="none" stroke="#DDDDDD" stroke-width="1.5"/>
+            <path d="M 10 0 L 0 0 L 0 110 L 10 110 M 150 0 L 160 0 L 160 110 L 150 110" stroke="#A0A0A0" stroke-width="2.5" fill="none"/>
+            <text x="80" y="20" font-family="monospace" font-size="14" fill="#333" text-anchor="middle" textLength="142" lengthAdjust="spacingAndGlyphs">0.00 1.00 0.00 0.00</text>
+            <text x="80" y="50" font-family="monospace" font-size="14" fill="#333" text-anchor="middle" textLength="142" lengthAdjust="spacingAndGlyphs">0.00 0.25 0.62 0.13</text>
+            <text x="80" y="80" font-family="monospace" font-size="14" fill="#333" text-anchor="middle" textLength="142" lengthAdjust="spacingAndGlyphs">0.00 0.33 0.22 0.45</text>
+            <text x="80" y="110" font-family="monospace" font-size="14" fill="#333" text-anchor="middle" textLength="142" lengthAdjust="spacingAndGlyphs">0.00 0.14 0.00 0.86</text>
+        </g>
+
+        <text x="250" y="440" font-size="18" fill="#777" text-anchor="middle">Kernel shape is the compact behavioral signature used downstream.</text>
+    </g>
+
+    <!-- Bottom: Separability Distributions -->
+    <g transform="translate(700, 600)">
+        <text x="0" y="30" font-size="24" font-weight="bold" fill="#444">Separability into a Control Signal</text>
+        <text x="0" y="75" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">Δ<tspan font-size="16" dy="5">H</tspan><tspan dy="-5"> = D</tspan><tspan font-size="16" dy="5">KL</tspan><tspan dy="-5">(T&#770;' || T&#772;</tspan><tspan font-size="16" dy="5">H</tspan><tspan dy="-5">)</tspan></text>
+        <text x="0" y="115" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">Δ<tspan font-size="16" dy="5">A</tspan><tspan dy="-5"> = D</tspan><tspan font-size="16" dy="5">KL</tspan><tspan dy="-5">(T&#770;' || T&#772;</tspan><tspan font-size="16" dy="5">A</tspan><tspan dy="-5">)</tspan></text>
+        <text x="0" y="155" font-family="Georgia, serif" font-style="italic" font-size="24" fill="#8C7A6B">g = Δ<tspan font-size="16" dy="5">H</tspan><tspan dy="-5"> - Δ</tspan><tspan font-size="16" dy="5">A</tspan></text>
+
+        <!-- Curves -->
+        <g transform="translate(80, 160)">
+            <line x1="0" y1="200" x2="360" y2="200" stroke="#333" stroke-width="2"/>
+            <text x="180" y="235" font-family="Georgia, serif" font-style="italic" font-size="22" text-anchor="middle">g = Δ<tspan font-size="16" dy="5">H</tspan><tspan dy="-5"> - Δ</tspan><tspan font-size="16" dy="5">A</tspan></text>
+
+            <!-- Human Curve -->
+            <path d="M 0 200 C 50 200, 80 40, 130 40 C 180 40, 210 200, 260 200" stroke="#4EA5D9" stroke-width="5" fill="none"/>
+            <text x="70" y="110" font-size="22" fill="#4EA5D9" font-weight="bold">human</text>
+
+            <!-- Agent Curve -->
+            <path d="M 100 200 C 150 200, 180 40, 230 40 C 280 40, 310 200, 360 200" stroke="#E37862" stroke-width="5" fill="none"/>
+            <text x="290" y="110" font-size="22" fill="#E37862" font-weight="bold">agent</text>
+
+            <!-- Decision Boundary -->
+            <line x1="180" y1="200" x2="180" y2="10" stroke="#999" stroke-width="2" stroke-dasharray="8,5"/>
+            <text x="180" y="-5" font-size="16" fill="#777" text-anchor="middle">decision boundary</text>
+
+            <circle cx="210" cy="200" r="6" fill="#ECA233"/>
+            <text x="210" y="180" font-family="Georgia" font-style="italic" font-size="20" fill="#ECA233" text-anchor="middle">g_obs</text>
+
+            <text x="180" y="280" font-size="18" fill="#555" text-anchor="middle">Positive gap shifts score toward agent traffic.</text>
+        </g>
+    </g>
+
+
+    <!-- ========================================================= -->
+    <!-- COLUMN 3: THE SOLUTION (CONTAMINATION & DR-RL)            -->
+    <!-- ========================================================= -->
+    <text x="1340" y="80" font-family="Georgia, serif" font-size="28" font-weight="bold" fill="#333333">3. Robust Control &amp; Contamination</text>
+    <line x1="1340" y1="100" x2="1860" y2="100" stroke="#DDDDDD" stroke-width="2"/>
+
+    <!-- Top: Contamination Generator -->
+    <g transform="translate(1340, 130)">
+        <text x="0" y="30" font-size="24" font-weight="bold" fill="#444">Contamination Generator G(α)</text>
+
+        <!-- Boxes -->
+        <rect x="20" y="70" width="200" height="50" fill="#D0E5E0" filter="url(#shadow)" rx="6"/>
+        <text x="120" y="100" font-size="18" fill="#222" text-anchor="middle">labeled human sessions</text>
+
+        <rect x="280" y="70" width="200" height="50" fill="#EAD0C8" filter="url(#shadow)" rx="6"/>
+        <text x="380" y="100" font-size="18" fill="#222" text-anchor="middle">synthetic agent sessions</text>
+
+        <!-- Arrows -->
+        <line x1="120" y1="130" x2="200" y2="180" stroke="#888" stroke-width="3" marker-end="url(#arrow-dark)"/>
+        <line x1="380" y1="130" x2="300" y2="180" stroke="#888" stroke-width="3" marker-end="url(#arrow-dark)"/>
+
+        <!-- Mixed Batch -->
+        <rect x="150" y="190" width="200" height="50" fill="#F4E9CD" filter="url(#shadow)" rx="6"/>
+        <text x="250" y="220" font-size="18" fill="#222" text-anchor="middle">mixed batch for training</text>
+
+        <!-- Alpha Bar -->
+        <text x="250" y="275" font-family="Georgia, serif" font-size="20" fill="#555" text-anchor="middle">alpha = 0.33</text>
+
+        <rect x="50" y="290" width="268" height="30" fill="#4EA5D9"/>
+        <rect x="318" y="290" width="132" height="30" fill="#E37862"/>
+        <text x="184" y="340" font-size="18" fill="#4EA5D9" text-anchor="middle">human share (1-α)</text>
+        <text x="384" y="340" font-size="18" fill="#E37862" text-anchor="middle">agent share (α)</text>
+    </g>
+
+    <!-- Bottom: Distributionally Robust Control -->
+    <g transform="translate(1340, 600)">
+        <text x="0" y="30" font-size="24" font-weight="bold" fill="#444">Distributionally Robust Control Layer</text>
+        <text x="0" y="80" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">
+            π* = arg max<tspan font-size="16" dy="5">π</tspan> min<tspan font-size="16" dy="0">Q ∈ U<tspan font-size="12" dy="5">ε</tspan></tspan>
+            <tspan dy="-10"> E</tspan><tspan font-size="16" dy="5">d ~ Q</tspan>
+            <tspan dy="-5">[ R(p,d) - λ COI</tspan><tspan font-size="16" dy="5">leak</tspan><tspan dy="-5">(p,τ') ]</tspan>
+        </text>
+
+        <!-- Ambiguity Ball -->
+        <g transform="translate(140, 260)">
+            <line x1="-130" y1="0" x2="130" y2="0" stroke="#CCC" stroke-width="2"/>
+            <line x1="0" y1="-130" x2="0" y2="130" stroke="#CCC" stroke-width="2"/>
+
+            <circle cx="0" cy="0" r="110" stroke="#C4A45B" stroke-width="4" fill="rgba(196,164,91,0.06)"/>
+            <text x="-95" y="-120" font-family="Georgia" font-style="italic" font-size="24" fill="#C4A45B">U<tspan font-size="16" dy="5">ε</tspan></text>
+
+            <!-- Points -->
+            <circle cx="0" cy="0" r="7" fill="#4EA5D9"/>
+            <text x="12" y="24" font-family="Georgia" font-style="italic" font-size="22" fill="#4EA5D9">P&#770;<tspan font-size="14" dy="5">N</tspan></text>
+
+            <circle cx="-60" cy="-40" r="7" fill="#E37862"/>
+            <text x="-140" y="-50" font-family="Georgia" font-style="italic" font-size="18" fill="#E37862">worst-case Q*</text>
+
+            <circle cx="50" cy="-70" r="6" fill="#85B589"/>
+            <circle cx="70" cy="50" r="6" fill="#85B589"/>
+            <circle cx="-40" cy="80" r="6" fill="#85B589"/>
+        </g>
+
+        <!-- Process Steps -->
+        <g transform="translate(320, 140)">
+            <rect x="0" y="0" width="220" height="45" fill="#FDEFEF" filter="url(#light-shadow)" rx="6"/>
+            <text x="110" y="28" font-size="16" fill="#E37862" font-weight="bold" text-anchor="middle">inner min picks Q*</text>
+
+            <line x1="110" y1="55" x2="110" y2="85" stroke="#999" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+            <rect x="0" y="95" width="220" height="45" fill="#F4E9CD" filter="url(#light-shadow)" rx="6"/>
+            <text x="110" y="123" font-size="16" fill="#9E8033" font-weight="bold" text-anchor="middle">sample demand from Q*</text>
+
+            <line x1="110" y1="150" x2="110" y2="180" stroke="#999" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+            <rect x="0" y="190" width="220" height="45" fill="#E6F2ED" filter="url(#light-shadow)" rx="6"/>
+            <text x="110" y="218" font-size="16" fill="#428062" font-weight="bold" text-anchor="middle">outer max updates policy</text>
+        </g>
+
+        <text x="250" y="440" font-size="18" fill="#555" text-anchor="middle">Reward is evaluated on demand drawn from Q*, then used for the policy step.</text>
+    </g>
+
+</svg>
