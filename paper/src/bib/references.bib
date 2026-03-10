@@ -630,3 +630,18 @@ Volume: 21},
 	note = {Publisher: Institute of Mathematical Statistics},
 	pages = {50 -- 60},
 }
+
+@article{horace_he_and_thinking_machines_lab_defeating_2025,
+	title = {Defeating {Nondeterminism} in {LLM} {Inference}},
+	url = {https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/},
+	doi = {10.64434/tml.20250910},
+	abstract = {Reproducibility is a bedrock of scientific progress. However, it’s remarkably difficult to get reproducible results out of large language models.
+For example, you might observe that asking ChatGPT the same question multiple times provides different results. This by itself is not surprising, since getting a result from a language model involves “sampling”, a process that converts the language model’s output into a probability distribution and probabilistically selects a token.
+What might be more surprising is that even when we adjust the temperature down to 0This means that the LLM always chooses the highest probability token, which is called greedy sampling. (thus making the sampling theoretically deterministic), LLM APIs are still not deterministic in practice (see past discussions here, here, or here). Even when running inference on your own hardware with an OSS inference library like vLLM or SGLang, sampling still isn’t deterministic (see here or here).},
+	language = {en},
+	urldate = {2026-03-10},
+	journal = {Thinking Machines Lab: Connectionism},
+	author = {{Horace He and Thinking Machines Lab}},
+	year = {2025},
+	file = {Snapshot:/home/velocitatem/Zotero/storage/U5JG4CNM/defeating-nondeterminism-in-llm-inference.html:text/html},
+}

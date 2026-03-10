@@ -40,6 +40,7 @@ We formalize the heterogeneity of actors by introducing a type space $\Theta$. A
 Q(p) = (1-\alpha) \cdot \mathbb{E}_{\theta \sim \mathcal{D}_H}[d(p; \theta)] + \alpha \cdot \mathbb{E}_{\theta \sim \mathcal{D}_A}[d(p; \theta)] + \epsilon_t
 \end{equation}
 where $\alpha \in [0, 1]$ represents the contamination parameter (proportion of agents) and $\epsilon_t$ is non-stationary market noise.
+Accounting for behavioral and market variation, we also treat $\epsilon_t$ as absorbing serving-path variability from LLM infrastructure (e.g., batch-size-dependent inference behavior under changing load), which appears stochastic at the request level even under greedy decoding \parencite{horace_he_and_thinking_machines_lab_defeating_2025}.
 
 
 
@@ -494,3 +495,40 @@ We now present the complete pricing mechanism that integrates the behavioral sep
 The algorithm operates in discrete epochs indexed by $t$. At each epoch, the platform applies one discrete multiplicative price action, the environment samples a batch of sessions, and demand is recomputed from weighted events. Robustness is implemented as an inner minimization over a small local grid of contamination candidates around nominal $\alpha_0$, matching the current engine implementation. The history buffer $\mathcal{L}$ (``Limbo'' in our implementation) enforces the alternating Stackelberg structure by preserving the temporal sequence of price publications and demand observations.
 
 %The defensive price update in Line 24 implements contamination-aware margin shrinkage: as estimated contamination $\hat{\alpha}_t$ rises, the margin $(p^{\mathrm{ref}} - c)$ is reduced by factor $\kappa\in[0,1]$, with projection $\Pi_{\mathcal{P}}$ ensuring feasibility. In subsequent experiments this heuristic rule is replaced by DR-RL policy $\pi^*$ from Eq.~\ref{eq:robust_policy}.
+
+\subsubsection{Computational Cost Analysis of the Simulation Step}
+
+The per-step cost of Algorithm~\ref{alg:phantom_loop_clean} is not uniform across its components. To inform hardware provisioning and to identify where algorithmic improvements are most impactful, we profile the hot path of the engine using Python's \texttt{cProfile} instrumentation over 20 environment steps under two configurations: a baseline with the robustness inner loop disabled ($K=1$, $\epsilon_\alpha=0$) and a standard robust setting ($K=5$, $\epsilon_\alpha=0.2$). Both runs use $M=10$ sessions per market call and $N=3$ products.
+
+The baseline achieves approximately 26 steps per second. Enabling the robustness inner loop with $K=5$ candidates drops throughput to 7.2 steps per second, a $3.6\times$ slowdown that is directly proportional to $K$, consistent with the $O(K)$ scaling of the adversarial alpha selection in the implementation.
+
+\begin{table}[ht]
+\centering
+\caption{Per-step profiling results (20 steps, $M=10$ sessions, $N=3$ products). Self-time measures time spent inside the function excluding callees; cumulative time includes the full call subtree.}
+\label{tab:profile_results}
+\begin{tabular}{@{}lrrrrl@{}}
+\toprule
+\textbf{Function} & \textbf{Calls} & \textbf{Self (ms)} & \textbf{Cum. (ms)} & \textbf{Cum. \%} & \textbf{Module} \\
+\midrule
+\multicolumn{6}{l}{\textit{Baseline ($K=1$, 0.77\,s total, 26 steps/s)}} \\
+\texttt{sample\_behavior\_from\_transitions} & 420 & 131 & 658 & 86\% & \texttt{lib/behavior} \\
+\texttt{DataFrame.xs} & 4,820 & 30 & 201 & 26\% & pandas \\
+\texttt{numpy.nan\_to\_num} & 4,904 & 43 & 97 & 13\% & numpy \\
+\texttt{adjust\_behavior\_to\_condition} & 84 & 3 & 54 & 7\% & \texttt{lib/behavior} \\
+\midrule
+\multicolumn{6}{l}{\textit{Robust ($K=5$, 2.79\,s total, 7.2 steps/s)}} \\
+\texttt{sample\_behavior\_from\_transitions} & 1,220 & 519 & 2,447 & 88\% & \texttt{lib/behavior} \\
+\texttt{DataFrame.xs} & 16,668 & 108 & 729 & 26\% & pandas \\
+\texttt{numpy.nan\_to\_num} & 16,912 & 164 & 363 & 13\% & numpy \\
+\texttt{adjust\_behavior\_to\_condition} & 244 & 11 & 108 & 4\% & \texttt{lib/behavior} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Across both configurations, \texttt{sample\_behavior\_from\_transitions} accounts for 86--88\% of total wall time. The function implements the Markov chain sampler described in Section~\ref{sec:tpe}: at each transition it retrieves the current-state row from the expanded transition \texttt{DataFrame} via label-based indexing, which internally dispatches through the pandas \texttt{xs} and \texttt{fast\_xs} code paths. For $M$ sessions each running up to $L_{\max}=40$ transitions, a single \texttt{market.act()} call issues up to $M \cdot L_{\max}$ individual row lookups. With $K=5$ robustness candidates per outer step this accumulates to $5 \times 10 \times 40 = 2{,}000$ row accesses per outer step, producing the 16k \texttt{xs} invocations observed in Table~\ref{tab:profile_results}.
+
+The \texttt{numpy.nan\_to\_num} calls, accounting for 13\% of self-time, occur once per row lookup to sanitize sampled probability vectors before normalization; their call count therefore tracks the \texttt{xs} count exactly.
+
+\texttt{adjust\_behavior\_to\_condition} expands the base $E \times E$ event transition matrix to a $(E \cdot N) \times (E \cdot N)$ product-specific matrix via a Kronecker product. At $N=3$ this is inexpensive, but the cost scales as $O(E^2 N^2)$, so at the $N=10$ default it becomes a more significant contributor. The result is not cached across the $K$ robustness candidates inside a single outer step, meaning the Kronecker expansion is recomputed $2K$ times per step (once for the human kernel and once for the agent kernel at each candidate $\alpha_k$).
+
+The dominant bottleneck therefore has a clear structural cause: the expanded transition matrix is a string-keyed \texttt{DataFrame}, and pandas object-level indexing carries substantial per-call overhead relative to the arithmetic being performed. Converting the expanded matrix to a \texttt{numpy} array with an accompanying integer state-to-index map, computed once per \texttt{market.act()} call and cached for the duration of the robustness inner loop, eliminates the entire pandas dispatch chain. We leverage this bottleneck identified as an opportunity to squeeze the gap which is left by the computational needs of the pricing learner. We make use of JAX to parallelize on the TPU, and surprisingly we open up a large speedup even on CPU-only compute, improving throughput from 26 to 220 steps/s in the baseline configuration and from 7.2 to 136 steps/s under the full robust inner loop, an 8.5$\times$ and 19$\times$ speedup respectively.
