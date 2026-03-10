@@ -34,6 +34,16 @@
         "command": "bash scripts/nx_paper.sh wordcount",
         "cwd": "."
       }
+    },
+    "build-arxiv": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/build/main-arxiv.pdf"
+      ],
+      "options": {
+        "command": "bash scripts/nx_paper.sh build-arxiv",
+        "cwd": "."
+      }
     }
   },
   "tags": [

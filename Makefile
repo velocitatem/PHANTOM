@@ -35,7 +35,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 
 .PHONY: help
 help:
-	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines"
+	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.arxiv | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
 	@echo ""
 	@echo "Build general public version:"
@@ -80,6 +80,10 @@ pdf.genpop:
 .PHONY: pdf.genpop.watch
 pdf.genpop.watch:
 	@bash scripts/nx_paper.sh watch-genpop
+
+.PHONY: pdf.arxiv
+pdf.arxiv:
+	@bash scripts/nx_paper.sh build-arxiv
 
 .PHONY: test.backend
 test.backend:

@@ -41,6 +41,15 @@ case "$cmd" in
     cd paper/src
     latexmk -pvc -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
     ;;
+  build-arxiv)
+    mkdir -p paper/build
+    cd paper/src/mirrors/arxiv
+    pdflatex -interaction=nonstopmode -file-line-error main.tex
+    bibtex main
+    pdflatex -interaction=nonstopmode -file-line-error main.tex
+    pdflatex -interaction=nonstopmode -file-line-error main.tex
+    cp main.pdf ../../../build/main-arxiv.pdf
+    ;;
   *)
     printf '%s\n' "Unknown paper command: $cmd" >&2
     exit 1
