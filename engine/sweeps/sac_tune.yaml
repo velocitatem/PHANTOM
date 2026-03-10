@@ -1,6 +1,6 @@
 method: bayes
 metric:
-  name: sweep/score
+  name: objective/score
   goal: maximize
 command:
   - ${env}

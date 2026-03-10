@@ -1,0 +1,52 @@
+{
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "name": "web",
+  "projectType": "application",
+  "sourceRoot": "web/src",
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm install",
+        "cwd": "web"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "npm run dev",
+        "cwd": "web"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "outputs": [
+        "{projectRoot}/.next"
+      ],
+      "options": {
+        "command": "npm run build",
+        "cwd": "web"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "build"
+      ],
+      "options": {
+        "command": "npm run start",
+        "cwd": "web"
+      }
+    }
+  },
+  "tags": [
+    "scope:web",
+    "type:frontend"
+  ]
+}

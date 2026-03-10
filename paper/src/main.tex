@@ -45,7 +45,39 @@ These behavioral signals serve as inputs for a Distributionally Robust Reinforce
 \begin{description}
 \item[Agent $A$] An actor of non-human nature, powered by an LLM.
 \item[Human $H$] An individual human with some job to be done.
+\item[Actor $\theta$] Defines a type of class which is either Agent or Human and has the capability to carry out actions on a web platform.
+\item[Platform] Any web-based platform which serves an interface to a collection of items that can be purchased, each at some price $p_i$.
+\item[Behavioral Model] A mathematical model predicting what action comes after a series of prior actions.
+\item[LLM] Large Language Model served by some provider with the abstracted capability of tool calling.
+\item[TPU] Tensor Processing Unit which is a unique kind of chip architecture developed by Google.
+\item[Trajectory] Defined as a series of unspecified length, collecting data on states of some object over time.
+% TODO: maybe define other things in a similar succient manner
 \end{description}
+
+\section{Aggregate Compute Budget Derivation}
+\label{app:compute_budget}
+
+The claimed peak throughput of approximately 160\,PFLOPS follows from multiplying the per-chip BF16 peak (from official Google Cloud TPU documentation) by the number of chips in each allocation tier and summing across generations.
+
+\begin{table}[ht]
+\centering
+\caption{Per-generation contribution to aggregate BF16 throughput.}
+\label{tab:compute_derivation}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{TPU Gen.} & \textbf{Chips} & \textbf{Peak BF16/chip (TFLOPS)} & \textbf{Subtotal (TFLOPS)} \\
+\midrule
+v6e (Trillium) & 128 & 918 & $128 \times 918 = 117{,}504$ \\
+v5e            & 128 & 197 & $128 \times 197 = 25{,}216$  \\
+v4             &  64 & 275 & $64  \times 275 = 17{,}600$  \\
+\midrule
+\textbf{Total} & \textbf{320} & & $\mathbf{160{,}320}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Converting to petaFLOPS: $160{,}320\;\text{TFLOPS} = 160.32\;\text{PFLOPS} \approx 160\;\text{PFLOPS}$. This is the theoretical peak under sustained BF16 arithmetic; realized throughput depends on memory bandwidth utilization and inter-chip communication overhead, but the figure serves as a useful upper bound for provisioning decisions.
+
 % \input{../build/concatenated_code}
 
 \end{document}

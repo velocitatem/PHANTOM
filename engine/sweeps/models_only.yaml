@@ -1,6 +1,6 @@
 method: grid
 metric:
-  name: sweep/score
+  name: objective/score
   goal: maximize
 run_cap: 4
 command:

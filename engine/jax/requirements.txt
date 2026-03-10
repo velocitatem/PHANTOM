@@ -1,5 +1,0 @@
-flax==0.10.7
-optax==0.2.7
-distrax==0.1.5
-orbax-checkpoint==0.11.32
-chex==0.1.90

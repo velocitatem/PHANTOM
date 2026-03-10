@@ -1,0 +1,39 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "backend-worker",
+  "projectType": "application",
+  "sourceRoot": "backend/worker",
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash -lc '[ -x ../../.venv/bin/python ] || python3 -m venv ../../.venv; ../../.venv/bin/python -m ensurepip --upgrade; ../../.venv/bin/python -m pip install -r requirements.txt'",
+        "cwd": "backend/worker"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "../../.venv/bin/celery -A main:app worker --loglevel=info",
+        "cwd": "backend/worker"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "../../.venv/bin/python main.py",
+        "cwd": "backend/worker"
+      }
+    }
+  },
+  "tags": [
+    "scope:backend",
+    "type:worker"
+  ]
+}

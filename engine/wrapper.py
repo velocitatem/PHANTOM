@@ -47,7 +47,10 @@ class PHANTOM(gym.Env):
         coi_window: int = 10,
         robust_radius: float = 0.0,
         robust_points: int = 5,
+        robust_rollouts: int = 1,
         info_value: float = 1.0,
+        eta_ux: float = 0.5,
+        reward_profit_weight: float = 1.0,
         action_levels: int = 9,
         action_scale_low: float = 0.9,
         action_scale_high: float = 1.1,
@@ -74,7 +77,10 @@ class PHANTOM(gym.Env):
         self.agent_params = agent_params
         self.robust_radius = max(0.0, float(robust_radius))
         self.robust_points = max(1, int(robust_points))
+        self.robust_rollouts = max(1, int(robust_rollouts))
         self.info_value = float(info_value)
+        self.eta_ux = float(eta_ux)
+        self.reward_profit_weight = float(reward_profit_weight)
         self.action_levels = max(2, int(action_levels))
         self._action_scales = np.linspace(
             float(action_scale_low), float(action_scale_high), self.action_levels
@@ -103,6 +109,12 @@ class PHANTOM(gym.Env):
                     shape=(n_products,),
                     dtype=np.float32,
                 ),
+                "signals": spaces.Box(
+                    low=np.array([0.0, 0.0, 0.0, 0.0], dtype=np.float32),
+                    high=np.array([1.0, 1.0, 1.0, 1.0], dtype=np.float32),
+                    shape=(4,),
+                    dtype=np.float32,
+                ),
             }
         )
 
@@ -117,6 +129,8 @@ class PHANTOM(gym.Env):
         self._trajectories = []  # session trajectories for agent prob calculation
         self.baseline_prices = np.full(self.n_products, self.price_bounds[0])
         self._low_margin_streak = 0  # consecutive steps below margin_floor
+        self._last_agent_prob = float(self.alpha)
+        self._last_alpha_adv = float(self.alpha)
 
         # load behavioral models for agent probability estimation
         try:
@@ -129,7 +143,20 @@ class PHANTOM(gym.Env):
         demand_arr = np.array(
             [self._demand.get(i, 0.0) for i in range(self.n_products)], dtype=np.float32
         )
-        return {"demand": demand_arr, "prices": self._prices.astype(np.float32)}
+        signals = np.array(
+            [
+                float(np.clip(self._last_agent_prob, 0.0, 1.0)),
+                float(np.clip(self._last_alpha_adv, 0.0, 1.0)),
+                float(np.clip(self.nominal_alpha, 0.0, 1.0)),
+                float(np.clip(self.robust_radius, 0.0, 1.0)),
+            ],
+            dtype=np.float32,
+        )
+        return {
+            "demand": demand_arr,
+            "prices": self._prices.astype(np.float32),
+            "signals": signals,
+        }
 
     def _set_market_mix(self, alpha: float):
         alpha = float(np.clip(alpha, 0.0, 1.0))
@@ -177,20 +204,42 @@ class PHANTOM(gym.Env):
             [demand.get(i, 0.0) for i in range(self.n_products)], dtype=float
         )
         revenue = float(np.dot(prices, demand_arr))
+        floor_cost = float(np.dot(self.baseline_prices, demand_arr))
+        profit = revenue - floor_cost
         purchases = extract_purchases(trajectories)
         coi_mix = compute_uplift_coi(prices, purchases, self.baseline_prices)
-        # multiplicative penalty so COI term scales with revenue magnitude
+
         coi_leakage = float(agent_prob * self.info_value)
-        discount = float(np.clip(1.0 - self.lambda_coi * coi_leakage, 0.0, 1.0))
-        coi_penalty = revenue * (1.0 - discount)  # absolute penalty in revenue units
-        reward = revenue * discount
+        info_budget = max(floor_cost, 1.0)
+        coi_penalty = self.lambda_coi * coi_leakage * info_budget
+
+        if len(self._price_history) > 0:
+            volatility = float(
+                np.mean(
+                    np.abs(prices - self._price_history[-1])
+                    / np.maximum(self.baseline_prices, 1.0)
+                )
+            )
+        else:
+            volatility = 0.0
+        ux_penalty = self.eta_ux * info_budget * volatility
+
+        reward_revenue = self.reward_profit_weight * profit
+        reward = reward_revenue - coi_penalty - ux_penalty
+
         return reward, {
             "revenue": revenue,
+            "cost_floor": floor_cost,
+            "profit": profit,
             "coi_mix": float(coi_mix),
             "coi_base": 0.0,
             "coi_leakage": coi_leakage,
             "coi_penalty": coi_penalty,
-            "coi_discount": discount,
+            "coi_info_budget": info_budget,
+            "ux_penalty": ux_penalty,
+            "volatility": volatility,
+            "reward_revenue": reward_revenue,
+            "reward_total": reward,
         }
 
     def _alpha_candidates(self) -> np.ndarray:
@@ -200,28 +249,26 @@ class PHANTOM(gym.Env):
         hi = min(1.0, self.nominal_alpha + self.robust_radius)
         return np.linspace(lo, hi, self.robust_points)
 
-    def _select_adversarial_alpha(
-        self, prices: np.ndarray
-    ) -> tuple[float, dict, list, float]:
-        """inner robust step: pick worst-case alpha and return its outcome directly to avoid double-sampling"""
-        candidates = self._alpha_candidates()
-        best_alpha, worst_reward = float(candidates[0]), np.inf
-        best_demand, best_trajectories, best_agent_prob = None, [], 0.0
-        for alpha in candidates:
-            self._set_market_mix(float(alpha))
+    def _evaluate_candidate(self, alpha: float, prices: np.ndarray) -> float:
+        self._set_market_mix(alpha)
+        rewards = []
+        for _ in range(self.robust_rollouts):
             demand = self.market.act(prices)
             trajectories = list(self.market.last_trajectories)
             agent_prob = self._compute_agent_prob(trajectories)
             reward, _ = self._compute_reward(prices, demand, agent_prob, trajectories)
-            if reward < worst_reward:
-                worst_reward = reward
-                best_alpha, best_demand, best_trajectories, best_agent_prob = (
-                    float(alpha),
-                    demand,
-                    trajectories,
-                    agent_prob,
-                )
-        return best_alpha, best_demand, best_trajectories, best_agent_prob
+            rewards.append(float(reward))
+        return float(np.mean(rewards)) if rewards else 0.0
+
+    def _select_adversarial_alpha(self, prices: np.ndarray) -> float:
+        """inner robust step: evaluate candidates and pick worst-case alpha"""
+        candidates = self._alpha_candidates()
+        evaluations = [
+            (float(alpha), self._evaluate_candidate(float(alpha), prices))
+            for alpha in candidates
+        ]
+        best_alpha, _ = min(evaluations, key=lambda x: x[1])
+        return best_alpha
 
     def _record_history(self):
         demand_arr = np.array(
@@ -244,19 +291,24 @@ class PHANTOM(gym.Env):
         self._low_margin_streak = 0
         self._demand_history, self._price_history, self._revenue_history = [], [], []
         self._trajectories = list(getattr(self.market, "last_trajectories", []))
+        self._last_agent_prob = float(self.nominal_alpha)
+        self._last_alpha_adv = float(self.nominal_alpha)
         self._record_history()
         return self._get_obs(), {}
 
     def step(self, action):
         self._prices = self._decode_action(action)
-        # inner robust step returns worst-case outcome directly, no re-sampling
-        alpha_adv, self._demand, trajectories, agent_prob = (
-            self._select_adversarial_alpha(self._prices)
-        )
+        alpha_adv = self._select_adversarial_alpha(self._prices)
         self._set_market_mix(alpha_adv)
         self._platform_stub.set_prices(self._prices)
         self._step_count += 1
+
+        self._demand = self.market.act(self._prices)
+        trajectories = list(self.market.last_trajectories)
+        agent_prob = self._compute_agent_prob(trajectories)
         self._trajectories.extend(trajectories)
+        self._last_agent_prob = float(agent_prob)
+        self._last_alpha_adv = float(alpha_adv)
 
         reward, metrics = self._compute_reward(
             self._prices, self._demand, agent_prob, trajectories
@@ -278,7 +330,9 @@ class PHANTOM(gym.Env):
             "step": self._step_count,
             "agent_prob": agent_prob,
             "alpha_adv": float(alpha_adv),
+            "alpha_nominal": float(self.nominal_alpha),
             "wasserstein_radius": float(self.robust_radius),
+            "robust_rollouts": int(self.robust_rollouts),
             **metrics,
             "raw_revenue": np.sum(
                 self._prices
@@ -355,7 +409,7 @@ if __name__ == "__main__":
         def predict(self, obs, **kwargs):
             return self.env.action_space.sample(), None
 
-    wandb.init(project="phantom-pricing", config={"policy": "random", "alpha": 0.3})
+    wandb.init(project="capstone", config={"policy": "random", "alpha": 0.3})
     env = EconomicMetricsWrapper(PHANTOM(n_products=15, alpha=0.3, render_mode=None))
 
     model = RandomPolicy(env)

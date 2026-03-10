@@ -1,0 +1,87 @@
+% -*- TeX-master: t -*-
+\documentclass[12pt,letterpaper]{article}
+
+\input{preamble}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/banner.png}\\[0.8cm]
+    \LARGE\textbf{PHANTOM: Pricing Heuristics Against Non-human Transaction Orchestration Mechanisms}\\[0.5cm]
+    \large\textit{General Public Edition}\\[0.3cm]
+    \Large\textbf{Daniel Rösel}\\
+    \large\textit{Bachelor of Computer Science \& Artificial Intelligence}\\[0.5cm]
+    \Large\textit{Supervised by:}\\
+    \Large\textbf{Alberto Martín Izquierdo}\\
+    \large\textit{IE University, Madrid, Spain}\\[1cm]
+    \large\today
+\end{titlepage}
+
+\begin{abstract}
+With accelerated growth of Lager Language Model agents in e-commerce a novel adversarial dynamic to digital markets emerges. This paper address the vulnerability of dynamic pricing systems to AI intermediaries that decouple the information gather stages from the transaction execution. By conducing reconnaissance isolates sessions, agents circumvent the ``Cost of Information'' (COI) defined as the accumulated price premium typically thought demand expression estimators.
+We formally define this phenomenon and derive the Cost of Information Theorem, proving that as the saturation of independent, utility-maximizing agents increases, the platform's ability to sustain a COI converges to zero, rendering standard dynamic pricing mechanisms incentive-incompatible.
+To respond to this threat we propose a defensive framework which integrates behavioral economics with Adversarially Distributionally Robust Optimization (DRO). We introduce a custom e-commerce research platform built on hybrid Kappa-Lambda architecture, designed to capture and simulate high-fidelity controlled interaction trajectories. We further demonstrate through modeling that human and agent behaviors exhibit distinct transition probability kernels, enabling the construction of discriminative models based on Kullback-Leibler divergence.
+These behavioral signals serve as inputs for a Distributionally Robust Reinforcement Learning (DR-RL) agent. We formulate the pricing problem as a Stackelberg game where the learner optimizes against an ambiguity set of demand distributions defined by the Wasserstein distance. This approach allows the pricing policy to remain robust against non-stationary contamination without overfitting to deterministic demand curves. The research validates a mechanism for preserving margin integrity and market equilibrium in an agent-mediated economy, while minimizing degradation to the legitimate human user experience (UX).
+\end{abstract}
+
+\noindent\textbf{Keywords:} Dynamic Pricing, LLM Agents, Adversarial Machine Learning, E-commerce, Behavioral Detection, Reinforcement Learning
+
+\vspace{1em}
+\noindent\textbf{Acknowledgments:} This research was supported by the TPU Research Cloud program, which provided access to Google Cloud TPU accelerators (including TPU v4, v5e, and v6e).
+
+\vspace{1em}
+\noindent\textbf{Note to Readers:} This is a general public edition of the technical thesis. Mathematical formulas and complex algorithms have been translated into plain language explanations while preserving the complete narrative and all research findings.
+
+\clearpage
+\input{mirrors/genpop/01-intro}
+\input{mirrors/genpop/02-literature-review}
+\input{mirrors/genpop/03-methodology}
+\input{mirrors/genpop/04-results}
+\input{mirrors/genpop/05-discussion}
+\input{mirrors/genpop/06-conclusion}
+
+\printbibliography
+
+\clearpage
+\appendix
+\section{Terminology}
+\begin{description}
+\item[Agent A] An actor of non-human nature, powered by an LLM.
+\item[Human H] An individual human with some job to be done.
+\item[Actor] Defines a type of class which is either Agent or Human and has the capability to carry out actions on a web platform.
+\item[Platform] Any web-based platform which serves an interface to a collection of items that can be purchased, each at some price.
+\item[Behavioral Model] A mathematical model predicting what action comes after a series of prior actions.
+\item[LLM] Large Language Model served by some provider with the abstracted capability of tool calling.
+\item[TPU] Tensor Processing Unit which is a unique kind of chip architecture developed by Google.
+\item[Trajectory] Defined as a series of unspecified length, collecting data on states of some object over time.
+\item[Cost of Information (COI)] The average premium extracted above marginal cost due to information asymmetry.
+\item[Contamination Ratio] The proportion of agent sessions versus human sessions in the system.
+\item[Separability] The ability to distinguish between human and agent behavioral patterns.
+\end{description}
+
+\section{Aggregate Compute Budget Derivation}
+\label{app:compute_budget}
+
+The claimed peak throughput of approximately 160 PFLOPS (petaflops, a measure of computational power) follows from multiplying the per-chip peak performance by the number of chips in each allocation tier and summing across generations.
+
+\begin{table}[ht]
+\centering
+\caption{Per-generation contribution to aggregate throughput.}
+\label{tab:compute_derivation}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{TPU Gen.} & \textbf{Chips} & \textbf{Peak per chip (TFLOPS)} & \textbf{Subtotal (TFLOPS)} \\
+\midrule
+v6e (Trillium) & 128 & 918 & $128 \times 918 = 117{,}504$ \\
+v5e            & 128 & 197 & $128 \times 197 = 25{,}216$  \\
+v4             &  64 & 275 & $64  \times 275 = 17{,}600$  \\
+\midrule
+\textbf{Total} & \textbf{320} & & $\mathbf{160{,}320}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Converting to petaFLOPS: 160,320 TFLOPS equals approximately 160 PFLOPS. This is the theoretical peak under sustained arithmetic operations; realized throughput depends on memory bandwidth utilization and inter-chip communication overhead, but the figure serves as a useful upper bound for provisioning decisions.
+
+\end{document}

@@ -1,0 +1,33 @@
+{
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "name": "platform",
+  "projectType": "application",
+  "sourceRoot": "backend",
+  "targets": {
+    "up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose up -d",
+        "cwd": "."
+      }
+    },
+    "down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose down",
+        "cwd": "."
+      }
+    },
+    "logs": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker compose logs --tail=100 -f",
+        "cwd": "."
+      }
+    }
+  },
+  "tags": [
+    "scope:platform",
+    "type:infra"
+  ]
+}

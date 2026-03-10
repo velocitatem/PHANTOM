@@ -35,7 +35,6 @@ class EconomicMetricsWrapper(gym.Wrapper):
         prices = self.env.unwrapped._prices
         demand_dict = self.env.unwrapped._demand
         demand = np.array([demand_dict.get(i, 0.0) for i in range(len(prices))])
-        alpha = self.env.unwrapped.alpha
 
         # core calculations
         revenue = float(np.sum(prices * demand))
@@ -58,7 +57,21 @@ class EconomicMetricsWrapper(gym.Wrapper):
             "coi_level": coi_level,
             "regret": regret,
         }
-        for key in ("coi_mix", "coi_base", "coi_leakage", "coi_penalty"):
+        for key in (
+            "coi_mix",
+            "coi_base",
+            "coi_leakage",
+            "coi_penalty",
+            "ux_penalty",
+            "volatility",
+            "profit",
+            "cost_floor",
+            "reward_revenue",
+            "reward_total",
+            "agent_prob",
+            "alpha_adv",
+            "alpha_nominal",
+        ):
             if key in info:
                 info["economics"][key] = info[key]
         info["prices"] = prices.copy()

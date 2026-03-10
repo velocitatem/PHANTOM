@@ -6,17 +6,62 @@
     \label{fig:supra_heatmap}
 \end{figure}
 
+
+
 \subsection{Behavioral Analysis}
 
-Include markov chains of transition matrices, compare distributions (look at Divergence metrics)
+Separability between human and agent sessions is evaluated by computing per-session divergence gap scores $\Delta_{H,s} - \Delta_{A,s}$ and comparing the two groups with a Mann-Whitney $U$ test. Table~\ref{tab:divergence_significance} reports the group-level descriptive statistics for the gap scores and the test result.
+
+\begin{table}[ht]
+\centering
+\caption{Per-session divergence gap ($\Delta_H - \Delta_A$) by actor class with Mann-Whitney $U$ test.}
+\label{tab:divergence_significance}
+\begin{tabular}{lccc}
+\toprule
+Group & $n$ & Mean gap & Std \\
+\midrule
+Human sessions & 11 & $-3.3522$ & $2.6748$ \\
+Agent sessions & 6 & $+1.6482$ & $2.8349$ \\
+\midrule
+\multicolumn{4}{l}{Mann-Whitney $U = 2.0$, $p = 0.0006$ (two-sided)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided $p$-value of $0.0006$ indicates near-complete rank separation between the groups at $n_H=11$, $n_A=6$, providing strong evidence that the transition kernels are separable enough to justify their use as a control signal in downstream pricing.
 
 
 \subsection{Experimental Outcomes}
 
-Align with defined objectives, show results and statistical significance (or not).
+To evaluate robustness contributions, we compare two policies on the same environment family: (i) robust pricing with COI-aware reward and adversarial contamination step, and (ii) non-robust baseline with revenue-only reward (\texttt{--no-robust}).
+
+We report two preliminary stages before the full factorial interpretation. First, we executed a short calibration run at $\alpha=0.3$ (2 evaluation episodes, 3000 training timesteps per tier) across \texttt{qtable}, \texttt{ppo}, \texttt{a2c}, and \texttt{dqn}. In that first run, \texttt{ppo} produced the highest objective score and revenue (objective $=3.76\mathrm{e}5$, revenue $=4.15\mathrm{e}5$), while the remaining tiers stayed lower in this small-budget regime. The corresponding price traces show a monotone escalation for \texttt{ppo} (mean price from $8.61\mathrm{e}1$ to $1.49\mathrm{e}2$), whereas \texttt{qtable}, \texttt{a2c}, and \texttt{dqn} remained nearly flat over the episode horizon. This confirms that the simulation loop is able to express policy-dependent pricing dynamics rather than collapsing into a single trajectory shape.
+
+Second, we launched an overnight paired benchmark over $\alpha \in \{0.00,0.15,0.30,0.45,0.60\}$ with 8 evaluation episodes and 8000 timesteps, comparing robust and non-robust settings at fixed seed/tier/contamination tuples. At the time of writing, two seeds (11 and 22) are complete and one additional seed is still running. We therefore frame the numbers below as an initial signal, not a final claim.
+
+\begin{table}[ht]
+\centering
+\caption{Early overnight aggregate over completed seeds ($n=2$; seeds 11 and 22).}
+\label{tab:pricing_benchmark}
+\begin{tabular}{lcccc}
+\toprule
+Mode & Mean objective score & Mean revenue & Mean COI level & Mean margin \\
+\midrule
+Robust & $3.41\mathrm{e}5$ & $3.80\mathrm{e}5$ & $1.08\mathrm{e}2$ & 0.901 \\
+Non-robust (\texttt{--no-robust}) & $3.91\mathrm{e}5$ & $4.18\mathrm{e}5$ & $1.11\mathrm{e}2$ & 0.906 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At pair level (same seed, tier, and contamination), robust exceeds non-robust in $13/40$ configurations on objective score and in $16/40$ configurations on revenue. The current early evidence therefore suggests a conditional robustness effect: the defense is active and measurable, but not yet uniformly beneficial without further calibration.
 
 
 \subsection{Interpretation and Insights}
-Inference from given patterns and show key findings.
+The Mann-Whitney result ($U=2.0$, $p<0.001$) confirms that per-session divergence gaps separate the two actor classes with near-zero overlap in rank ordering. This is the condition required for separability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
+
+The first calibration and overnight runs additionally confirm three practical points aligned with the thesis mechanism. First, the control loop is reproducible end-to-end (training, evaluation, artifact generation) across algorithms and contamination levels. Second, policy class materially changes price trajectories and resulting COI/revenue profiles under identical environment settings. Third, objective improvements from robustness are regime-dependent in the current baseline, which is consistent with the thesis claim that contamination-aware pricing needs explicit calibration rather than a one-size-fits-all penalty.
+
+We also note that maximizing revenue in isolation can favor aggressive high-price behavior; even in these early runs, the non-robust aggregate shows slightly higher mean COI and margin. For this reason, all subsequent reporting in this thesis is interpreted on a multi-metric basis (objective, revenue, COI, and stability), and not by revenue alone.
 
 \subsection{Anomalies}
+In our initial runs, we observed an instability pocket in one completed run (A2C, robust, seed 11, $\alpha=0.30$) with a large performance drop relative to neighboring configurations. We retain this run in the preliminary summary to avoid survivorship bias and treat it as evidence that robustness sensitivity analysis is necessary before final conclusions.

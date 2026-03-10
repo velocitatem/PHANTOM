@@ -1,0 +1,39 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "pricing-provider",
+  "projectType": "application",
+  "sourceRoot": "backend/provider",
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash -lc '[ -x ../../.venv/bin/python ] || python3 -m venv ../../.venv; ../../.venv/bin/python -m ensurepip --upgrade; ../../.venv/bin/python -m pip install -r requirements.txt'",
+        "cwd": "backend/provider"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "../../.venv/bin/uvicorn app:app --host 0.0.0.0 --port ${PROVIDER_PORT:-5001} --reload",
+        "cwd": "backend/provider"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "../../.venv/bin/uvicorn app:app --host 0.0.0.0 --port ${PROVIDER_PORT:-5001}",
+        "cwd": "backend/provider"
+      }
+    }
+  },
+  "tags": [
+    "scope:backend",
+    "type:provider"
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "useInferencePlugins": false,
+  "defaultBase": "main",
+  "namedInputs": {
+    "sharedGlobals": [
+      "{workspaceRoot}/nx.json",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/Makefile",
+      "{workspaceRoot}/pyproject.toml",
+      "{workspaceRoot}/docker-compose.yml"
+    ],
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
+    "production": [
+      "default",
+      "!{projectRoot}/node_modules/**/*",
+      "!{projectRoot}/.next/**/*",
+      "!{projectRoot}/test-results/**/*",
+      "!{projectRoot}/build/**/*"
+    ]
+  },
+  "targetDefaults": {
+    "build": {
+      "cache": true,
+      "inputs": [
+        "production",
+        "^production"
+      ]
+    },
+    "test": {
+      "cache": false,
+      "inputs": [
+        "default",
+        "^production"
+      ]
+    },
+    "install": {
+      "cache": false
+    },
+    "dev": {
+      "cache": false
+    },
+    "start": {
+      "cache": false
+    },
+    "watch": {
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    },
+    "train": {
+      "cache": false
+    },
+    "benchmark": {
+      "cache": false
+    },
+    "up": {
+      "cache": false
+    },
+    "down": {
+      "cache": false
+    },
+    "logs": {
+      "cache": false
+    }
+  }
+}

@@ -110,10 +110,12 @@ def adjust_behavior_to_condition(condition, transition_matrix):
     return pd.DataFrame(expanded, index=new_rows, columns=new_cols)
 
 
-def sample_behavior(condition, human=True, max_len=40):
+def get_adjusted_transitions(condition, human=True):
     base_pivot = _get_base_pivot(human)
-    adjusted_transitions = adjust_behavior_to_condition(condition, base_pivot)
+    return adjust_behavior_to_condition(condition, base_pivot)
 
+
+def sample_behavior_from_transitions(adjusted_transitions, max_len=40):
     trajectory = [np.random.choice(adjusted_transitions.index)]
     while len(trajectory) < max_len and "checkout" not in trajectory[-1]:
         probs = np.asarray(adjusted_transitions.loc[trajectory[-1]].values, dtype=float)
@@ -125,6 +127,11 @@ def sample_behavior(condition, human=True, max_len=40):
         )
         trajectory.append(sample)
     return trajectory
+
+
+def sample_behavior(condition, human=True, max_len=40):
+    adjusted_transitions = get_adjusted_transitions(condition, human=human)
+    return sample_behavior_from_transitions(adjusted_transitions, max_len=max_len)
 
 
 if __name__ == "__main__":

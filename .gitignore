@@ -18,6 +18,9 @@ phantom.egg-info/
 .nextstep
 .ignore-gitlogue
 .cloudflare
+.nx/
+node_modules/
+dist/
 
 # generated svg/graphics
 **/session_*.svg
@@ -36,10 +39,11 @@ paper/src/auto/*
 paper/src/bib/auto
 paper/template/*
 paper/build-cais/
+paper/defense/manim/media/
+paper/defense/manim/.manim/
 paper/src/main.pdf
 paper/src/main-blx.bib
 paper/src/svg-inkscape/
-paper/src/mirrors/
 paper/variations/
 paper/src/graphics/test_*.png
 thesis-latest.pdf
@@ -66,6 +70,7 @@ sim/case/thesis_simplified/runs*/
 
 # model binaries
 engine/models/*.zip
+engine/studies/results/*
 *.zip
 
 # wandb local state

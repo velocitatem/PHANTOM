@@ -1,0 +1,60 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "e2e",
+  "projectType": "application",
+  "sourceRoot": "tests/e2e",
+  "targets": {
+    "install": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm install",
+        "cwd": "tests/e2e"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "outputs": [
+        "{projectRoot}/test-results"
+      ],
+      "options": {
+        "commands": [
+          "npx playwright install chromium",
+          "test -f .env || cp .env.example .env",
+          "timeout 30 bash -c \"until curl -sf http://localhost:5000/health > /dev/null 2>&1; do sleep 1; done\" || (echo 'Backend not ready' && exit 1)",
+          "timeout 30 bash -c \"until curl -sf http://localhost:3000 > /dev/null 2>&1; do sleep 1; done\" || (echo 'Web app not ready' && exit 1)",
+          "timeout 30 bash -c \"until curl -sf http://localhost:8085/health > /dev/null 2>&1; do sleep 1; done\" || (echo 'Airflow not ready' && exit 1)",
+          "npm test"
+        ],
+        "parallel": false,
+        "cwd": "tests/e2e"
+      }
+    },
+    "test-ui": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "npm run test:ui",
+        "cwd": "tests/e2e"
+      }
+    },
+    "test-debug": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "npm run test:debug",
+        "cwd": "tests/e2e"
+      }
+    }
+  },
+  "tags": [
+    "scope:test",
+    "type:e2e"
+  ]
+}
