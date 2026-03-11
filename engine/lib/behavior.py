@@ -143,6 +143,11 @@ def get_adjusted_transitions(condition, human=True) -> _TransitionTable:
     cache_key = (human, tuple(np.round(condition, 4).tolist()))
     if cache_key in _transition_cache:
         return _transition_cache[cache_key]
+
+    # prevent OOM by capping cache size
+    if len(_transition_cache) > 100:
+        _transition_cache.clear()
+
     base_pivot = _get_base_pivot(human)
     df = adjust_behavior_to_condition(condition, base_pivot)
     table = _TransitionTable(df)

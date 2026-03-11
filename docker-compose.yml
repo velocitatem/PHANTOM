@@ -1,4 +1,19 @@
 services:
+  tpu-watchdogs:
+    build:
+      context: .
+      dockerfile: docker/TPUWatchdog.dockerfile
+    container_name: "PHANTOM-tpu-watchdogs"
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - WANDB_API_KEY=${WANDB_API_KEY}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - CLOUDSDK_CONFIG=/.config/gcloud
+    volumes:
+      - ~/.config/gcloud:/.config/gcloud:rw
+
   tensorboard-rl:
     image: tensorflow/tensorflow:latest
     container_name: "PHANTOM-tensorboard-rl"

@@ -37,7 +37,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 help:
 	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.arxiv | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
-	@echo "study.margin-erosion study.margin-erosion.quick study.margin-erosion.plot"
+	@echo "data.pull data.push | study.margin-erosion study.margin-erosion.quick study.margin-erosion.plot"
 	@echo ""
 	@echo "Build general public version:"
 	@echo "  make pdf.genpop"
@@ -133,6 +133,13 @@ train.agent:
 .PHONY: train.bootstrap
 train.bootstrap:
 	@WANDB_ENTITY="$(WANDB_ENTITY)" WANDB_PROJECT="$(WANDB_PROJECT)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" REPO_URL="$(REPO_URL)" BRANCH="$(BRANCH)" WORKDIR="$(WORKDIR)" SWEEP_ID="$(SWEEP_ID)" AGENT_COUNT="$(AGENT_COUNT)" AGENT_LOOP="$(AGENT_LOOP)" RETRY_SECONDS="$(RETRY_SECONDS)" $(NX) run research:train-bootstrap
+
+.PHONY: data.pull data.push
+data.pull:
+	python scripts/hf_data.py pull
+
+data.push:
+	python scripts/hf_data.py push
 
 .PHONY: stats.lines
 stats.lines:
