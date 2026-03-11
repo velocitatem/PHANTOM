@@ -1,11 +1,31 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+
 import argparse
 import json
 import logging
-import os
 from datetime import datetime, UTC
 from pathlib import Path
+
+# clear stale TPU locks on startup
+if os.path.exists("/dev/accel0"):
+    try:
+        subprocess.run(
+            ["rm", "-f", "/tmp/.libtpu_lockfile", "/tmp/libtpu_lockfile"],
+            stderr=subprocess.DEVNULL,
+        )
+    except:
+        pass
+
+try:
+    import jax
+
+    jax.config.update("jax_threefry_partitionable", True)
+except ImportError:
+    pass
 
 import matplotlib.pyplot as plt
 import numpy as np

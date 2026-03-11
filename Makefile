@@ -35,7 +35,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 
 .PHONY: help
 help:
-	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.arxiv | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines"
+	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.arxiv | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines | manim.render manim.render.all"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
 	@echo "data.pull data.push | study.margin-erosion study.margin-erosion.quick study.margin-erosion.plot"
 	@echo ""
@@ -201,3 +201,10 @@ count-lines:
 
 all:
 	@$(NX) run paper:build
+
+.PHONY: manim.render manim.render.all
+manim.render:
+	@$(NX) run manim:render
+
+manim.render.all:
+	@$(NX) run manim:render-all

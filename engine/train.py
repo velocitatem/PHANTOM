@@ -179,7 +179,28 @@ def _overrides_from_args(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> None:
+    import subprocess
     import sys
+
+    # Ensure data is downloaded
+    from pathlib import Path
+
+    project_root = Path(__file__).parents[1]
+    data_dir = project_root / "experiments" / "collected_data"
+    needs_pull = (not data_dir.exists()) or (not any(data_dir.iterdir()))
+    if needs_pull:
+        try:
+            subprocess.run(["make", "data.pull"], cwd=str(project_root), check=True)
+        except (subprocess.SubprocessError, OSError) as exc:
+            sys.path.insert(0, str(project_root))
+            try:
+                from scripts.hf_data import pull
+
+                pull()
+            except (ImportError, OSError, RuntimeError, ValueError) as fallback_exc:
+                print(
+                    f"Warning: data.pull failed ({exc}); fallback pull failed ({fallback_exc})"
+                )
 
     configure_logging()
     raw_args = list(sys.argv[1:] if argv is None else argv)
