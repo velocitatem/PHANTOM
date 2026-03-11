@@ -37,6 +37,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 help:
 	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.arxiv | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
+	@echo "study.margin-erosion study.margin-erosion.quick study.margin-erosion.plot"
 	@echo ""
 	@echo "Build general public version:"
 	@echo "  make pdf.genpop"
@@ -136,6 +137,18 @@ train.bootstrap:
 .PHONY: stats.lines
 stats.lines:
 	@$(NX) run research:stats
+
+.PHONY: study.margin-erosion
+study.margin-erosion:
+	python -m engine.studies.margin_erosion_alpha
+
+.PHONY: study.margin-erosion.quick
+study.margin-erosion.quick:
+	python -m engine.studies.margin_erosion_alpha --quick
+
+.PHONY: study.margin-erosion.plot
+study.margin-erosion.plot:
+	python -m engine.studies.plot_margin_erosion engine/studies/results/margin_erosion_alpha_*.json
 
 .PHONY: wordcount
 wordcount:
