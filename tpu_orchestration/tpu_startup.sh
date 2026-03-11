@@ -62,6 +62,9 @@ cd /app/model
 if [ -f "requirements.txt" ]; then
     pip install -r requirements.txt
 fi
+if [ -f "sim/requirements.txt" ]; then
+    pip install -r sim/requirements.txt
+fi
 
 # 5. Restore state from Hugging Face Buckets
 echo "Restoring state from hf://buckets/$HF_REPO..."

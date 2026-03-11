@@ -95,7 +95,7 @@ while true; do
     fi
 
     # Determine runtime version
-    RT_VERSION=${RUNTIME_VERSION:-"v2-alpha-tpuv4"}
+    RT_VERSION=${RUNTIME_VERSION:-"tpu-ubuntu2204-base"}
 
     gcloud compute tpus queued-resources create $QR_NAME \
       --project=$PROJECT_ID \
