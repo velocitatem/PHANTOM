@@ -15,6 +15,10 @@ def make_env(cfg: Mapping[str, Any]):
         n_products=int(cfg["n_products"]),
         alpha=float(cfg["alpha"]),
         N=int(cfg["N"]),
+        agent_params=(
+            float(cfg.get("agent_mu", 45.0)),
+            float(cfg.get("agent_std", 15.0)),
+        ),
         price_bounds=(float(cfg["price_low"]), float(cfg["price_high"])),
         lambda_coi=float(cfg["lambda_coi"]),
         robust_radius=float(cfg["robust_radius"]),

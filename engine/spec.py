@@ -72,6 +72,8 @@ class EnvSpec:
     max_steps: int = 100
     margin_floor: float = 0.05
     margin_floor_patience: int = 5
+    agent_mu: float = 45.0
+    agent_std: float = 15.0
 
 
 @dataclass(frozen=True)
@@ -167,6 +169,8 @@ class TrainSpec:
             "max_steps": self.env.max_steps,
             "margin_floor": self.env.margin_floor,
             "margin_floor_patience": self.env.margin_floor_patience,
+            "agent_mu": self.env.agent_mu,
+            "agent_std": self.env.agent_std,
             "alpha": self.study.alpha,
             "lambda_coi": self.study.lambda_coi,
             "robust_radius": self.study.robust_radius,
@@ -246,6 +250,8 @@ class TrainSpec:
                 max_steps=int(base["max_steps"]),
                 margin_floor=float(base["margin_floor"]),
                 margin_floor_patience=int(base["margin_floor_patience"]),
+                agent_mu=float(base.get("agent_mu", 45.0)),
+                agent_std=float(base.get("agent_std", 15.0)),
             ),
             study=StudySpec(
                 alpha=float(base["alpha"]),

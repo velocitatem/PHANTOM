@@ -31,6 +31,9 @@ def _run_baseline(alpha: float, algo: str, seed: int, steps: int) -> dict:
             "eval_freq": 5000,
             "eval_episodes": 10,
             "log_freq": 500,
+            "robust_eval_enabled": False,
+            "agent_mu": 12.0,
+            "agent_std": 2.0,
         }
     )
     result = run_train_once(

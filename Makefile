@@ -146,10 +146,6 @@ study.margin-erosion:
 study.margin-erosion.quick:
 	python -m engine.studies.margin_erosion_alpha --quick
 
-.PHONY: study.margin-erosion.plot
-study.margin-erosion.plot:
-	python -m engine.studies.plot_margin_erosion engine/studies/results/margin_erosion_alpha_*.json
-
 .PHONY: wordcount
 wordcount:
 	@$(NX) run paper:wordcount

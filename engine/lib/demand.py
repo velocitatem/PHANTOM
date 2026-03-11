@@ -17,18 +17,32 @@ def generate_demand_for_actor(
     params: tuple,
     noise_std: float = 1.0,
     distribution_method=np.random.normal,
+    normalize: bool = False,
 ) -> np.ndarray:
     """d(p;0) = max(0, valuation - price) + epsi for single actor type
     params: (mean, std) for valuation distribution D_H or D_A"""
     val = distribution_method(*params, size=len(prices))
     noise = distribution_method(0, noise_std, len(prices))
     demand = np.maximum(0, val - prices + noise)
+    if not normalize:
+        return demand
     total = np.sum(demand)
     return demand / total * 100 if total > 0 else demand
 
 
-def estimate_demand(trajectories, action_weights=None):
-    return estimate_weighted_demand(trajectories, action_weights)
+def estimate_demand(
+    trajectories,
+    action_weights=None,
+    *,
+    normalize: bool = False,
+    per_session: bool = True,
+):
+    return estimate_weighted_demand(
+        trajectories,
+        action_weights,
+        normalize=normalize,
+        per_session=per_session,
+    )
 
 
 def _parse_event_state(state: str):
@@ -50,7 +64,13 @@ def _weight_for_action(action: str, action_weights: dict) -> float:
     return CATEGORY_WEIGHTS["nav"]
 
 
-def estimate_weighted_demand(trajectories, action_weights=None):
+def estimate_weighted_demand(
+    trajectories,
+    action_weights=None,
+    *,
+    normalize: bool = False,
+    per_session: bool = True,
+):
     action_weights = (
         DEFAULT_ACTION_WEIGHTS if action_weights is None else action_weights
     )
@@ -64,12 +84,20 @@ def estimate_weighted_demand(trajectories, action_weights=None):
             if w <= 0:
                 continue
             scores[product_id] = scores.get(product_id, 0.0) + w
-    total = sum(scores.values())
-    return (
-        {pid: (score / total) * 100 for pid, score in scores.items()}
-        if total > 0
-        else {}
-    )
+    if not scores:
+        return {}
+
+    if per_session and len(trajectories) > 0:
+        inv_n = 1.0 / float(len(trajectories))
+        scores = {pid: score * inv_n for pid, score in scores.items()}
+
+    if not normalize:
+        return scores
+
+    total = float(sum(scores.values()))
+    if total <= 0:
+        return {}
+    return {pid: (score / total) * 100.0 for pid, score in scores.items()}
 
 
 # Example usage
