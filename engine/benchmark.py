@@ -7,7 +7,7 @@ import sys
 import argparse
 import json
 import logging
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from pathlib import Path
 
 # clear stale TPU locks on startup
@@ -449,7 +449,7 @@ def _run_with_args(args, compare_robust_override: bool | None = None):
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     csv_path = out_dir / f"benchmark_{stamp}.csv"
     trace_path = out_dir / f"benchmark_traces_{stamp}.json"
     df.to_csv(csv_path, index=False)
@@ -580,7 +580,7 @@ def run_cli(raw_args: list[str] | None = None):
 
     tiers = _parse_list(args.tiers)
     alpha_values = _parse_float_list(args.alpha_values)
-    run_stamp = datetime.now(UTC).strftime("%m%d-%H%M%S")
+    run_stamp = datetime.now(timezone.utc).strftime("%m%d-%H%M%S")
     compare_enabled = _truthy(os.environ.get("PHANTOM_BENCHMARK_COMPARE_ROBUST"))
     compare_tag = "robust-compare" if compare_enabled else "single-mode"
     modes = (

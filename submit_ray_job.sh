@@ -3,6 +3,7 @@
 # Modes:
 #   RAY_MODE=single       -> one run (default)
 #   RAY_MODE=distributed  -> one run per TPU node (experimental)
+#   RAY_MODE=benchmark    -> one benchmark run per TPU node (overnight)
 
 set -euo pipefail
 
@@ -27,6 +28,9 @@ env = dotenv_values(".env")
 # Filter out empty/None values
 env_vars = {k: v for k, v in env.items() if v}
 env_vars.setdefault("CLOUD_TPU_TASK_ID", os.getenv("CLOUD_TPU_TASK_ID", "0"))
+for k in ("WANDB_ENTITY", "WANDB_PROJECT", "PHANTOM_BENCHMARK_COMPARE_ROBUST"):
+    if os.getenv(k):
+        env_vars[k] = os.getenv(k)
 
 print(json.dumps({
     "pip": [
@@ -38,7 +42,8 @@ print(json.dumps({
         "pandas",
         "pydantic",
         "graphviz",
-        "huggingface_hub"
+        "huggingface_hub",
+        "matplotlib"
     ],
     "env_vars": env_vars
 }))
@@ -46,12 +51,22 @@ print(json.dumps({
 
 RAY_MODE="${RAY_MODE:-single}"
 TRAIN_ARGS="${TRAIN_ARGS:---algo ppo --total-timesteps 1000000}"
+BENCHMARK_ARGS="${BENCHMARK_ARGS:---project capstone_tpu --tiers static,surge,linear,qtable,ppo --alpha-values 0.0,0.1,0.25,0.4,0.6,0.8 --episodes 12 --total-timesteps 30000 --max-steps 100 --robust-radius 0.2 --robust-points 7 --robust-rollouts 1 --lambda-coi 0.2 --eta-ux 0.5 --reward-profit-weight 1.0 --device cpu}"
+
+SUBMIT_ARGS=()
+if [ "${RAY_NO_WAIT:-0}" = "1" ]; then
+  SUBMIT_ARGS+=(--no-wait)
+fi
+if [ -n "${SUBMISSION_ID:-}" ]; then
+  SUBMIT_ARGS+=(--submission-id "$SUBMISSION_ID")
+fi
 
 COMMON_ARGS=(
   job submit
   --address http://localhost:8265
   --working-dir "$ROOT"
   --runtime-env-json "$RUNTIME_ENV_JSON"
+  "${SUBMIT_ARGS[@]}"
   --
 )
 
@@ -77,5 +92,25 @@ if [ "$RAY_MODE" = "distributed" ]; then
   exit 0
 fi
 
-echo "Unsupported RAY_MODE='$RAY_MODE' (expected 'single' or 'distributed')." >&2
+if [ "$RAY_MODE" = "benchmark" ]; then
+  DIST_ARGS=(
+    python
+    scripts/ray_distributed_train.py
+    --run-kind benchmark
+    --entry-args "$BENCHMARK_ARGS"
+    --num-nodes "${NUM_NODES:-4}"
+    --tpu-per-task "${TPU_PER_TASK:-8}"
+    --base-seed "${BASE_SEED:-42}"
+    --output-root "${OUTPUT_ROOT:-engine/studies/results/overnight}"
+    --wandb-entity "${WANDB_ENTITY:-lusiana}"
+    --wandb-project "${WANDB_PROJECT:-capstone_tpu}"
+  )
+  if [ "${COMPARE_ROBUST:-1}" = "1" ]; then
+    DIST_ARGS+=(--compare-robust)
+  fi
+  "$RAY_BIN" "${COMMON_ARGS[@]}" "${DIST_ARGS[@]}"
+  exit 0
+fi
+
+echo "Unsupported RAY_MODE='$RAY_MODE' (expected 'single', 'distributed', or 'benchmark')." >&2
 exit 1
