@@ -35,25 +35,55 @@ if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -f "$GOOGLE_APPLICATION_CREDENT
     if [ "$CRED_TYPE" = "service_account" ]; then
         echo "Authenticating gcloud using service account key..."
         gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
-        
-        # Extract project ID from the key file
-        PROJECT_ID=$(jq -r '.project_id' "$GOOGLE_APPLICATION_CREDENTIALS")
-        if [ -n "$PROJECT_ID" ] && [ "$PROJECT_ID" != "null" ]; then
-            gcloud config set project "$PROJECT_ID"
-            echo "Set project to $PROJECT_ID"
+
+        if [ -z "$PROJECT_ID" ]; then
+            PROJECT_ID=$(jq -r '.project_id // empty' "$GOOGLE_APPLICATION_CREDENTIALS")
         fi
+    elif [ "$CRED_TYPE" = "authorized_user" ]; then
+        echo "Authenticating gcloud using authorized_user refresh token..."
+
+        AUTH_ACCOUNT="$GCP_ACCOUNT"
+        if [ -z "$AUTH_ACCOUNT" ]; then
+            AUTH_ACCOUNT=$(jq -r '.account // empty' "$GOOGLE_APPLICATION_CREDENTIALS")
+        fi
+        if [ -z "$AUTH_ACCOUNT" ]; then
+            AUTH_ACCOUNT=$(gcloud config get-value account 2>/dev/null || true)
+        fi
+
+        REFRESH_TOKEN=$(jq -r '.refresh_token // empty' "$GOOGLE_APPLICATION_CREDENTIALS")
+        if [ -z "$AUTH_ACCOUNT" ] || [ -z "$REFRESH_TOKEN" ]; then
+            echo "Error: authorized_user credentials require GCP_ACCOUNT (or embedded account) and refresh_token."
+            exit 1
+        fi
+
+        gcloud auth activate-refresh-token "$AUTH_ACCOUNT" "$REFRESH_TOKEN"
     else
-        echo "Note: Using application default credentials or mounted gcloud config..."
+        echo "Warning: unsupported credential file type '$CRED_TYPE'. Falling back to mounted gcloud config."
     fi
 else
     echo "Note: Assuming gcloud config is mounted from host."
 fi
 
+if [ -n "$PROJECT_ID" ]; then
+    gcloud config set project "$PROJECT_ID"
+    echo "Set project to $PROJECT_ID"
+fi
+
 # Run the watchdogs in the background using bash instead of tmux
 # Tmux needs a TTY to attach properly which we might not have in docker
 # Stagger startups by 15s to prevent simultaneous TPU creation quota hits
+CONFIG_PATTERN=${WATCHDOG_CONFIG_PATTERN:-"*.conf"}
+shopt -s nullglob
+CONFIGS=(/app/tpu_orchestration/configs/$CONFIG_PATTERN)
+
+if [ ${#CONFIGS[@]} -eq 0 ]; then
+    echo "Error: no watchdog configs matched pattern '$CONFIG_PATTERN'."
+    exit 1
+fi
+
+echo "Using watchdog config pattern: $CONFIG_PATTERN"
 DELAY=0
-for conf in /app/tpu_orchestration/configs/*.conf; do
+for conf in "${CONFIGS[@]}"; do
     echo "Starting watchdog for $(basename "$conf" .conf) (delay: ${DELAY}s)"
     (sleep $DELAY && /app/tpu_orchestration/watchdog.sh "$conf") &
     DELAY=$((DELAY + 15))

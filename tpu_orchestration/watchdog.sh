@@ -97,6 +97,8 @@ while true; do
     # Determine runtime version
     RT_VERSION=${RUNTIME_VERSION:-"tpu-ubuntu2204-base"}
 
+    CREATE_LOG="/tmp/tpu_create_${QR_NAME}.log"
+
     gcloud compute tpus queued-resources create $QR_NAME \
       --project=$PROJECT_ID \
       --node-id=$QR_NAME \
@@ -104,20 +106,23 @@ while true; do
       --accelerator-type=$ACCEL_TYPE \
       --runtime-version=$RT_VERSION \
       $SPOT_FLAG \
+      --internal-ips \
       --metadata-from-file startup-script=$(dirname $0)/tpu_startup.sh \
-      --metadata "$METADATA" 2>&1 | tee /tmp/tpu_create_${QR_NAME}.log
+      --metadata "$METADATA" 2>&1 | tee "$CREATE_LOG"
+
+    CREATE_EXIT=${PIPESTATUS[0]}
       
-    if [ $? -eq 0 ]; then
+    if [ $CREATE_EXIT -eq 0 ]; then
         echo "[$(date)] Successfully queued $QR_NAME."
         RETRY_DELAY=60
-    elif grep -q "IN_USE_ADDRESSES" /tmp/tpu_create_${QR_NAME}.log 2>/dev/null; then
+    elif grep -q "IN_USE_ADDRESSES" "$CREATE_LOG" 2>/dev/null; then
         echo "[$(date)] IP quota hit - backing off ${RETRY_DELAY}s"
         sleep $RETRY_DELAY
         RETRY_DELAY=$((RETRY_DELAY * 2))
         [ $RETRY_DELAY -gt $MAX_RETRY_DELAY ] && RETRY_DELAY=$MAX_RETRY_DELAY
         continue
     else
-        echo "[$(date)] Failed to queue $QR_NAME."
+        echo "[$(date)] Failed to queue $QR_NAME (exit=$CREATE_EXIT)."
         RETRY_DELAY=60
     fi
   else

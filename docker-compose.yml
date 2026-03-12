@@ -10,9 +10,13 @@ services:
       - HF_TOKEN=${HF_TOKEN}
       - WANDB_API_KEY=${WANDB_API_KEY}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-sa.json
+      - GCP_ACCOUNT=${GCP_ACCOUNT:-}
+      - WATCHDOG_CONFIG_PATTERN=${WATCHDOG_CONFIG_PATTERN:-v6e_*.conf}
       - CLOUDSDK_CONFIG=/.config/gcloud
     volumes:
       - ~/.config/gcloud:/.config/gcloud:rw
+      - ./secrets/gcp-sa.json:/secrets/gcp-sa.json:ro
 
   tensorboard-rl:
     image: tensorflow/tensorflow:latest
