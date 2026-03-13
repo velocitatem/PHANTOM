@@ -81,6 +81,110 @@ v4             &  64 & 275 & $64  \times 275 = 17{,}600$  \\
 
 Converting to petaFLOPS: $160{,}320\;\text{TFLOPS} = 160.32\;\text{PFLOPS} \approx 160\;\text{PFLOPS}$. This is the theoretical peak under sustained BF16 arithmetic; realized throughput depends on memory bandwidth utilization and inter-chip communication overhead, but the figure serves as a useful upper bound for provisioning decisions.
 
+\section{Full Slope-Test Derivation: Revenue vs. Contamination}
+\label{app:alpha_revenue_slope}
+
+This appendix gives the full ordinary least squares computation for the linear effect of contamination on mean revenue. Let
+\[
+x_i = \texttt{study/alpha}_i, \qquad y_i = \texttt{eval/revenue\_mean}_i,
+\]
+and fit
+\[
+y_i = \beta_0 + \beta_1 x_i + \varepsilon_i, \qquad i=1,\dots,n.
+\]
+The slope test is
+\[
+H_0: \beta_1 = 0 \qquad \text{vs.} \qquad H_1: \beta_1 \neq 0.
+\]
+
+\subsection{Sample moments and least-squares coefficients}
+
+From the data:
+\[
+n=95, \qquad \bar{x}=0.3810526316, \qquad \bar{y}=303{,}774.6096.
+\]
+Define
+\[
+S_{xx}=\sum_{i=1}^{n}(x_i-\bar{x})^2, \qquad S_{xy}=\sum_{i=1}^{n}(x_i-\bar{x})(y_i-\bar{y}).
+\]
+Numerically,
+\[
+S_{xx}=7.0508947368, \qquad S_{xy}=-427{,}509.4691.
+\]
+The least-squares slope and intercept are
+\[
+\hat{\beta}_1 = \frac{S_{xy}}{S_{xx}} = \frac{-427{,}509.4691}{7.0508947368} = -60{,}631.9460,
+\]
+\[
+\hat{\beta}_0 = \bar{y} - \hat{\beta}_1\bar{x} = 303{,}774.6096 - (-60{,}631.9460)(0.3810526316) = 326{,}878.5722.
+\]
+So the fitted line is
+\[
+\hat{y} = 326{,}878.5722 - 60{,}631.9460\,x.
+\]
+
+\subsection{Residual variance and standard error of the slope}
+
+For each observation, $\hat{y}_i = \hat{\beta}_0 + \hat{\beta}_1 x_i$ and $e_i = y_i - \hat{y}_i$. The residual sum of squares is
+\[
+\mathrm{SSE} = \sum_{i=1}^{n} e_i^2 = 35{,}721{,}896{,}352.27375.
+\]
+With $df=n-2=93$,
+\[
+\mathrm{MSE} = \frac{\mathrm{SSE}}{n-2} = \frac{35{,}721{,}896{,}352.27375}{93} = 384{,}106{,}412.3900.
+\]
+The slope standard error is
+\[
+SE(\hat{\beta}_1) = \sqrt{\frac{\mathrm{MSE}}{S_{xx}}} = \sqrt{\frac{384{,}106{,}412.3900}{7.0508947368}} = 7{,}380.8038.
+\]
+
+\subsection{t-statistic, p-value, and confidence interval}
+
+Under $H_0: \beta_1=0$,
+\[
+t = \frac{\hat{\beta}_1}{SE(\hat{\beta}_1)} = \frac{-60{,}631.9460}{7{,}380.8038} = -8.2148,
+\]
+with $df=93$. The two-sided p-value is
+\[
+p = 2\,\Pr\left(T_{93} \ge |t|\right) = 1.2038\times 10^{-12}.
+\]
+The 95\% confidence interval is
+\[
+\hat{\beta}_1 \pm t_{0.975,93}\,SE(\hat{\beta}_1)
+= -60{,}631.9460 \pm (1.9858)(7{,}380.8038)
+= [-75{,}288.7597,\,-45{,}975.1324].
+\]
+
+\subsection{Effect size and fit statistics}
+
+The sample correlation is $r=-0.64846$, so
+\[
+R^2 = r^2 = 0.4205.
+\]
+Hence, 42.05\% of the variation in \texttt{eval/revenue\_mean} is explained by a linear trend in \texttt{study/alpha}.
+
+The slope interpretation is direct:
+\[
+\hat{\beta}_1 = -60{,}631.9460 \quad \Rightarrow \quad \Delta y \approx -6{,}063.19 \text{ for } \Delta x = +0.1.
+\]
+From $\alpha=0$ to $\alpha=0.8$, the fitted drop is
+\[
+0.8\times (-60{,}631.9460) = -48{,}505.5568,
+\]
+so the model predicts roughly $48{,}506$ lower revenue units on average.
+
+\subsection{Conclusion of the slope test}
+
+The estimated model is
+\[
+\hat{y}=326{,}878.57-60{,}631.95\,x,
+\]
+with
+\[
+t(93)=-8.2148, \qquad p=1.2038\times 10^{-12}, \qquad 95\%\,\text{CI}=[-75{,}288.76,\,-45{,}975.13].
+\]
+The slope is therefore strongly negative and statistically different from zero.
+
 % \input{../build/concatenated_code}
 
 \end{document}

@@ -10,7 +10,7 @@
 
 \subsection{Behavioral Analysis}
 
-Separability between human and agent sessions is evaluated by computing per-session divergence gap scores $\Delta_{H,s} - \Delta_{A,s}$ and comparing the two groups with a Mann-Whitney $U$ test. Table~\ref{tab:divergence_significance} reports the group-level descriptive statistics for the gap scores and the test result.
+Separability between human and agent sessions is evaluated by computing per-session divergence gap scores $\Delta_{H,s} - \Delta_{A,s}$ and comparing the two groups with a Mann-Whitney $U$ test. The full recorded cohort contains $n_H=13$ human sessions and $n_A=16$ agent sessions, and Table~\ref{tab:divergence_significance} reports the corresponding group-level statistics and test result.
 
 \begin{table}[ht]
 \centering
@@ -20,15 +20,15 @@ Separability between human and agent sessions is evaluated by computing per-sess
 \toprule
 Group & $n$ & Mean gap & Std \\
 \midrule
-Human sessions & 11 & $-3.3522$ & $2.6748$ \\
-Agent sessions & 6 & $+1.6482$ & $2.8349$ \\
+Human sessions & 13 & $-3.35$ & $2.67$ \\
+Agent sessions & 16 & $+1.65$ & $2.83$ \\
 \midrule
-\multicolumn{4}{l}{Mann-Whitney $U = 2.0$, $p = 0.0006$ (two-sided)} \\
+\multicolumn{4}{l}{Mann-Whitney two-sided test: $p<0.001$} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided $p$-value of $0.0006$ indicates near-complete rank separation between the groups at $n_H=11$, $n_A=6$, providing strong evidence that the transition kernels are separable enough to justify their use as a control signal in downstream pricing.
+The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided test result ($p<0.001$) at $n_H=13$, $n_A=16$ indicates strong rank separation between groups, providing evidence that the transition kernels are separable enough to justify their use as a control signal in downstream pricing.
 
 
 \subsection{Experimental Outcomes}
@@ -55,9 +55,17 @@ Non-robust (\texttt{--no-robust}) & $3.91\mathrm{e}5$ & $4.18\mathrm{e}5$ & $1.1
 
 At pair level (same seed, tier, and contamination), robust exceeds non-robust in $13/40$ configurations on objective score and in $16/40$ configurations on revenue. The current early evidence therefore suggests a conditional robustness effect: the defense is active and measurable, but not yet uniformly beneficial without further calibration.
 
+\subsubsection{The Impact of Contamination on Revenue}
+
+A linear slope test on run-level data ($n=95$) shows a strong negative association between contamination and mean revenue. The fitted model is
+\[
+\widehat{\text{revenue}} = 326{,}878.57 - 60{,}631.95\,\alpha,
+\]
+with $t(93)=-8.2148$, $p=1.20\times 10^{-12}$, $R^2=0.4205$, and a 95\% confidence interval for the slope of $[-75{,}288.76,\,-45{,}975.13]$. In practical terms, a $+0.1$ increase in $\alpha$ corresponds to an average decrease of about $6{,}063$ revenue units. The full derivation (sample moments, least-squares coefficients, residual variance, standard error, test statistic, and confidence interval) is reported in Appendix~\ref{app:alpha_revenue_slope}.
+
 
 \subsection{Interpretation and Insights}
-The Mann-Whitney result ($U=2.0$, $p<0.001$) confirms that per-session divergence gaps separate the two actor classes with near-zero overlap in rank ordering. This is the condition required for separability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
+The Mann-Whitney result ($p<0.001$) confirms that per-session divergence gaps separate the two actor classes with near-zero overlap in rank ordering. This is the condition required for separability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
 
 The first calibration and overnight runs additionally confirm three practical points aligned with the thesis mechanism. First, the control loop is reproducible end-to-end (training, evaluation, artifact generation) across algorithms and contamination levels. Second, policy class materially changes price trajectories and resulting COI/revenue profiles under identical environment settings. Third, objective improvements from robustness are regime-dependent in the current baseline, which is consistent with the thesis claim that contamination-aware pricing needs explicit calibration rather than a one-size-fits-all penalty.
 

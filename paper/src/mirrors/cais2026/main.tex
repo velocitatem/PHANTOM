@@ -233,7 +233,7 @@ To train a robust pricing learner, we need a simulator that can generate realist
 \subsubsection{GOFAI-Based Weak Labeling.}
 We use Good Old-Fashioned AI (GOFAI) heuristics to generate weak labels for separability. A set of rule-based predicates $\phi_j: \tau \to \{0,1\}$ partitions dataset $\mathcal{D}$ into high-confidence sets $\mathcal{D}_H$ and $\mathcal{D}_A$. We then estimate separate transition models for both groups and ask a direct methodological question: are the kernels separable enough to justify downstream pricing control that depends on that separability?
 
-To answer this, we compute average KL divergence between transition probability matrices. This statistic gives global separability and event-level diagnostics at the same time. In our balanced dataset (50\% human, 50\% agent), the average divergence is approximately $1.8$.
+To answer this, we compute average KL divergence between transition probability matrices. This statistic gives global separability and event-level diagnostics at the same time. In our recorded dataset (13 human sessions, 16 agent sessions; 45\%/55\%), the average divergence is approximately $1.8$.
 
 \begin{definition}[KL Divergence for Transition Distributions]
 Let $P_e$ and $Q_e$ be categorical distributions over destination states following event $e$, derived from human and agent trajectories respectively. The KL divergence between these distributions is:
