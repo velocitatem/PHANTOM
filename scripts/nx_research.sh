@@ -142,13 +142,13 @@ PY
       --output "${WHOCLICKED_CSV:-experiments/exports/whoclicked.csv}" \
       --repo "${WHOCLICKED_REPO:-velocitatem/whoclickedit}" \
       --path-in-repo "${WHOCLICKED_CSV_PATH_IN_REPO:-whoclicked.csv}" \
-      --message "${WHOCLICKED_DATASET_MESSAGE:-Update flattened whoclicked dataset}"
+      --message "${WHOCLICKED_DATASET_MESSAGE:-Update flattened whoclickedit dataset}"
     .venv/bin/python scripts/whoclicked_card.py build-upload \
       --csv "${WHOCLICKED_CSV:-experiments/exports/whoclicked.csv}" \
       --card "${WHOCLICKED_CARD:-experiments/exports/whoclicked_dataset_card.md}" \
       --repo "${WHOCLICKED_REPO:-velocitatem/whoclickedit}" \
       --path-in-repo "${WHOCLICKED_CARD_PATH_IN_REPO:-README.md}" \
-      --message "${WHOCLICKED_CARD_MESSAGE:-Update dataset card for WhoClicked}"
+      --message "${WHOCLICKED_CARD_MESSAGE:-Update dataset card for whoclickedit}"
     ;;
   tpu-ray-bootstrap)
     run_tpu_ray_bootstrap

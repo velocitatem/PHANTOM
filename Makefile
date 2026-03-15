@@ -27,8 +27,8 @@ WHOCLICKED_CSV ?= experiments/exports/whoclicked.csv
 WHOCLICKED_CARD ?= experiments/exports/whoclicked_dataset_card.md
 WHOCLICKED_CSV_PATH_IN_REPO ?= whoclicked.csv
 WHOCLICKED_CARD_PATH_IN_REPO ?= README.md
-WHOCLICKED_DATASET_MESSAGE ?= Update flattened whoclicked dataset
-WHOCLICKED_CARD_MESSAGE ?= Update dataset card for WhoClicked
+WHOCLICKED_DATASET_MESSAGE ?= Update flattened whoclickedit dataset
+WHOCLICKED_CARD_MESSAGE ?= Update dataset card for whoclickedit
 
 REPO_URL ?=
 BRANCH ?= main
@@ -70,7 +70,7 @@ help:
 	@echo "Bootstrap Ray on TPU slice from config:"
 	@echo "  make tpu.ray.bootstrap TPU_CONF=tpu_orchestration/configs/v4_spot_us.conf"
 	@echo ""
-	@echo "Publish WhoClicked dataset + card:"
+	@echo "Publish whoclickedit dataset + card:"
 	@echo "  make data.whoclicked.publish HF_TOKEN=... WHOCLICKED_REPO=velocitatem/whoclickedit"
 	@echo ""
 	@echo "Config source: $(SWEEP_ENV_FILE) (auto-loaded)"
