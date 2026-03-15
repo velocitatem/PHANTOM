@@ -91,6 +91,44 @@
         "command": "bash scripts/nx_research.sh docker-train-publish",
         "cwd": "."
       }
+    },
+    "whoclicked-publish": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "install"
+      ],
+      "options": {
+        "command": "bash scripts/nx_research.sh whoclicked-publish",
+        "cwd": "."
+      }
+    },
+    "tpu-ray-bootstrap": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh tpu-ray-bootstrap",
+        "cwd": "."
+      }
+    },
+    "tpu-ray-deps": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh tpu-ray-deps",
+        "cwd": "."
+      }
+    },
+    "tpu-ray-verify": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh tpu-ray-verify",
+        "cwd": "."
+      }
+    },
+    "tpu-ray-teardown": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_research.sh tpu-ray-teardown",
+        "cwd": "."
+      }
     }
   },
   "tags": [

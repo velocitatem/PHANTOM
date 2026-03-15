@@ -54,6 +54,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--total-timesteps", type=int)
     parser.add_argument("--model-dir", type=str)
     parser.add_argument("--log-freq", type=int)
+    parser.add_argument("--hist-freq", type=int)
     parser.add_argument("--checkpoint-interval", type=int)
     parser.add_argument("--device", type=str)
 
@@ -68,7 +69,6 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-robust", action="store_true")
     parser.add_argument("--eta-ux", type=float)
     parser.add_argument("--reward-profit-weight", type=float)
-    parser.add_argument("--revenue-weight", type=float)
 
     parser.add_argument("--price-low", type=float)
     parser.add_argument("--price-high", type=float)
@@ -126,6 +126,7 @@ def _overrides_from_args(args: argparse.Namespace) -> dict[str, Any]:
         "total_timesteps": args.total_timesteps,
         "model_dir": args.model_dir,
         "log_freq": args.log_freq,
+        "hist_freq": args.hist_freq,
         "checkpoint_interval": args.checkpoint_interval,
         "device": args.device,
         "alpha": args.alpha,
@@ -139,7 +140,6 @@ def _overrides_from_args(args: argparse.Namespace) -> dict[str, Any]:
         "no_robust": args.no_robust,
         "eta_ux": args.eta_ux,
         "reward_profit_weight": args.reward_profit_weight,
-        "revenue_weight": args.revenue_weight,
         "price_low": args.price_low,
         "price_high": args.price_high,
         "action_levels": args.action_levels,

@@ -132,15 +132,15 @@ def evaluate(
         shifted_env.close()
         shifted_rows.append((tag, alpha, shifted_metrics))
 
-    metrics["eval/robust_alpha_low"] = low_alpha
-    metrics["eval/robust_alpha_high"] = high_alpha
-    metrics["eval/robust_reward_worst"] = float(
+    metrics["eval/stress_alpha_low"] = low_alpha
+    metrics["eval/stress_alpha_high"] = high_alpha
+    metrics["eval/stress_reward_worst"] = float(
         min(row[2]["eval/reward_mean"] for row in shifted_rows)
     )
-    metrics["eval/robust_revenue_worst"] = float(
+    metrics["eval/stress_revenue_worst"] = float(
         min(row[2]["eval/revenue_mean"] for row in shifted_rows)
     )
-    metrics["eval/robust_coi_leakage_worst"] = float(
+    metrics["eval/stress_coi_leakage_worst"] = float(
         max(row[2]["eval/coi_leakage_mean"] for row in shifted_rows)
     )
     for tag, alpha, shifted_metrics in shifted_rows:

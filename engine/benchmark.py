@@ -45,6 +45,10 @@ def _log(message: str) -> None:
     logger.info(message)
 
 
+def _wandb_run_active() -> bool:
+    return bool(HAS_WANDB and getattr(wandb, "run", None) is not None)
+
+
 def _parse_list(raw: str) -> list[str]:
     return [x.strip().lower() for x in str(raw).split(",") if x.strip()]
 
@@ -59,6 +63,10 @@ def _truthy(value: str | bool | None) -> bool:
     if value is None:
         return False
     return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _mode_label_from_baseline(is_baseline: bool) -> str:
+    return "baseline" if bool(is_baseline) else "defended"
 
 
 def _action(policy, obs: np.ndarray):
@@ -166,7 +174,7 @@ def _log_train_events(
     alpha: float,
     step_offset: int,
 ) -> int:
-    if not (HAS_WANDB and wandb.run is not None):
+    if not _wandb_run_active():
         return int(step_offset)
     if not events:
         return int(step_offset)
@@ -187,11 +195,14 @@ def _log_train_events(
                 "run.kind": "benchmark",
                 "runtime/backend": tier_name,
                 "study/mode": mode_label,
-                "study/no_robust": float(mode_label == "no_robust"),
+                "study/baseline_mode": float(mode_label == "baseline"),
                 "study/alpha": float(alpha),
             }
         )
-        wandb.log(payload, step=cursor + rel_step)
+        try:
+            wandb.log(payload, step=cursor + rel_step)
+        except Exception:
+            return int(step_offset)
     max_rel = max(max(1, int(evt.get("train/global_step", 0))) for evt in ordered)
     return cursor + max_rel + 1
 
@@ -203,6 +214,7 @@ def run_benchmark(
     n_episodes: int,
     mode_label: str,
     step_cursor_start: int = 0,
+    eval_alpha_values: list[float] | None = None,
 ):
     from .backends.common import make_env
 
@@ -239,62 +251,80 @@ def run_benchmark(
                 "dqn",
             }:
                 wandb_step_cursor += max(1, int(cfg.get("total_timesteps", 1))) + 1
-            env = make_env({**cfg, "alpha": float(alpha)})
-            eps = [_run_eval_episode(env, policy) for _ in range(int(n_episodes))]
-            env.close()
-
-            row = {
-                "tier": tier_name,
-                "mode": mode_label,
-                "alpha": float(alpha),
-                "episodes": int(n_episodes),
-                "mean_reward": float(np.mean([e["reward"] for e in eps])),
-                "mean_revenue": float(np.mean([e["revenue"] for e in eps])),
-                "mean_margin": float(np.mean([e["mean_margin"] for e in eps])),
-                "mean_coi": float(np.mean([e["mean_coi"] for e in eps])),
-                "std_revenue": float(np.std([e["revenue"] for e in eps])),
-            }
-            row["objective_score"] = row["mean_reward"]
-            rows.append(row)
-            _log(
-                f"[{run_index}/{total_runs}] alpha={float(alpha):.2f} tier={tier_name}: "
-                f"reward={row['mean_reward']:.3f} revenue={row['mean_revenue']:.3f} "
-                f"coi={row['mean_coi']:.4f} score={row['objective_score']:.3f}"
+            eval_targets = (
+                [float(value) for value in eval_alpha_values]
+                if eval_alpha_values
+                else [float(alpha)]
             )
+            for eval_alpha in eval_targets:
+                env = make_env({**cfg, "alpha": float(eval_alpha)})
+                eps = [_run_eval_episode(env, policy) for _ in range(int(n_episodes))]
+                env.close()
 
-            max_len = max((len(e["price_trace"]) for e in eps), default=0)
-            step_means = []
-            for step in range(max_len):
-                vals = [
-                    e["price_trace"][step] for e in eps if step < len(e["price_trace"])
-                ]
-                step_means.append(float(np.mean(vals)) if vals else np.nan)
-            traces.append(
-                {
+                row = {
                     "tier": tier_name,
-                    "alpha": float(alpha),
-                    "mean_price_trace": step_means,
+                    "mode": mode_label,
+                    "alpha": float(eval_alpha),
+                    "train_alpha": float(alpha),
+                    "eval_alpha": float(eval_alpha),
+                    "episodes": int(n_episodes),
+                    "mean_reward": float(np.mean([e["reward"] for e in eps])),
+                    "mean_revenue": float(np.mean([e["revenue"] for e in eps])),
+                    "mean_margin": float(np.mean([e["mean_margin"] for e in eps])),
+                    "mean_coi": float(np.mean([e["mean_coi"] for e in eps])),
+                    "std_revenue": float(np.std([e["revenue"] for e in eps])),
                 }
-            )
-
-            if HAS_WANDB and wandb.run is not None:
-                wandb.log(
-                    {
-                        "run.kind": "benchmark",
-                        "runtime/backend": tier_name,
-                        "study/mode": mode_label,
-                        "study/no_robust": float(mode_label == "no_robust"),
-                        "study/alpha": float(alpha),
-                        "eval/reward_mean": row["mean_reward"],
-                        "eval/revenue_mean": row["mean_revenue"],
-                        "eval/margin_mean": row["mean_margin"],
-                        "eval/coi_level_mean": row["mean_coi"],
-                        "objective/score": row["objective_score"],
-                        "objective/coi_preserved": row["mean_coi"],
-                    },
-                    step=wandb_step_cursor,
+                row["objective_score"] = row["mean_reward"]
+                rows.append(row)
+                _log(
+                    f"[{run_index}/{total_runs}] train_alpha={float(alpha):.2f} "
+                    f"eval_alpha={float(eval_alpha):.2f} tier={tier_name}: "
+                    f"reward={row['mean_reward']:.3f} revenue={row['mean_revenue']:.3f} "
+                    f"coi={row['mean_coi']:.4f} score={row['objective_score']:.3f}"
                 )
-                wandb_step_cursor += 1
+
+                max_len = max((len(e["price_trace"]) for e in eps), default=0)
+                step_means = []
+                for step in range(max_len):
+                    vals = [
+                        e["price_trace"][step]
+                        for e in eps
+                        if step < len(e["price_trace"])
+                    ]
+                    step_means.append(float(np.mean(vals)) if vals else np.nan)
+                traces.append(
+                    {
+                        "tier": tier_name,
+                        "alpha": float(eval_alpha),
+                        "train_alpha": float(alpha),
+                        "eval_alpha": float(eval_alpha),
+                        "mean_price_trace": step_means,
+                    }
+                )
+
+                if _wandb_run_active():
+                    try:
+                        wandb.log(
+                            {
+                                "run.kind": "benchmark",
+                                "runtime/backend": tier_name,
+                                "study/mode": mode_label,
+                                "study/baseline_mode": float(mode_label == "baseline"),
+                                "study/alpha": float(eval_alpha),
+                                "study/train_alpha": float(alpha),
+                                "study/eval_alpha": float(eval_alpha),
+                                "eval/reward_mean": row["mean_reward"],
+                                "eval/revenue_mean": row["mean_revenue"],
+                                "eval/margin_mean": row["mean_margin"],
+                                "eval/coi_level_mean": row["mean_coi"],
+                                "objective/score": row["objective_score"],
+                                "objective/coi_preserved": row["mean_coi"],
+                            },
+                            step=wandb_step_cursor,
+                        )
+                    except Exception:
+                        pass
+                    wandb_step_cursor += 1
 
     return pd.DataFrame(rows), traces, int(wandb_step_cursor)
 
@@ -378,7 +408,7 @@ def _run_with_args(args, compare_robust_override: bool | None = None):
         if compare_robust_override is not None
         else _truthy(os.environ.get("PHANTOM_BENCHMARK_COMPARE_ROBUST"))
     )
-    robust_modes = [False, True] if compare_robust else [bool(args.no_robust)]
+    baseline_modes = [False, True] if compare_robust else [bool(args.no_robust)]
 
     base_overrides = {
         "seed": args.seed,
@@ -389,6 +419,7 @@ def _run_with_args(args, compare_robust_override: bool | None = None):
         "robust_radius": args.robust_radius,
         "robust_points": args.robust_points,
         "robust_rollouts": args.robust_rollouts,
+        "margin_floor": args.margin_floor,
         "eta_ux": args.eta_ux,
         "reward_profit_weight": args.reward_profit_weight,
         "price_low": args.price_low,
@@ -405,12 +436,20 @@ def _run_with_args(args, compare_robust_override: bool | None = None):
     }
     tiers = _parse_list(args.tiers)
     alpha_values = _parse_float_list(args.alpha_values)
+    eval_alpha_values = (
+        _parse_float_list(args.eval_alpha_values)
+        if str(getattr(args, "eval_alpha_values", "")).strip()
+        else []
+    )
     _log(
         "starting run "
         + json.dumps(
             {
                 "tiers": tiers,
                 "alpha_values": alpha_values,
+                "eval_alpha_values": (
+                    eval_alpha_values if eval_alpha_values else alpha_values
+                ),
                 "episodes": int(args.episodes),
                 "total_timesteps": int(args.total_timesteps),
                 "device": str(args.device),
@@ -421,14 +460,14 @@ def _run_with_args(args, compare_robust_override: bool | None = None):
     all_frames: list[pd.DataFrame] = []
     all_traces: list[dict] = []
     wandb_step_cursor = 0
-    for no_robust in robust_modes:
+    for baseline_mode in baseline_modes:
         overrides = dict(base_overrides)
-        overrides["no_robust"] = bool(no_robust)
+        overrides["baseline_mode"] = bool(baseline_mode)
         cfg = TrainSpec.from_flat(
             {k: v for k, v in overrides.items() if v is not None}
         ).to_flat_dict()
         cfg["linear_warmup_steps"] = int(args.linear_warmup_steps)
-        mode_label = "no_robust" if no_robust else "robust"
+        mode_label = _mode_label_from_baseline(bool(baseline_mode))
         _log(f"mode={mode_label}: begin")
         df_mode, traces_mode, wandb_step_cursor = run_benchmark(
             cfg,
@@ -437,6 +476,7 @@ def _run_with_args(args, compare_robust_override: bool | None = None):
             args.episodes,
             mode_label=mode_label,
             step_cursor_start=wandb_step_cursor,
+            eval_alpha_values=eval_alpha_values,
         )
         _log(f"mode={mode_label}: complete ({len(df_mode)} rows)")
         for trace in traces_mode:
@@ -465,7 +505,7 @@ def _run_with_args(args, compare_robust_override: bool | None = None):
             + json.dumps(
                 {
                     "tier": best["tier"],
-                    "mode": best.get("mode", "robust"),
+                    "mode": best.get("mode", "defended"),
                     "alpha": float(best["alpha"]),
                     "objective_score": float(best["objective_score"]),
                     "mean_revenue": float(best["mean_revenue"]),
@@ -486,6 +526,7 @@ def run_cli(raw_args: list[str] | None = None):
     parser.add_argument("--project", default="capstone")
     parser.add_argument("--tiers", default="static,surge,linear,qtable,ppo")
     parser.add_argument("--alpha-values", default="0.0,0.3,0.6")
+    parser.add_argument("--eval-alpha-values", default="")
     parser.add_argument("--episodes", type=int, default=10)
     parser.add_argument("--output-dir", default="engine/studies/results")
     parser.add_argument("--seed", type=int, default=42)
@@ -496,6 +537,7 @@ def run_cli(raw_args: list[str] | None = None):
     parser.add_argument("--robust-radius", type=float, default=0.15)
     parser.add_argument("--robust-points", type=int, default=5)
     parser.add_argument("--robust-rollouts", type=int, default=1)
+    parser.add_argument("--margin-floor", type=float, default=0.85)
     parser.add_argument("--eta-ux", type=float, default=0.5)
     parser.add_argument("--reward-profit-weight", type=float, default=1.0)
     parser.add_argument("--price-low", type=float, default=10.0)
@@ -529,35 +571,47 @@ def run_cli(raw_args: list[str] | None = None):
                 key_to_attr = {
                     "tiers": "tiers",
                     "alpha_values": "alpha_values",
+                    "eval_alpha_values": "eval_alpha_values",
                     "episodes": "episodes",
                     "total_timesteps": "total_timesteps",
                     "lambda_coi": "lambda_coi",
                     "robust_radius": "robust_radius",
                     "robust_points": "robust_points",
                     "robust_rollouts": "robust_rollouts",
+                    "ambiguity_radius": "robust_radius",
+                    "ambiguity_points": "robust_points",
+                    "ambiguity_rollouts": "robust_rollouts",
                     "eta_ux": "eta_ux",
                     "reward_profit_weight": "reward_profit_weight",
                     "learning_rate": "learning_rate",
                     "batch_size": "batch_size",
                     "n_steps": "n_steps",
+                    "baseline_mode": "no_robust",
                     "no_robust": "no_robust",
+                    "margin_floor": "margin_floor",
                     "device": "device",
                 }
                 for key in (
                     "tiers",
                     "alpha_values",
+                    "eval_alpha_values",
                     "episodes",
                     "total_timesteps",
                     "lambda_coi",
                     "robust_radius",
                     "robust_points",
                     "robust_rollouts",
+                    "ambiguity_radius",
+                    "ambiguity_points",
+                    "ambiguity_rollouts",
                     "eta_ux",
                     "reward_profit_weight",
                     "learning_rate",
                     "batch_size",
                     "n_steps",
+                    "baseline_mode",
                     "no_robust",
+                    "margin_floor",
                     "device",
                 ):
                     if key in wandb.config:
@@ -582,16 +636,16 @@ def run_cli(raw_args: list[str] | None = None):
     alpha_values = _parse_float_list(args.alpha_values)
     run_stamp = datetime.now(timezone.utc).strftime("%m%d-%H%M%S")
     compare_enabled = _truthy(os.environ.get("PHANTOM_BENCHMARK_COMPARE_ROBUST"))
-    compare_tag = "robust-compare" if compare_enabled else "single-mode"
+    compare_tag = "defended-compare" if compare_enabled else "single-mode"
     modes = (
-        [("no_robust", True), ("robust", False)]
+        [("baseline", True), ("defended", False)]
         if compare_enabled
-        else [("no_robust" if bool(args.no_robust) else "robust", bool(args.no_robust))]
+        else [(_mode_label_from_baseline(bool(args.no_robust)), bool(args.no_robust))]
     )
 
     run_idx = 0
     for tier in tiers:
-        for mode_label, no_robust in modes:
+        for mode_label, baseline_mode in modes:
             for alpha in alpha_values:
                 run_idx += 1
                 alpha_token = (
@@ -600,7 +654,7 @@ def run_cli(raw_args: list[str] | None = None):
                 tier_args = argparse.Namespace(**vars(args))
                 tier_args.tiers = tier
                 tier_args.alpha_values = str(float(alpha))
-                tier_args.no_robust = bool(no_robust)
+                tier_args.no_robust = bool(baseline_mode)
                 run = wandb.init(
                     project=args.project,
                     name=(
@@ -617,16 +671,19 @@ def run_cli(raw_args: list[str] | None = None):
                         "run.kind": "benchmark",
                         "runtime/backend": tier,
                         "study/mode": mode_label,
-                        "study/no_robust": float(no_robust),
+                        "study/baseline_mode": float(baseline_mode),
                         "study/alpha": float(alpha),
                         "tiers": tier,
                         "alpha_values": str(float(alpha)),
+                        "eval_alpha_values": args.eval_alpha_values,
                         "episodes": args.episodes,
                         "total_timesteps": args.total_timesteps,
                         "lambda_coi": args.lambda_coi,
-                        "robust_radius": args.robust_radius,
-                        "robust_points": args.robust_points,
-                        "robust_rollouts": args.robust_rollouts,
+                        "ambiguity_radius": args.robust_radius,
+                        "ambiguity_points": args.robust_points,
+                        "ambiguity_rollouts": args.robust_rollouts,
+                        "margin_floor": args.margin_floor,
+                        "baseline_mode": float(baseline_mode),
                         "eta_ux": args.eta_ux,
                         "reward_profit_weight": args.reward_profit_weight,
                         "learning_rate": args.learning_rate,
