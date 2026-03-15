@@ -4,6 +4,7 @@ set -euo pipefail
 
 cmd="${1:-}"
 env_file="${SWEEP_ENV_FILE:-.env.sweep}"
+default_tpu_conf="tpu_orchestration/configs/v4_spot_us.conf"
 
 load_sweep_env() {
   set -a
@@ -17,6 +18,21 @@ require_var() {
   if [ -z "${!name:-}" ]; then
     printf '%s\n' "$msg" >&2
     exit 1
+  fi
+}
+
+run_tpu_ray_bootstrap() {
+  local mode_flag="${1:-}"
+  load_sweep_env
+  local conf_path="${TPU_CONF:-$default_tpu_conf}"
+  [ -f "$conf_path" ] || {
+    printf '%s\n' "TPU config not found: $conf_path" >&2
+    exit 1
+  }
+  if [ -n "$mode_flag" ]; then
+    bash tpu_orchestration/bootstrap_ray.sh --conf "$conf_path" "$mode_flag"
+  else
+    bash tpu_orchestration/bootstrap_ray.sh --conf "$conf_path"
   fi
 }
 
@@ -119,6 +135,32 @@ PY
     image_ref="${TRAIN_IMAGE_REF:-us-central1-docker.pkg.dev/phantom-trc/phantom/phantom-trainer}"
     docker build -f docker/Trainer.dockerfile --target gpu -t "$image_ref:gpu-latest" .
     docker push "$image_ref:gpu-latest"
+    ;;
+  whoclicked-publish)
+    require_var HF_TOKEN "HF_TOKEN required - export HF_TOKEN=<token>"
+    .venv/bin/python scripts/whoclicked_etl.py build-upload \
+      --output "${WHOCLICKED_CSV:-experiments/exports/whoclicked.csv}" \
+      --repo "${WHOCLICKED_REPO:-velocitatem/whoclickedit}" \
+      --path-in-repo "${WHOCLICKED_CSV_PATH_IN_REPO:-whoclicked.csv}" \
+      --message "${WHOCLICKED_DATASET_MESSAGE:-Update flattened whoclicked dataset}"
+    .venv/bin/python scripts/whoclicked_card.py build-upload \
+      --csv "${WHOCLICKED_CSV:-experiments/exports/whoclicked.csv}" \
+      --card "${WHOCLICKED_CARD:-experiments/exports/whoclicked_dataset_card.md}" \
+      --repo "${WHOCLICKED_REPO:-velocitatem/whoclickedit}" \
+      --path-in-repo "${WHOCLICKED_CARD_PATH_IN_REPO:-README.md}" \
+      --message "${WHOCLICKED_CARD_MESSAGE:-Update dataset card for WhoClicked}"
+    ;;
+  tpu-ray-bootstrap)
+    run_tpu_ray_bootstrap
+    ;;
+  tpu-ray-deps)
+    run_tpu_ray_bootstrap --deps-only
+    ;;
+  tpu-ray-verify)
+    run_tpu_ray_bootstrap --verify-only
+    ;;
+  tpu-ray-teardown)
+    run_tpu_ray_bootstrap --teardown
     ;;
   *)
     printf '%s\n' "Unknown research command: $cmd" >&2

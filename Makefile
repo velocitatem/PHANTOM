@@ -11,6 +11,7 @@ PYTEST    := $(VENV)/bin/pytest
 NX        := npx nx
 
 SWEEP_ENV_FILE ?= .env.sweep
+TPU_CONF ?= tpu_orchestration/configs/v4_spot_us.conf
 
 WANDB_ENTITY ?=
 WANDB_PROJECT ?= capstone
@@ -20,6 +21,14 @@ LOCAL_BENCHMARK_ARGS ?= --tiers static,surge,linear,qtable,ppo --alpha-values 0.
 SIMPLE_BENCHMARK_ARGS ?= --tiers qtable,ppo,dqn,a2c --alpha-values 0.0,0.15,0.3,0.45,0.6 --episodes 8 --total-timesteps 8000 --max-steps 40 --device cpu
 BENCHMARK_AGENT_ARGS ?=
 AGENT_COUNT ?= 0
+
+WHOCLICKED_REPO ?= velocitatem/whoclickedit
+WHOCLICKED_CSV ?= experiments/exports/whoclicked.csv
+WHOCLICKED_CARD ?= experiments/exports/whoclicked_dataset_card.md
+WHOCLICKED_CSV_PATH_IN_REPO ?= whoclicked.csv
+WHOCLICKED_CARD_PATH_IN_REPO ?= README.md
+WHOCLICKED_DATASET_MESSAGE ?= Update flattened whoclicked dataset
+WHOCLICKED_CARD_MESSAGE ?= Update dataset card for WhoClicked
 
 REPO_URL ?=
 BRANCH ?= main
@@ -37,7 +46,8 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 help:
 	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.arxiv | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines | manim.render manim.render.all"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
-	@echo "data.pull data.push | study.margin-erosion study.margin-erosion.quick study.margin-erosion.plot"
+	@echo "data.pull data.push data.whoclicked.publish | study.margin-erosion study.margin-erosion.quick study.margin-erosion.plot"
+	@echo "tpu.ray.bootstrap tpu.ray.deps tpu.ray.verify tpu.ray.teardown"
 	@echo ""
 	@echo "Build general public version:"
 	@echo "  make pdf.genpop"
@@ -56,6 +66,12 @@ help:
 	@echo ""
 	@echo "Bootstrap private repo worker from anywhere:"
 	@echo "  make train.bootstrap REPO_URL=https://github.com/org/repo.git BRANCH=main SWEEP_ID=entity/project/id"
+	@echo ""
+	@echo "Bootstrap Ray on TPU slice from config:"
+	@echo "  make tpu.ray.bootstrap TPU_CONF=tpu_orchestration/configs/v4_spot_us.conf"
+	@echo ""
+	@echo "Publish WhoClicked dataset + card:"
+	@echo "  make data.whoclicked.publish HF_TOKEN=... WHOCLICKED_REPO=velocitatem/whoclickedit"
 	@echo ""
 	@echo "Config source: $(SWEEP_ENV_FILE) (auto-loaded)"
 
@@ -134,12 +150,29 @@ train.agent:
 train.bootstrap:
 	@WANDB_ENTITY="$(WANDB_ENTITY)" WANDB_PROJECT="$(WANDB_PROJECT)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" REPO_URL="$(REPO_URL)" BRANCH="$(BRANCH)" WORKDIR="$(WORKDIR)" SWEEP_ID="$(SWEEP_ID)" AGENT_COUNT="$(AGENT_COUNT)" AGENT_LOOP="$(AGENT_LOOP)" RETRY_SECONDS="$(RETRY_SECONDS)" $(NX) run research:train-bootstrap
 
+.PHONY: tpu.ray.bootstrap tpu.ray.deps tpu.ray.verify tpu.ray.teardown
+tpu.ray.bootstrap:
+	@TPU_CONF="$(TPU_CONF)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" $(NX) run research:tpu-ray-bootstrap
+
+tpu.ray.deps:
+	@TPU_CONF="$(TPU_CONF)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" $(NX) run research:tpu-ray-deps
+
+tpu.ray.verify:
+	@TPU_CONF="$(TPU_CONF)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" $(NX) run research:tpu-ray-verify
+
+tpu.ray.teardown:
+	@TPU_CONF="$(TPU_CONF)" SWEEP_ENV_FILE="$(SWEEP_ENV_FILE)" $(NX) run research:tpu-ray-teardown
+
 .PHONY: data.pull data.push
 data.pull:
 	python scripts/hf_data.py pull
 
 data.push:
 	python scripts/hf_data.py push
+
+.PHONY: data.whoclicked.publish
+data.whoclicked.publish:
+	@HF_TOKEN="$(HF_TOKEN)" WHOCLICKED_REPO="$(WHOCLICKED_REPO)" WHOCLICKED_CSV="$(WHOCLICKED_CSV)" WHOCLICKED_CARD="$(WHOCLICKED_CARD)" WHOCLICKED_CSV_PATH_IN_REPO="$(WHOCLICKED_CSV_PATH_IN_REPO)" WHOCLICKED_CARD_PATH_IN_REPO="$(WHOCLICKED_CARD_PATH_IN_REPO)" WHOCLICKED_DATASET_MESSAGE="$(WHOCLICKED_DATASET_MESSAGE)" WHOCLICKED_CARD_MESSAGE="$(WHOCLICKED_CARD_MESSAGE)" $(NX) run research:whoclicked-publish
 
 .PHONY: stats.lines
 stats.lines:

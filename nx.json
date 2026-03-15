@@ -58,6 +58,21 @@
     "benchmark": {
       "cache": false
     },
+    "whoclicked-publish": {
+      "cache": false
+    },
+    "tpu-ray-bootstrap": {
+      "cache": false
+    },
+    "tpu-ray-deps": {
+      "cache": false
+    },
+    "tpu-ray-verify": {
+      "cache": false
+    },
+    "tpu-ray-teardown": {
+      "cache": false
+    },
     "up": {
       "cache": false
     },
