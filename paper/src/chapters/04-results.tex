@@ -57,11 +57,7 @@ At pair level (same seed, tier, and contamination), robust exceeds non-robust in
 
 \subsubsection{The Impact of Contamination on Revenue}
 
-A linear slope test on run-level data ($n=95$) shows a strong negative association between contamination and mean revenue. The fitted model is
-\[
-\widehat{\text{revenue}} = 326{,}878.57 - 60{,}631.95\,\alpha,
-\]
-with $t(93)=-8.2148$, $p=1.20\times 10^{-12}$, $R^2=0.4205$, and a 95\% confidence interval for the slope of $[-75{,}288.76,\,-45{,}975.13]$. In practical terms, a $+0.1$ increase in $\alpha$ corresponds to an average decrease of about $6{,}063$ revenue units. The full derivation (sample moments, least-squares coefficients, residual variance, standard error, test statistic, and confidence interval) is reported in Appendix~\ref{app:alpha_revenue_slope}.
+A linear slope test on run-level data ($n=95$) shows a strong negative association between contamination and mean revenue. The fitted model mapping $\alpha \to \text{revenue}$ result in $t(93)=-8.2148$, $p=1.20\times 10^{-12}$, $R^2=0.4205$, and a 95\% confidence interval for the slope of $[-75{,}288.76,\,-45{,}975.13]$. In practical terms, a $+0.1$ increase in $\alpha$ corresponds to an average decrease of about $6{,}063$ revenue units. A compact Appendix~\ref{app:alpha_revenue_slope} expansion can be found for these values using standard Python test methods.
 
 
 \subsection{Interpretation and Insights}
