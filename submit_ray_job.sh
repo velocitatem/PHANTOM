@@ -66,6 +66,7 @@ MAX_HEAVY_WORKERS="${MAX_HEAVY_WORKERS:-3}"
 WORKER_CPUS="${WORKER_CPUS:-$((INNER_WORKERS * INNER_THREADS))}"
 SWEEP_KIND="${SWEEP_KIND:-benchmark}"
 SWEEP_METHOD="${SWEEP_METHOD:-random}"
+SWEEP_PROFILE="${SWEEP_PROFILE:-default}"
 SWEEP_RUN_CAP="${SWEEP_RUN_CAP:-0}"
 AGENTS_PER_NODE="${AGENTS_PER_NODE:-16}"
 AGENT_COUNT="${AGENT_COUNT:-0}"
@@ -180,6 +181,7 @@ PY
     fi
     SWEEP_ID_VALUE="$($PY_SWEEP_BIN "$ROOT/scripts/wandb_create_sweep.py" \
       --kind "$SWEEP_KIND" \
+      --profile "$SWEEP_PROFILE" \
       --project "$SWEEP_PROJECT" \
       --entity "$SWEEP_ENTITY" \
       --method "$SWEEP_METHOD" \
@@ -199,10 +201,22 @@ PY
     fi
   fi
 
+  SWEEP_RUN_KIND="$SWEEP_KIND"
+  if [ "$SWEEP_KIND" = "ppo_calibration" ] || [ "$SWEEP_KIND" = "ppo_block_a" ] || [ "$SWEEP_KIND" = "ppo_shift_screen" ]; then
+    SWEEP_RUN_KIND="benchmark"
+  fi
+  if [ "$SWEEP_KIND" = "ppo_rl_study" ]; then
+    SWEEP_RUN_KIND="train"
+  fi
+  if [ "$SWEEP_RUN_KIND" != "benchmark" ] && [ "$SWEEP_RUN_KIND" != "train" ]; then
+    echo "Unsupported SWEEP_KIND='$SWEEP_KIND' (expected 'benchmark', 'train', 'ppo_calibration', 'ppo_block_a', 'ppo_shift_screen', or 'ppo_rl_study')." >&2
+    exit 1
+  fi
+
   DIST_ARGS=(
     python
     scripts/ray_distributed_train.py
-    --run-kind "$SWEEP_KIND"
+    --run-kind "$SWEEP_RUN_KIND"
     --entry-args "$SWEEP_ENTRY_ARGS"
     --num-nodes "${SWEEP_NUM_NODES}"
     --tpu-per-task "${TPU_PER_TASK:-0}"
@@ -214,13 +228,17 @@ PY
     --inner-threads "$INNER_THREADS"
     --worker-cpus "${WORKER_CPUS:-$((AGENTS_PER_NODE * INNER_THREADS))}"
   )
-  if [ "$SWEEP_KIND" = "benchmark" ]; then
+  if [ "$SWEEP_RUN_KIND" = "benchmark" ]; then
     DIST_ARGS+=(--output-root "${OUTPUT_ROOT:-engine/studies/results/sweeps}")
   fi
   if [ "${COMPARE_ROBUST:-0}" = "1" ]; then
     DIST_ARGS+=(--compare-robust)
   fi
   echo "SWEEP_ID=$SWEEP_ID_VALUE"
+  if [ "$SWEEP_KIND" = "train" ] && [ "$SWEEP_PROFILE" = "robust_revenue" ]; then
+    echo "When this sweep finishes, compare best robust config vs no_robust with:"
+    echo "python scripts/wandb_compare_best.py --entity $SWEEP_ENTITY --project $SWEEP_PROJECT --sweep-id $SWEEP_ID_VALUE --submit --ray-no-wait"
+  fi
   "$RAY_BIN" "${COMMON_ARGS[@]}" "${DIST_ARGS[@]}"
   exit 0
 fi

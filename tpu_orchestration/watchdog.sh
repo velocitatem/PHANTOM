@@ -58,7 +58,7 @@ RETRY_DELAY=60
 MAX_RETRY_DELAY=300
 
 while true; do
-  STATE=$(gcloud compute tpus queued-resources describe $QR_NAME --zone=$ZONE --project=$PROJECT_ID --format="value(state)" 2>/dev/null)
+  STATE=$(gcloud compute tpus queued-resources describe $QR_NAME --zone=$ZONE --project=$PROJECT_ID --format="value(state.state)" 2>/dev/null)
   
   if [ -z "$STATE" ] || [[ "$STATE" == *"SUSPENDED"* ]] || [[ "$STATE" == *"FAILED"* ]]; then
     echo "[$(date)] Cluster '${STATE:-MISSING}' - cleaning IPs and re-queuing..."
@@ -84,6 +84,11 @@ while true; do
     if [ "$IS_SPOT" = "true" ]; then
         SPOT_FLAG="--spot"
     fi
+
+    IP_FLAG="--internal-ips"
+    if [ "${INTERNAL_IPS:-true}" != "true" ]; then
+        IP_FLAG=""
+    fi
     
     # Prepare metadata
     METADATA="HF_TOKEN=$HF_TOKEN,RUN_ID=$RUN_ID,HF_REPO=$HF_REPO,ACCEL_TYPE=$ACCEL_TYPE,GITHUB_REPO=$GITHUB_REPO,BRANCH=$BRANCH"
@@ -106,7 +111,7 @@ while true; do
       --accelerator-type=$ACCEL_TYPE \
       --runtime-version=$RT_VERSION \
       $SPOT_FLAG \
-      --internal-ips \
+      $IP_FLAG \
       --metadata-from-file startup-script=$(dirname $0)/tpu_startup.sh \
       --metadata "$METADATA" 2>&1 | tee "$CREATE_LOG"
 
@@ -115,8 +120,8 @@ while true; do
     if [ $CREATE_EXIT -eq 0 ]; then
         echo "[$(date)] Successfully queued $QR_NAME."
         RETRY_DELAY=60
-    elif grep -q "IN_USE_ADDRESSES" "$CREATE_LOG" 2>/dev/null; then
-        echo "[$(date)] IP quota hit - backing off ${RETRY_DELAY}s"
+    elif grep -Eq "IN_USE_ADDRESSES|RESOURCE_EXHAUSTED|Quota limit|QUOTA_EXCEEDED" "$CREATE_LOG" 2>/dev/null; then
+        echo "[$(date)] Quota pressure detected - backing off ${RETRY_DELAY}s"
         sleep $RETRY_DELAY
         RETRY_DELAY=$((RETRY_DELAY * 2))
         [ $RETRY_DELAY -gt $MAX_RETRY_DELAY ] && RETRY_DELAY=$MAX_RETRY_DELAY

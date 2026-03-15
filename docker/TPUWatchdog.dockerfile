@@ -40,23 +40,35 @@ if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -f "$GOOGLE_APPLICATION_CREDENT
             PROJECT_ID=$(jq -r '.project_id // empty' "$GOOGLE_APPLICATION_CREDENTIALS")
         fi
     elif [ "$CRED_TYPE" = "authorized_user" ]; then
-        echo "Authenticating gcloud using authorized_user refresh token..."
+        echo "Using authorized_user credentials via credential file override..."
+        export CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE="$GOOGLE_APPLICATION_CREDENTIALS"
 
-        AUTH_ACCOUNT="$GCP_ACCOUNT"
-        if [ -z "$AUTH_ACCOUNT" ]; then
-            AUTH_ACCOUNT=$(jq -r '.account // empty' "$GOOGLE_APPLICATION_CREDENTIALS")
-        fi
-        if [ -z "$AUTH_ACCOUNT" ]; then
-            AUTH_ACCOUNT=$(gcloud config get-value account 2>/dev/null || true)
-        fi
+        if gcloud auth print-access-token >/dev/null 2>&1; then
+            ACTIVE_ACCOUNT=$(gcloud config get-value account 2>/dev/null || true)
+            if [ -z "$ACTIVE_ACCOUNT" ] || [ "$ACTIVE_ACCOUNT" = "(unset)" ]; then
+                ACTIVE_ACCOUNT=$(jq -r '.account // empty' "$GOOGLE_APPLICATION_CREDENTIALS")
+            fi
 
-        REFRESH_TOKEN=$(jq -r '.refresh_token // empty' "$GOOGLE_APPLICATION_CREDENTIALS")
-        if [ -z "$AUTH_ACCOUNT" ] || [ -z "$REFRESH_TOKEN" ]; then
-            echo "Error: authorized_user credentials require GCP_ACCOUNT (or embedded account) and refresh_token."
-            exit 1
-        fi
+            if [ -n "$ACTIVE_ACCOUNT" ] && [ "$ACTIVE_ACCOUNT" != "(unset)" ]; then
+                echo "Using gcloud account: $ACTIVE_ACCOUNT"
+            else
+                echo "Using gcloud credential override from $GOOGLE_APPLICATION_CREDENTIALS"
+            fi
+        else
+            echo "Warning: credential file override token check failed. Falling back to mounted gcloud config."
+            unset CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE
 
-        gcloud auth activate-refresh-token "$AUTH_ACCOUNT" "$REFRESH_TOKEN"
+            if [ -n "$GCP_ACCOUNT" ]; then
+                gcloud config set account "$GCP_ACCOUNT" >/dev/null 2>&1 || true
+            fi
+
+            ACTIVE_ACCOUNT=$(gcloud config get-value account 2>/dev/null || true)
+            if [ -z "$ACTIVE_ACCOUNT" ] || [ "$ACTIVE_ACCOUNT" = "(unset)" ]; then
+                echo "Error: no active gcloud account available. Run 'gcloud auth login' on host and mount ~/.config/gcloud, or use a service account key."
+                exit 1
+            fi
+            echo "Using gcloud account: $ACTIVE_ACCOUNT"
+        fi
     else
         echo "Warning: unsupported credential file type '$CRED_TYPE'. Falling back to mounted gcloud config."
     fi
