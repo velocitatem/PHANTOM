@@ -10,7 +10,7 @@
 
 \subsection{Behavioral Analysis}
 
-Separability between human and agent sessions is evaluated by computing per-session divergence gap scores $\Delta_{H,s} - \Delta_{A,s}$ and comparing the two groups with a Mann-Whitney $U$ test. The full recorded cohort contains $n_H=13$ human sessions and $n_A=16$ agent sessions, and Table~\ref{tab:divergence_significance} reports the corresponding group-level statistics and test result.
+Distinguishability between human and agent sessions is evaluated by computing per-session divergence gap scores $\Delta_{H,s} - \Delta_{A,s}$ and comparing the two groups with a Mann-Whitney $U$ test. The full recorded cohort contains $n_H=13$ human sessions and $n_A=16$ agent sessions, and Table~\ref{tab:divergence_significance} reports the corresponding group-level statistics and test result.
 
 \begin{table}[ht]
 \centering
@@ -28,7 +28,7 @@ Agent sessions & 16 & $+1.65$ & $2.83$ \\
 \end{tabular}
 \end{table}
 
-The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided test result ($p<0.001$) at $n_H=13$, $n_A=16$ indicates strong rank separation between groups, providing evidence that the transition kernels are separable enough to justify their use as a control signal in downstream pricing.
+The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided test result ($p<0.001$) at $n_H=13$, $n_A=16$ indicates strong rank distinction between groups, providing evidence that the transition kernels are distinguishable enough to justify their use as a control signal in downstream pricing.
 
 
 \subsection{Experimental Outcomes}
@@ -61,7 +61,7 @@ A linear slope test on run-level data ($n=95$) shows a strong negative associati
 
 
 \subsection{Interpretation and Insights}
-The Mann-Whitney result ($p<0.001$) confirms that per-session divergence gaps separate the two actor classes with near-zero overlap in rank ordering. This is the condition required for separability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
+The Mann-Whitney result ($p<0.001$) confirms that per-session divergence gaps distinguish the two actor classes with near-zero overlap in rank ordering. This is the condition required for distinguishability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
 
 The first calibration and overnight runs additionally confirm three practical points aligned with the thesis mechanism. First, the control loop is reproducible end-to-end (training, evaluation, artifact generation) across algorithms and contamination levels. Second, policy class materially changes price trajectories and resulting COI/revenue profiles under identical environment settings. Third, objective improvements from robustness are regime-dependent in the current baseline, which is consistent with the thesis claim that contamination-aware pricing needs explicit calibration rather than a one-size-fits-all penalty.
 

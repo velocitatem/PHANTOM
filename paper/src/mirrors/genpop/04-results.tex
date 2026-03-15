@@ -8,7 +8,7 @@
 
 \subsection{Behavioral Analysis}
 
-Separability between human and agent sessions is evaluated by computing per-session divergence gap scores (how much closer each session is to the human baseline versus the agent baseline) and comparing the two groups with a Mann-Whitney U test. The full recorded cohort contains 13 human sessions and 16 agent sessions, and the table below reports the corresponding group-level statistics and test result.
+Distinguishability between human and agent sessions is evaluated by computing per-session divergence gap scores (how much closer each session is to the human baseline versus the agent baseline) and comparing the two groups with a Mann-Whitney U test. The full recorded cohort contains 13 human sessions and 16 agent sessions, and the table below reports the corresponding group-level statistics and test result.
 
 \begin{table}[ht]
 \centering
@@ -26,7 +26,7 @@ Agent sessions & 16 & $+1.65$ & $2.83$ \\
 \end{tabular}
 \end{table}
 
-The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided test result (p less than 0.001) at n=13 humans and n=16 agents indicates strong rank separation between groups, providing evidence that the transition kernels are separable enough to justify their use as a control signal in downstream pricing.
+The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided test result (p less than 0.001) at n=13 humans and n=16 agents indicates strong rank distinction between groups, providing evidence that the transition kernels are distinguishable enough to justify their use as a control signal in downstream pricing.
 
 \subsection{Experimental Outcomes}
 
@@ -50,6 +50,6 @@ This comparison isolates the effect of robustness terms from model capacity and 
 
 \subsection{Interpretation and Insights}
 
-The Mann-Whitney result (p less than 0.001) confirms that per-session divergence gaps separate the two actor classes with near-zero overlap in rank ordering. This is the condition required for separability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
+The Mann-Whitney result (p less than 0.001) confirms that per-session divergence gaps distinguish the two actor classes with near-zero overlap in rank ordering. This is the condition required for distinguishability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
 
 \subsection{Anomalies}

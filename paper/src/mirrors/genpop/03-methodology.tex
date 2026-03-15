@@ -1,6 +1,6 @@
 \section{Methodology}
 
-This section details the theoretical and practical framework developed to address dynamic pricing under the influence of non-human actors. We begin by formalizing the problem environment and the nature of the actors. We then derive the \textit{Cost of Information} (COI) theorem, proving the erosion of pricing power in the limit of agent saturation. Following this, we outline our generative contamination strategy using GOFAI-driven separability and transition probability learning. Finally, we formulate the robust control problem as a Stackelberg game solved via Distributionally Robust Reinforcement Learning (DR-RL) with constructed ambiguity sets.
+This section details the theoretical and practical framework developed to address dynamic pricing under the influence of non-human actors. We begin by formalizing the problem environment and the nature of the actors. We then derive the \textit{Cost of Information} (COI) theorem, proving the erosion of pricing power in the limit of agent saturation. Following this, we outline our generative contamination strategy using GOFAI-driven distinguishability and transition probability learning. Finally, we formulate the robust control problem as a Stackelberg game solved via Distributionally Robust Reinforcement Learning (DR-RL) with constructed ambiguity sets.
 
 \subsection{Problem Formalization}
 
@@ -113,9 +113,9 @@ The human data collection involved 13 participants, all of whom provided explici
 
 To evaluate quality and realism of the setup, we store both structured event logs and full interaction transcripts. This lets us combine quantitative analysis with transcript-level qualitative findings. The result is an isolated system where we can control the interaction process while preserving realistic behavior.
 
-Operationally, goals and experiment runs are tracked in PostgreSQL. This data-acquisition phase is the first half of the methodology and is intentionally a disconnected component that feeds the later contributions. The second half uses collected behavioral traces to separate classes (agent vs human) with session-conditioned probability estimates, then injects those estimates into the pricing learner.
+Operationally, goals and experiment runs are tracked in PostgreSQL. This data-acquisition phase is the first half of the methodology and is intentionally a disconnected component that feeds the later contributions. The second half uses collected behavioral traces to distinguish classes (agent vs human) with session-conditioned probability estimates, then injects those estimates into the pricing learner.
 
-Our process follows three stages: (1) observe and vectorize behavioral interactions, (2) learn separability to characterize human versus agent patterns, and (3) use the learned signal to train a defensive policy in a controlled dynamic-pricing simulator.
+Our process follows three stages: (1) observe and vectorize behavioral interactions, (2) learn distinguishability to characterize human versus agent patterns, and (3) use the learned signal to train a defensive policy in a controlled dynamic-pricing simulator.
 
 \begin{figure}[ht]
   \resizebox{\columnwidth}{!}{%
@@ -209,15 +209,15 @@ In the simulator baseline this order is encoded with a compact fixed scale: cart
 
 In addition to behavioral events, the platform logs price observations to a separate Kafka topic. Each price query generates a record associating the product, displayed price, requesting session, platform mode, and timestamp. This dual-stream architecture enables joint analysis of price exposure and behavioral response.
 
-\subsection{Generative Contamination and Separability}
+\subsection{Generative Contamination and Distinguishability}
 
 To train a robust pricing learner, we need a simulator that can generate realistic interaction data under controlled contamination. We build this from Phantom data using a two-stage approach.
 
-\subsubsection{Ground-Truth Separability}
+\subsubsection{Ground-Truth Distinguishability}
 
-Because sessions are collected under controlled experimental conditions where each actor is assigned a known type at the start of the trial, labels (human or agent) are available as ground truth rather than as the output of a heuristic classifier. We therefore estimate separate transition kernels directly from each labeled partition, treating the resulting human and agent kernels as the ground-truth behavioral profiles for each class. We then ask a direct methodological question: are the kernels separable enough to justify downstream pricing control that depends on that separability?
+Because sessions are collected under controlled experimental conditions where each actor is assigned a known type at the start of the trial, labels (human or agent) are available as ground truth rather than as the output of a heuristic classifier. We therefore estimate separate transition kernels directly from each labeled partition, treating the resulting human and agent kernels as the ground-truth behavioral profiles for each class. We then ask a direct methodological question: are the kernels distinguishable enough to justify downstream pricing control that depends on that distinguishability?
 
-To answer this, we compute per-session divergence scores against both class-level centroids. For each session in either partition, we fit a session-level event transition kernel from that session's trajectory alone, then compute its average divergence to the human centroid and to the agent centroid. The per-session separability score is the gap between these two divergences: a negative value indicates proximity to human behavior, a positive value indicates proximity to agent behavior.
+To answer this, we compute per-session divergence scores against both class-level centroids. For each session in either partition, we fit a session-level event transition kernel from that session's trajectory alone, then compute its average divergence to the human centroid and to the agent centroid. The per-session distinguishability score is the gap between these two divergences: a negative value indicates proximity to human behavior, a positive value indicates proximity to agent behavior.
 
 We cannot assume normal distributions for divergence scores, which are right-skewed and bounded below by zero, so we do not use a Student's t-test. Instead we apply a Mann-Whitney U test \parencite{mann_test_1947} on the per-session gap scores between the two groups. The Mann-Whitney test is a rank-based nonparametric test that compares the ordering of two independent samples without distributional assumptions, making it appropriate for small samples drawn from skewed populations.
 
@@ -305,7 +305,7 @@ We also consider taxation-like overlays for agent traffic under strategy-proof m
 
 \subsubsection{Pricing Mechanism Summary}
 
-We now present the complete pricing mechanism that integrates the behavioral separability, contamination estimation, and robust optimization components developed in the preceding sections. The defensive pricing loop algorithm formalizes the process as a Stackelberg game where the platform (leader) sets prices and the aggregate demand (follower) responds through observed session trajectories.
+We now present the complete pricing mechanism that integrates the behavioral distinguishability, contamination estimation, and robust optimization components developed in the preceding sections. The defensive pricing loop algorithm formalizes the process as a Stackelberg game where the platform (leader) sets prices and the aggregate demand (follower) responds through observed session trajectories.
 
 \begin{algorithm}[t]
 \caption{PHANTOM defensive pricing loop}

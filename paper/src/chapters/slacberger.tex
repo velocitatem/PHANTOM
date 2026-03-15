@@ -62,7 +62,7 @@ We propose a robust optimization objective. The platform seeks a pricing policy 
 Here:
 \begin{itemize}
     \item The first term, $p_t \cdot \hat{q}_t(p_t | \theta=H)$, represents the revenue generated strictly from the estimated human segment.
-    \item $\mathcal{L}_{detect}$ is a penalty term for failing to separate distributions (the cost of confusion).
+    \item $\mathcal{L}_{detect}$ is a penalty term for failing to distinguish distributions (the cost of confusion).
     \item $\lambda$ is a hyperparameter balancing revenue exploitation vs. robust detection.
 \end{itemize}
 
