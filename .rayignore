@@ -1,0 +1,35 @@
+# Virtual environments
+.venv
+.venv*
+venv
+venv*
+**/.venv
+**/venv
+**/node_modules
+node_modules/
+
+# Python caches
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# Git
+.git/
+
+# Large data and logs
+data/
+experiments/
+wandb/
+dumplogs*
+*.zip
+*.pdf
+*.log
+*.dot
+
+# Other large dirs
+PHANTOM_web/
+web/
+docs/
+paper/
+.nx/
