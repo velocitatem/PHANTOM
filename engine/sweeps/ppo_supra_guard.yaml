@@ -1,0 +1,53 @@
+method: random
+metric:
+  name: eval/supra_share_mean
+  goal: minimize
+run_cap: 256
+command:
+  - ${env}
+  - python
+  - -m
+  - engine.train
+parameters:
+  algo:
+    value: ppo
+  seed:
+    values: [42, 1337, 7777]
+  alpha:
+    values: [0.1, 0.2, 0.3, 0.4, 0.6]
+  n_products:
+    values: [25, 50]
+  N:
+    value: 100
+  no_robust:
+    values: [false, true]
+  lambda_coi:
+    values: [0.05, 0.15, 0.3]
+  robust_radius:
+    values: [0.1, 0.2, 0.3]
+  robust_points:
+    value: 7
+  robust_rollouts:
+    value: 1
+  eta_ux:
+    values: [0.05, 0.15, 0.3, 0.5, 0.75]
+  reward_profit_weight:
+    value: 1.0
+  total_timesteps:
+    value: 100000
+  eval_episodes:
+    value: 10
+  eval_freq:
+    value: 1000
+  log_freq:
+    value: 100
+  hist_freq:
+    value: 500
+  learning_rate:
+    value: 0.0003
+  batch_size:
+    value: 256
+  n_steps:
+    value: 2048
+  device:
+    value: cpu

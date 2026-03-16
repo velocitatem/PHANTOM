@@ -216,18 +216,27 @@ class PHANTOM(gym.Env):
         coi_penalty = self.lambda_coi * coi_leakage * info_budget
 
         if len(self._price_history) > 0:
-            volatility = float(
-                np.mean(
-                    np.abs(prices - self._price_history[-1])
-                    / np.maximum(self.baseline_prices, 1.0)
-                )
-            )
+            prev_prices = np.asarray(self._price_history[-1], dtype=float)
+            rel_change = (prices - prev_prices) / np.maximum(prev_prices, 1.0)
+            volatility = float(np.mean(np.abs(rel_change)))
+            upward_volatility = float(np.mean(np.clip(rel_change, 0.0, None)))
         else:
             volatility = 0.0
-        ux_penalty = self.eta_ux * info_budget * volatility
+            upward_volatility = 0.0
+        ux_penalty = self.eta_ux * info_budget * (volatility + 0.5 * upward_volatility)
+
+        competitive_anchor = float(
+            np.clip(float(self.human_params[0]) * 1.2, *self.price_bounds)
+        )
+        price_ratio = prices / max(competitive_anchor, 1.0)
+        supra_excess = np.clip(price_ratio - 1.0, 0.0, None)
+        supra_penalty = (
+            0.5 * self.eta_ux * info_budget * float(np.mean(np.square(supra_excess)))
+        )
+        supra_share = float(np.mean(supra_excess > 0.0))
 
         reward_revenue = self.reward_profit_weight * profit
-        reward = reward_revenue - coi_penalty - ux_penalty
+        reward = reward_revenue - coi_penalty - ux_penalty - supra_penalty
 
         return reward, {
             "revenue": revenue,
@@ -240,6 +249,10 @@ class PHANTOM(gym.Env):
             "coi_info_budget": info_budget,
             "ux_penalty": ux_penalty,
             "volatility": volatility,
+            "upward_volatility": upward_volatility,
+            "supra_penalty": supra_penalty,
+            "supra_share": supra_share,
+            "competitive_anchor": competitive_anchor,
             "reward_revenue": reward_revenue,
             "reward_total": reward,
         }
