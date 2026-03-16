@@ -193,6 +193,17 @@ Operationally, goals and experiment runs are tracked in PostgreSQL (goal table, 
 
 Our process follows three stages: (1) observe and \textit{vectorize} behavioral interactions, (2) learn distinguishability to characterize human versus agent patterns, and (3) use the learned signal to train a defensive policy in a controlled dynamic-pricing simulator.
 
+Figure~\ref{fig:phantom_unified_architecture} summarizes the full mechanism from online interaction capture to divergence-based contamination scoring and robust control of pricing decisions.
+
+\begin{figure}[ht]
+  \centering
+  \resizebox{\textwidth}{!}{%
+    \input{chapters/hero_architecture_figure.tex}
+  }
+  \caption{Unified PHANTOM defense architecture. (a) Online serving and logging with behavioral and price-query streams. (b) Distinguishability layer that estimates KL divergence to human/agent prototypes and derives session-level contamination scores. (c) Distributionally robust pricing control that optimizes under an ambiguity set while penalizing COI leakage and tracking UX cost.}
+  \label{fig:phantom_unified_architecture}
+\end{figure}
+
 \begin{figure}[ht]
   \resizebox{\columnwidth}{!}{%
     \input{chapters/loop_figure.tex}
@@ -392,7 +403,7 @@ The complete pricing-demand-trajectory loop is illustrated in Figure~\ref{fig:or
 \begin{figure}[ht]
 \centering
 {\setlength{\arraycolsep}{4pt}%
-\resizebox{0.98\linewidth}{!}{$
+\resizebox{0.85\linewidth}{!}{$
 \begin{aligned}
 &\text{Oracle}(\vec{p}_{t-1},\vec{\hat{q}})\to
 \begin{pmatrix}
@@ -517,23 +528,27 @@ The baseline achieves approximately 26 steps per second. Enabling the robustness
 \centering
 \caption{Per-step profiling results (20 steps, $M=10$ sessions, $N=3$ products). Self-time measures time spent inside the function excluding callees; cumulative time includes the full call subtree.}
 \label{tab:profile_results}
-\begin{tabular}{@{}lrrrrl@{}}
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrrr@{}}
 \toprule
-\textbf{Function} & \textbf{Calls} & \textbf{Self (ms)} & \textbf{Cum. (ms)} & \textbf{Cum. \%} & \textbf{Module} \\
+\textbf{Function} & \textbf{Calls} & \textbf{Self (ms)} & \textbf{Cum. (ms)} & \textbf{Cum. \%} \\
 \midrule
-\multicolumn{6}{l}{\textit{Baseline ($K=1$, 0.77\,s total, 26 steps/s)}} \\
-\texttt{sample\_behavior\_from\_transitions} & 420 & 131 & 658 & 86\% & \texttt{lib/behavior} \\
-\texttt{DataFrame.xs} & 4,820 & 30 & 201 & 26\% & pandas \\
-\texttt{numpy.nan\_to\_num} & 4,904 & 43 & 97 & 13\% & numpy \\
-\texttt{adjust\_behavior\_to\_condition} & 84 & 3 & 54 & 7\% & \texttt{lib/behavior} \\
+\multicolumn{5}{l}{\textit{Baseline ($K=1$, 0.77\,s total, 26 steps/s)}} \\
+\texttt{sample\_behavior\_from\_transitions} & 420 & 131 & 658 & 86\% \\
+\texttt{DataFrame.xs} & 4,820 & 30 & 201 & 26\% \\
+\texttt{numpy.nan\_to\_num} & 4,904 & 43 & 97 & 13\% \\
+\texttt{adjust\_behavior\_to\_condition} & 84 & 3 & 54 & 7\% \\
 \midrule
-\multicolumn{6}{l}{\textit{Robust ($K=5$, 2.79\,s total, 7.2 steps/s)}} \\
-\texttt{sample\_behavior\_from\_transitions} & 1,220 & 519 & 2,447 & 88\% & \texttt{lib/behavior} \\
-\texttt{DataFrame.xs} & 16,668 & 108 & 729 & 26\% & pandas \\
-\texttt{numpy.nan\_to\_num} & 16,912 & 164 & 363 & 13\% & numpy \\
-\texttt{adjust\_behavior\_to\_condition} & 244 & 11 & 108 & 4\% & \texttt{lib/behavior} \\
+\multicolumn{5}{l}{\textit{Robust ($K=5$, 2.79\,s total, 7.2 steps/s)}} \\
+\texttt{sample\_behavior\_from\_transitions} & 1,220 & 519 & 2,447 & 88\% \\
+\texttt{DataFrame.xs} & 16,668 & 108 & 729 & 26\% \\
+\texttt{numpy.nan\_to\_num} & 16,912 & 164 & 363 & 13\% \\
+\texttt{adjust\_behavior\_to\_condition} & 244 & 11 & 108 & 4\% \\
 \bottomrule
 \end{tabular}
+\endgroup
 \end{table}
 
 Across both configurations, \texttt{sample\_behavior\_from\_transitions} accounts for 86--88\% of total wall time. The function implements the Markov chain sampler described in Section~\ref{sec:tpe}: at each transition it retrieves the current-state row from the expanded transition \texttt{DataFrame} via label-based indexing, which internally dispatches through the pandas \texttt{xs} and \texttt{fast\_xs} code paths. For $M$ sessions each running up to $L_{\max}=40$ transitions, a single \texttt{market.act()} call issues up to $M \cdot L_{\max}$ individual row lookups. With $K=5$ robustness candidates per outer step this accumulates to $5 \times 10 \times 40 = 2{,}000$ row accesses per outer step, producing the 16k \texttt{xs} invocations observed in Table~\ref{tab:profile_results}.

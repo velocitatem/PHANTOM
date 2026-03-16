@@ -1,0 +1,10 @@
+{
+  "runs": 340,
+  "tiers": 5,
+  "alphas": 6,
+  "status": "ok",
+  "mean_tier_revenue_robust": 190714.62212212436,
+  "mean_tier_revenue_no_robust": 197371.17216609977,
+  "mean_tier_revenue_delta": -6656.5500439754105,
+  "mean_tier_revenue_delta_pct": -3.3726050116242514
+}
