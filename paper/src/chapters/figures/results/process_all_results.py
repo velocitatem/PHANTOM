@@ -8,7 +8,7 @@ from process_ppo_benchmark import run as run_ppo_benchmark
 
 
 def _default_output_dir() -> Path:
-    return Path(__file__).resolve().parent / "generated"
+    return Path(__file__).resolve().parent / "generated" / "legacy"
 
 
 def main() -> None:

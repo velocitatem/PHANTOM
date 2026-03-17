@@ -18,7 +18,7 @@ def _default_input() -> Path:
 
 
 def _default_output_dir() -> Path:
-    return Path(__file__).resolve().parent / "generated"
+    return Path(__file__).resolve().parent / "generated" / "legacy"
 
 
 def _sanitize(key: str) -> str:

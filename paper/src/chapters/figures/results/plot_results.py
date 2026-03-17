@@ -16,7 +16,7 @@ from process_ppo_benchmark import run as run_ppo_benchmark
 
 
 def _output_dir() -> Path:
-    return Path(__file__).resolve().parent / "generated"
+    return Path(__file__).resolve().parent / "generated" / "legacy"
 
 
 def _plot_dir() -> Path:
