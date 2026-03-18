@@ -130,6 +130,13 @@ class PHANTOM(gym.Env):
         self._initial_episode_prices = None
         self._trajectories = []  # session trajectories for agent prob calculation
         self.baseline_prices = np.full(self.n_products, self.price_bounds[0])
+        self.anchor_prices = np.full(
+            self.n_products,
+            float(np.clip(float(self.human_params[0]), *self.price_bounds)),
+        )
+        self.competitive_cap = float(
+            min(self.price_bounds[1], float(np.mean(self.anchor_prices)) * 1.15)
+        )
         self._low_margin_streak = 0  # consecutive steps below margin_floor
         self._last_agent_prob = float(self.alpha)
         self._last_alpha_adv = float(self.alpha)
@@ -169,19 +176,28 @@ class PHANTOM(gym.Env):
         self.market.Nhumans = self.N - n_agents
 
     def _decode_action(self, action) -> np.ndarray:
-        base = (
-            self._prices
-            if self._prices is not None
-            else np.full(self.n_products, self.price_bounds[0], dtype=float)
-        )
+        prev = self._prices
+        base = self.anchor_prices
+
+        def _blend(target: np.ndarray) -> np.ndarray:
+            if prev is None:
+                lower = float(self.price_bounds[0])
+                return np.clip(target, lower, self.competitive_cap)
+            blended = 0.75 * np.asarray(prev, dtype=float) + 0.25 * target
+            lower = float(self.price_bounds[0])
+            return np.clip(blended, lower, self.competitive_cap)
+
         if np.isscalar(action):
             idx = int(np.clip(int(action), 0, self.action_levels - 1))
-            return np.clip(base * self._action_scales[idx], *self.price_bounds)
+            target = base * self._action_scales[idx]
+            return _blend(target)
         a = np.asarray(action)
         if a.size == 1:
             idx = int(np.clip(int(a.reshape(-1)[0]), 0, self.action_levels - 1))
-            return np.clip(base * self._action_scales[idx], *self.price_bounds)
-        return np.clip(a.astype(float), *self.price_bounds)
+            target = base * self._action_scales[idx]
+            return _blend(target)
+        lower = float(self.price_bounds[0])
+        return np.clip(a.astype(float), lower, self.competitive_cap)
 
     def _compute_agent_prob(self, trajectories=None) -> float:
         trajectories = (
@@ -225,14 +241,10 @@ class PHANTOM(gym.Env):
             upward_volatility = 0.0
         ux_penalty = self.eta_ux * info_budget * (volatility + 0.5 * upward_volatility)
 
-        competitive_anchor = float(
-            np.clip(float(self.human_params[0]) * 1.2, *self.price_bounds)
-        )
+        competitive_anchor = float(np.mean(self.anchor_prices))
         price_ratio = prices / max(competitive_anchor, 1.0)
-        supra_excess = np.clip(price_ratio - 1.0, 0.0, None)
-        supra_penalty = (
-            0.5 * self.eta_ux * info_budget * float(np.mean(np.square(supra_excess)))
-        )
+        supra_excess = np.clip(price_ratio - 1.15, 0.0, None)
+        supra_penalty = 4.0 * info_budget * float(np.mean(np.square(supra_excess)))
         supra_share = float(np.mean(supra_excess > 0.0))
 
         reward_revenue = self.reward_profit_weight * profit

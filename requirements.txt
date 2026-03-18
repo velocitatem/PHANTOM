@@ -4,6 +4,7 @@ pandas
 jupyter
 ipykernel
 matplotlib
+tikzplotlib
 graphviz
 browser-use
 pytest
