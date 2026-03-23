@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import pandas as pd
 from huggingface_hub import HfApi
@@ -93,6 +94,28 @@ def _time_range(df: pd.DataFrame) -> tuple[str, str]:
     return ts.min().isoformat(), ts.max().isoformat()
 
 
+def _badge(label: str, value: str, color: str, logo: str | None = None) -> str:
+    encoded_label = quote(label, safe="")
+    encoded_value = quote(value, safe="")
+    base = (
+        "https://img.shields.io/badge/"
+        f"{encoded_label}-{encoded_value}-{color}?style=flat-square"
+    )
+    if logo:
+        base = f"{base}&logo={quote(logo, safe='')}&logoColor=white"
+    return f"![{label}]({base})"
+
+
+def _md_table(headers: list[str], rows: list[list[str]]) -> str:
+    header = f"| {' | '.join(headers)} |"
+    separator = f"| {' | '.join('---' for _ in headers)} |"
+    if not rows:
+        empty = f"| {' | '.join('n/a' for _ in headers)} |"
+        return "\n".join([header, separator, empty])
+    body = "\n".join(f"| {' | '.join(row)} |" for row in rows)
+    return "\n".join([header, separator, body])
+
+
 def _render_card(df: pd.DataFrame) -> str:
     total_rows = len(df)
     total_cols = len(df.columns)
@@ -112,30 +135,75 @@ def _render_card(df: pd.DataFrame) -> str:
 
     metadata_cols = sorted(c for c in df.columns if c.startswith("metadata_"))
 
-    actor_lines = (
-        "\n".join(f"- `{k}`: {v}" for k, v in actor_counts.items()) or "- none"
+    total_sessions = sum(session_counts.values())
+    human_rows = actor_counts.get("human", 0)
+    agent_rows = actor_counts.get("agent", 0)
+
+    top_events = list(event_counts.items())[:10]
+
+    snapshot_table = _md_table(
+        ["Metric", "Value"],
+        [
+            ["Rows", f"`{total_rows}`"],
+            ["Columns", f"`{total_cols}`"],
+            ["Time range (UTC)", f"`{t_min}` -> `{t_max}`"],
+            ["Unique sessions", f"`{total_sessions}`"],
+        ],
     )
-    record_lines = (
-        "\n".join(f"- `{k}`: {v}" for k, v in record_counts.items()) or "- none"
+
+    actor_table = _md_table(
+        ["Actor", "Rows", "Share"],
+        [
+            [
+                "`human`",
+                str(human_rows),
+                f"{(human_rows / total_rows * 100):.1f}%" if total_rows else "0.0%",
+            ],
+            [
+                "`agent`",
+                str(agent_rows),
+                f"{(agent_rows / total_rows * 100):.1f}%" if total_rows else "0.0%",
+            ],
+        ],
     )
-    pair_lines = (
-        "\n".join(
-            f"- `{a}` / `{r}`: {n}"
-            for (a, r), n in sorted(
+
+    pair_table = _md_table(
+        ["Actor", "Record type", "Rows"],
+        [
+            [f"`{actor}`", f"`{record}`", str(n)]
+            for (actor, record), n in sorted(
                 by_actor_record.items(), key=lambda x: (x[0][0], x[0][1])
             )
-        )
-        or "- none"
+        ],
     )
-    store_lines = (
-        "\n".join(f"- `{k}`: {v}" for k, v in store_counts.items()) or "- none"
+
+    store_table = _md_table(
+        ["Store mode", "Rows"],
+        [
+            [f"`{mode}`", str(n)]
+            for mode, n in sorted(
+                store_counts.items(), key=lambda x: x[1], reverse=True
+            )
+        ],
     )
-    session_lines = (
-        "\n".join(f"- `{k}`: {v}" for k, v in session_counts.items()) or "- none"
+
+    event_table = _md_table(
+        ["Interaction event", "Count"],
+        [[f"`{name}`", str(n)] for name, n in top_events],
     )
-    top_events = list(event_counts.items())[:10]
-    event_lines = "\n".join(f"- `{k}`: {v}" for k, v in top_events) or "- none"
+
     metadata_lines = "\n".join(f"- `{c}`" for c in metadata_cols) or "- none"
+
+    dataset_badge = (
+        "[![Dataset on HF](https://huggingface.co/datasets/huggingface/badges/resolve/main/"
+        "dataset-on-hf-sm.svg)](https://huggingface.co/datasets/velocitatem/whoclickedit)"
+    )
+    rows_badge = _badge("Rows", str(total_rows), "0A9396")
+    cols_badge = _badge("Columns", str(total_cols), "005F73")
+    sessions_badge = _badge("Sessions", str(total_sessions), "1D3557")
+    human_badge = _badge("Human rows", str(human_rows), "2A9D8F")
+    agent_badge = _badge("Agent rows", str(agent_rows), "E76F51")
+    license_badge = _badge("License", "MIT", "111827")
 
     return f"""---
 pretty_name: whoclickedit
@@ -156,85 +224,114 @@ size_categories:
 - {size_cat}
 ---
 
-# Dataset Card for whoclickedit
+<img align="right" width="280" src="https://raw.githubusercontent.com/velocitatem/PHANTOM/main/docs/static/images/banner.svg" alt="PHANTOM research banner" />
 
-## Dataset Summary
-whoclickedit is an event-level behavioral dataset for human versus agent interaction analysis in dynamic pricing experiments.
-It merges interaction logs and price quote logs into one flat CSV (`whoclicked.csv`) with explicit labels for actor type.
+# [whoclickedit](https://huggingface.co/datasets/velocitatem/whoclickedit)
 
-## Dataset Snapshot
-- Rows: `{total_rows}`
-- Columns: `{total_cols}`
-- Time range (UTC): `{t_min}` to `{t_max}`
-- Unique sessions by actor:
-{session_lines}
-- Rows by actor:
-{actor_lines}
-- Rows by record type:
-{record_lines}
-- Rows by actor x record type:
-{pair_lines}
-- Store modes:
-{store_lines}
+{dataset_badge}
+{rows_badge}
+{cols_badge}
+{sessions_badge}
+{human_badge}
+{agent_badge}
+{license_badge}
 
-## Source and Processing
-Data is collected from two local roots in the PHANTOM project:
+> **Event-level behavior data for dynamic pricing research.**
+> This dataset captures how humans and automated agents browse, query prices, and move through the PHANTOM storefronts during controlled experiments.
+
+## What this dataset gives you
+
+- A single flat file (`whoclicked.csv`) with both interaction and price-log events.
+- Explicit labels for actor origin: `actor_type` and `is_agent`.
+- Provenance fields from Kafka envelopes when available.
+- Metadata flattened into feature-ready `metadata_*` columns.
+
+## Snapshot
+
+{snapshot_table}
+
+## Composition
+
+### Rows by actor
+{actor_table}
+
+### Rows by actor and record type
+{pair_table}
+
+### Store mode coverage
+{store_table}
+
+### Top interaction events
+{event_table}
+
+## Collection pipeline
+
+Data is sourced from two roots inside PHANTOM:
+
 - `experiments/collected_data` (human sessions)
 - `experiments/agents/collected_data` (agent sessions)
 
-Each session folder contains:
-- `int.json` (interaction events)
-- `price.json` (price quote logs)
+Each session directory contains:
 
-The ETL does the following:
-- Normalizes both Kafka-envelope and flat payload formats
-- Flattens nested metadata fields into `metadata_*` columns
-- Preserves all raw rows (no deduplication)
-- Adds labels:
-  - `actor_type` in `{{human, agent}}`
-  - `is_agent` in `{{0, 1}}`
-  - `record_type` in `{{interaction, price_log}}`
+- `int.json`: user interaction events
+- `price.json`: price quote observations
 
-## Data Fields
-Core fields used for modeling:
+ETL behavior:
+
+1. Accepts both Kafka-envelope records and flat payload records.
+2. Flattens nested JSON to a tabular schema.
+3. Preserves row-level provenance (`source_session_dir`, `source_row_index`, topic fields).
+4. Adds modeling labels (`actor_type`, `is_agent`, `record_type`).
+
+## Schema highlights
+
+Core modeling fields:
+
 - `actor_type`, `is_agent`, `record_type`
 - `sessionId`, `experimentId`, `storeMode`, `ts`
 - `eventName`, `page`, `productId`, `price`, `userAgent`
 
 Kafka provenance fields:
+
 - `kafka_partition_id`, `kafka_offset`, `kafka_timestamp_ms`, `kafka_compression`
 - `kafka_is_transactional`, `kafka_headers`, `kafka_key_*`, `kafka_value_*`
 
-Flattened metadata fields currently present:
+<details>
+<summary>Metadata columns in this release</summary>
+
 {metadata_lines}
 
-Top interaction events:
-{event_lines}
+</details>
 
-## Intended Uses
-- Human-vs-agent traffic classification
-- Session-level behavioral modeling
-- Dynamic pricing robustness analysis under agent-mediated reconnaissance
+## Quick start
 
-## Out-of-Scope Uses
-- Identity inference or user-level profiling
-- Credit, employment, insurance, or legal decision making
+```python
+from datasets import load_dataset
 
-## Data Splits
-No official train/validation/test split is provided in the current release.
-Users should create time-aware or session-aware splits to avoid leakage.
+ds = load_dataset("velocitatem/whoclickedit")
+```
 
-## Privacy and Sensitive Content
-- `userAgent` and referrer metadata can be quasi-identifying in small samples.
-- Use care before publishing derived artifacts that can re-identify participants.
+Recommended split strategy:
 
-## Limitations
-- Data is generated in a controlled experiment platform, not a full production marketplace.
-- Agent traffic currently reflects the configured tasking and browser automation setup.
-- Coverage is stronger for `hotel` than `airline` in the current release.
+- Prefer session-aware or time-aware splits.
+- Do not split rows from the same `sessionId` across train and test.
+
+## Intended use
+
+- Human-vs-agent behavior classification.
+- Session-level telemetry modeling for dynamic pricing defenses.
+- Robustness experiments under agent-mediated reconnaissance.
+
+## Safety and limitations
+
+- `userAgent` and referrer metadata can be quasi-identifying in very small samples.
+- Data comes from a controlled research platform, not a full production marketplace.
+- Current release has stronger coverage for `hotel` flows than `airline` flows.
 
 ## Citation
-If you use this dataset, cite the PHANTOM thesis project and link this dataset page.
+
+If you use this dataset, cite the PHANTOM thesis project and link this page:
+`https://huggingface.co/datasets/velocitatem/whoclickedit`
 """
 
 

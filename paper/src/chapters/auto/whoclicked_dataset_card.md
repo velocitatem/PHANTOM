@@ -17,64 +17,107 @@ size_categories:
 - 1K<n<10K
 ---
 
-# Dataset Card for whoclickedit
+<img align="right" width="280" src="https://raw.githubusercontent.com/velocitatem/PHANTOM/main/docs/static/images/banner.svg" alt="PHANTOM research banner" />
 
-## Dataset Summary
-whoclickedit is an event-level behavioral dataset for human versus agent interaction analysis in dynamic pricing experiments.
-It merges interaction logs and price quote logs into one flat CSV (`whoclicked.csv`) with explicit labels for actor type.
+# [whoclickedit](https://huggingface.co/datasets/velocitatem/whoclickedit)
 
-## Dataset Snapshot
-- Rows: `3838`
-- Columns: `42`
-- Time range (UTC): `2025-12-05T09:43:31.301000+00:00` to `2026-02-28T19:32:06.444000+00:00`
-- Unique sessions by actor:
-- `agent`: 7
-- `human`: 25
-- Rows by actor:
-- `agent`: 3076
-- `human`: 762
-- Rows by record type:
-- `price_log`: 3331
-- `interaction`: 507
-- Rows by actor x record type:
-- `agent` / `interaction`: 197
-- `agent` / `price_log`: 2879
-- `human` / `interaction`: 310
-- `human` / `price_log`: 452
-- Store modes:
-- `hotel`: 3592
-- `airline`: 196
-- `shop`: 50
+[![Dataset on HF](https://huggingface.co/datasets/huggingface/badges/resolve/main/dataset-on-hf-sm.svg)](https://huggingface.co/datasets/velocitatem/whoclickedit)
+![Rows](https://img.shields.io/badge/Rows-3874-0A9396?style=flat-square)
+![Columns](https://img.shields.io/badge/Columns-42-005F73?style=flat-square)
+![Sessions](https://img.shields.io/badge/Sessions-36-1D3557?style=flat-square)
+![Human rows](https://img.shields.io/badge/Human%20rows-798-2A9D8F?style=flat-square)
+![Agent rows](https://img.shields.io/badge/Agent%20rows-3076-E76F51?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-111827?style=flat-square)
 
-## Source and Processing
-Data is collected from two local roots in the PHANTOM project:
+> **Event-level behavior data for dynamic pricing research.**
+> This dataset captures how humans and automated agents browse, query prices, and move through the PHANTOM storefronts during controlled experiments.
+
+## What this dataset gives you
+
+- A single flat file (`whoclicked.csv`) with both interaction and price-log events.
+- Explicit labels for actor origin: `actor_type` and `is_agent`.
+- Provenance fields from Kafka envelopes when available.
+- Metadata flattened into feature-ready `metadata_*` columns.
+
+## Snapshot
+
+| Metric | Value |
+| --- | --- |
+| Rows | `3874` |
+| Columns | `42` |
+| Time range (UTC) | `2025-12-05T09:43:31.301000+00:00` -> `2026-03-23T12:08:30.151000+00:00` |
+| Unique sessions | `36` |
+
+## Composition
+
+### Rows by actor
+| Actor | Rows | Share |
+| --- | --- | --- |
+| `human` | 798 | 20.6% |
+| `agent` | 3076 | 79.4% |
+
+### Rows by actor and record type
+| Actor | Record type | Rows |
+| --- | --- | --- |
+| `agent` | `interaction` | 197 |
+| `agent` | `price_log` | 2879 |
+| `human` | `interaction` | 328 |
+| `human` | `price_log` | 470 |
+
+### Store mode coverage
+| Store mode | Rows |
+| --- | --- |
+| `hotel` | 3628 |
+| `airline` | 196 |
+| `shop` | 50 |
+
+### Top interaction events
+| Interaction event | Count |
+| --- | --- |
+| `page_view` | 246 |
+| `learn_more_about_item` | 91 |
+| `view_item_page` | 88 |
+| `add_item_to_cart` | 47 |
+| `hover_over_title` | 23 |
+| `checkout_start` | 20 |
+| `hover_over_paragraph` | 6 |
+| `remove_item` | 4 |
+
+## Collection pipeline
+
+Data is sourced from two roots inside PHANTOM:
+
 - `experiments/collected_data` (human sessions)
 - `experiments/agents/collected_data` (agent sessions)
 
-Each session folder contains:
-- `int.json` (interaction events)
-- `price.json` (price quote logs)
+Each session directory contains:
 
-The ETL does the following:
-- Normalizes both Kafka-envelope and flat payload formats
-- Flattens nested metadata fields into `metadata_*` columns
-- Preserves all raw rows (no deduplication)
-- Adds labels:
-  - `actor_type` in `{human, agent}`
-  - `is_agent` in `{0, 1}`
-  - `record_type` in `{interaction, price_log}`
+- `int.json`: user interaction events
+- `price.json`: price quote observations
 
-## Data Fields
-Core fields used for modeling:
+ETL behavior:
+
+1. Accepts both Kafka-envelope records and flat payload records.
+2. Flattens nested JSON to a tabular schema.
+3. Preserves row-level provenance (`source_session_dir`, `source_row_index`, topic fields).
+4. Adds modeling labels (`actor_type`, `is_agent`, `record_type`).
+
+## Schema highlights
+
+Core modeling fields:
+
 - `actor_type`, `is_agent`, `record_type`
 - `sessionId`, `experimentId`, `storeMode`, `ts`
 - `eventName`, `page`, `productId`, `price`, `userAgent`
 
 Kafka provenance fields:
+
 - `kafka_partition_id`, `kafka_offset`, `kafka_timestamp_ms`, `kafka_compression`
 - `kafka_is_transactional`, `kafka_headers`, `kafka_key_*`, `kafka_value_*`
 
-Flattened metadata fields currently present:
+<details>
+<summary>Metadata columns in this release</summary>
+
 - `metadata_cabinClass`
 - `metadata_dateIndex`
 - `metadata_dwellTime`
@@ -89,37 +132,34 @@ Flattened metadata fields currently present:
 - `metadata_total`
 - `metadata_type`
 
-Top interaction events:
-- `page_view`: 236
-- `learn_more_about_item`: 88
-- `view_item_page`: 85
-- `add_item_to_cart`: 46
-- `hover_over_title`: 23
-- `checkout_start`: 19
-- `hover_over_paragraph`: 6
-- `remove_item`: 4
+</details>
 
-## Intended Uses
-- Human-vs-agent traffic classification
-- Session-level behavioral modeling
-- Dynamic pricing robustness analysis under agent-mediated reconnaissance
+## Quick start
 
-## Out-of-Scope Uses
-- Identity inference or user-level profiling
-- Credit, employment, insurance, or legal decision making
+```python
+from datasets import load_dataset
 
-## Data Splits
-No official train/validation/test split is provided in the current release.
-Users should create time-aware or session-aware splits to avoid leakage.
+ds = load_dataset("velocitatem/whoclickedit")
+```
 
-## Privacy and Sensitive Content
-- `userAgent` and referrer metadata can be quasi-identifying in small samples.
-- Use care before publishing derived artifacts that can re-identify participants.
+Recommended split strategy:
 
-## Limitations
-- Data is generated in a controlled experiment platform, not a full production marketplace.
-- Agent traffic currently reflects the configured tasking and browser automation setup.
-- Coverage is stronger for `hotel` than `airline` in the current release.
+- Prefer session-aware or time-aware splits.
+- Do not split rows from the same `sessionId` across train and test.
+
+## Intended use
+
+- Human-vs-agent behavior classification.
+- Session-level telemetry modeling for dynamic pricing defenses.
+- Robustness experiments under agent-mediated reconnaissance.
+
+## Safety and limitations
+
+- `userAgent` and referrer metadata can be quasi-identifying in very small samples.
+- Data comes from a controlled research platform, not a full production marketplace.
+- Current release has stronger coverage for `hotel` flows than `airline` flows.
 
 ## Citation
-If you use this dataset, cite the PHANTOM thesis project and link this dataset page.
+
+If you use this dataset, cite the PHANTOM thesis project and link this page:
+`https://huggingface.co/datasets/velocitatem/whoclickedit`
