@@ -17,6 +17,10 @@
     "chapters/05-discussion"
     "chapters/06-conclusion"
     "article"
-    "art12"))
+    "art12")
+   (LaTeX-add-labels
+    "app:compute_budget"
+    "tab:compute_derivation"
+    "app:whoclicked_card"))
  :latex)
 

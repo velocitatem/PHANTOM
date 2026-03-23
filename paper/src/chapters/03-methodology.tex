@@ -94,7 +94,8 @@ where $\mathbb{E}[P]$ is the expected price charged by the policy and $\underlin
 
 We now formally demonstrate that standard dynamic pricing mechanisms are not incentive-compatible with high-frequency agentic traffic. As the number of independent competitive agents $N$ querying the system grows, the platform's ability to sustain a COI vanishes.
 
-  A fundamental assumption for our claim lies in the alignment of the AI agent through its prompt which has been demonstrated by \cite{fish_algorithmic_2025} to cause strong collusive behavior under linguistic nudges. This assumption can be generalized to the human user asking the agent to research products with a minimizing objective.
+\paragraph{Assumption Scope}
+The theorem and core experiments in this thesis assume a non-collusive independent-session setting: each agent queries prices independently and does not share sampled quotes across agents. Collusive coordination is outside the current proof scope and is treated as an extension scenario.
 
 \begin{theorem}[COI Erosion in the Limit]
 Let $N$ be the number of independent, utility-maximizing agents querying the platform. Let $p_{(1)}$ be the first order statistic (minimum) of the prices offered to these agents. As $N \to \infty$, the Cost of Information converges to 0.
@@ -331,7 +332,7 @@ where $\mathcal{S}_e$ denotes the set of destination events that follow $e$ in t
 
 To obtain this statistic, we aggregate transitions by triggering event $e$ and treat normalized outgoing probabilities as categorical distributions $P_e$ (human) and $Q_e$ (agent). We intersect shared event labels, then accumulate log-ratio contributions over shared destinations. Large contributions, including near-zero $Q_e(k)$ cases, identify transitions where one actor class is difficult to mimic.
 
-With these divergence features we train a contrastive model to estimate a weak agent probability $f(\tau)\in[0,1]$, which we later use as a weighting and control signal.
+With these divergence features we compute a weak agent probability $f(\tau')\in[0,1]$ directly from divergence gaps, which we later use as a weighting and control signal.
 
 
 \subsubsection{Transition Probability Estimation}
@@ -375,9 +376,35 @@ Because contamination level $\alpha$ and demand shift are non-stationary online,
   \Delta_A &= D_{KL}(\hat{\mathcal{T}}^\prime \parallel \bar{\mathcal{T}}_A)
 \end{align}
 
-This yields two centroid-like heuristics that act as a session-level agent score in the engine. On a per-customer or use-case basis a similar study should be done in order to obtain ground truth behavior models for humans and agents and their specific interaction with a given products website.
+From these two divergences we define the gap score:
+\begin{equation}
+g(\tau') := \Delta_H(\tau') - \Delta_A(\tau').
+\end{equation}
+Positive values indicate trajectories farther from the human centroid and closer to the agent centroid.
+
+We map this gap to a weak agent probability using a temperature-controlled logistic map:
+\begin{equation}
+f(\tau') := P(Y=A\mid\tau') = \operatorname{softmax}(-\Delta_A,-\Delta_H)_A = \sigma\left(\frac{\Delta_H-\Delta_A}{T}\right), \quad T>0.
+\end{equation}
+The session-level control signal injected into pricing is then
+\begin{equation}
+\hat{\alpha}(\tau') := f(\tau').
+\end{equation}
+
+This turns distinguishability into an operational control input in the engine. On a per-customer or use-case basis, a similar data collection and fitting process should be repeated to obtain domain-specific behavior kernels.
 
 In implementation, we maintain an alternating game-history stack (our \textit{Limbo} stack) and execute it explicitly every epoch with exactly two transitions: first the platform publishes a price vector (leader move), then the market responds with trajectory-derived demand (follower move).
+
+To avoid notation drift, we separate two COI objects used for different purposes:
+\begin{align}
+\text{COI}_{\text{level}}(\pi) &:= \mathbb{E}[P]-\underline{p} \quad \text{(global reporting KPI)} \\
+\text{COI}_{\text{leak}}(p,\tau') &:= f(\tau')\cdot \text{InfoValue}(p,\tau') \quad \text{(local control penalty)}
+\end{align}
+where $\text{COI}_{\text{level}}$ is evaluated at policy level and $\text{COI}_{\text{leak}}$ is evaluated per observed quote during training. We connect local leakage to expected global erosion with the operational assumption
+\begin{equation}
+\mathbb{E}[\Delta\text{COI}_{\text{level},t} \mid \tau_t'] \approx -\kappa\,\text{COI}_{\text{leak}}(p_t,\tau_t') + \xi_t,
+\end{equation}
+where $\kappa>0$ and $\xi_t$ is residual noise. This keeps theorem-level COI erosion (global, asymptotic) distinct from training-time leakage control (local surrogate).
 
 % Mention discretized action space and the clipping and over shotting in continuous action spaces
 % Also talk about catastrophic economics, we add termination on bankrupcy or zero demand so market collaps

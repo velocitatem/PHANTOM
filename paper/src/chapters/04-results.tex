@@ -40,7 +40,12 @@ We report two preliminary stages before the full factorial interpretation. First
 
 \subsubsection{The Impact of Contamination on Revenue}
 
-A linear fit test on run-level data ($n=95$) shows a strong negative association between contamination and mean revenue. The fitted model mapping $\alpha \to \text{revenue}$ result in $t(93)=-8.2148$, $p=1.20\times 10^{-12}$, $R^2=0.4205$, and a 95\% confidence interval for the slope of $[-75{,}288.76,\,-45{,}975.13]$. In practical terms, a $+0.1$ increase in $\alpha$ corresponds to an average decrease of about $6{,}063$ revenue units within our environment.
+The contamination--revenue slope is estimated on a controlled cohort (single sweep, baseline policy, $n_{\text{products}}=100$, $n=95$). In this setting, contamination $\alpha$ is set exogenously by the experiment, so the slope identifies the within-sweep causal effect of contamination on revenue under fixed policy and environment settings. The fitted linear model is
+
+\[
+\widehat{y}=348{,}823.41-90{,}140.53\,\alpha,
+\]
+with $t(93)=-61.45$, $p=4.27\times10^{-77}$, $R^2=0.976$, and a 95\% confidence interval for the slope of $[-93{,}053.38,\,-87{,}227.68]$. Interpreted on the contamination grid, a $+0.1$ increase in $\alpha$ corresponds to an average revenue decrease of about $9{,}014$ units. A heteroskedasticity-robust check (HC1) preserves the same direction and significance ($t=-41.25$, $p=1.42\times10^{-61}$), supporting a large and statistically stable impact in this controlled regime.
 
 \subsubsection{Large Scale Factorial Training}
 
@@ -58,7 +63,6 @@ In our complete training runs we logged $\approx 180$ days of net compute time. 
     \caption{Revenue curves by contamination for the final cohort. The baseline remains above the defended curve in most cells, but the gap narrows in the high-contamination region.}
     \label{fig:final_focus_revenue_by_alpha}
 \end{figure}
-% TODO: we need a similar plot which shows the COI preserved (what we gain across teh multiple conatmination leves, showing that the robust method has better COI optimization.)
 
 \begin{figure}[ht]
     \centering

@@ -110,19 +110,6 @@ v4             &  64 & 275 & $64  \times 275 = 17{,}600$  \\
 
 Converting to petaFLOPS: $160{,}320\;\text{TFLOPS} = 160.32\;\text{PFLOPS} \approx 160\;\text{PFLOPS}$. This is the theoretical peak under sustained BF16 arithmetic; realized throughput depends on memory bandwidth utilization and inter-chip communication overhead, but the figure serves as a useful upper bound for provisioning decisions.
 
-\section{Slope-Test Verification: Revenue vs. Contamination}
-\label{app:alpha_revenue_slope}
-
-This appendix provides a compact verification of the slope result reported in the main results section. Using the same run-level pairs $x_i=\texttt{study/alpha}_i$ and $y_i=\texttt{eval/revenue\_mean}_i$ ($n=95$), we re-checked the ordinary least squares slope test in Python with standard test routines (SciPy two-sided $t$ test for the slope).
-
-\[
-\widehat{y}=326{,}878.57-60{,}631.95\,x,
-\]
-\[
-t(93)=-8.2148,\qquad p=1.2038\times 10^{-12},\qquad R^2=0.4205,\qquad 95\%\,\text{CI}_{\beta_1}=[-75{,}288.76,\,-45{,}975.13].
-\]
-
-The Python verification reproduces the reported coefficients and inference values, confirming that the slope-test results are correct under standard methods.
 
 \section{whoclickedit Dataset Card}
 \label{app:whoclicked_card}
