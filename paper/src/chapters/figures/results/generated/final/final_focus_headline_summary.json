@@ -1,11 +1,14 @@
 {
-  "bundle": "engine/studies/results/wandb_sweep_bundles/bundle_20260317_093826",
+  "bundle": "engine/studies/results/wandb_sweep_bundles/bundle_20260317_122818",
   "focus_cohort": "max_alpha_coverage",
+  "focus_sweep_id": "i88nw811",
+  "focus_run_count": 768,
+  "git_commit": "e62e842faad79b143f5555d187075e85c8926363",
   "alpha_cells": 11,
   "alpha_min": 0.0,
   "alpha_max": 1.0,
-  "mean_revenue_delta_pct": -4.787221975639986,
-  "mean_reward_delta_pct": -4.91730667541704,
+  "mean_revenue_delta_pct": -4.784039478033151,
+  "mean_reward_delta_pct": -4.913967517075595,
   "zone_summary": [
     {
       "zone": "high_alpha_0_7_plus",
@@ -18,10 +21,10 @@
     {
       "zone": "low_alpha_below_0_7",
       "alpha_cells": 7,
-      "revenue_delta_pct_mean": -5.201949225367208,
-      "reward_delta_pct_mean": -5.324947138914036,
-      "coi_leakage_delta_mean": -0.0037041938968711296,
-      "volatility_delta_mean": 0.00011102505536893832
+      "revenue_delta_pct_mean": -5.196948157699325,
+      "reward_delta_pct_mean": -5.319699890091765,
+      "coi_leakage_delta_mean": -0.003710447880695786,
+      "volatility_delta_mean": 0.00010197380928049306
     }
   ]
 }

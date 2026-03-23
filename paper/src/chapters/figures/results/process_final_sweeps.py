@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import subprocess
 from typing import Any
 
 import matplotlib
@@ -35,6 +36,20 @@ def _default_output_dir() -> Path:
 
 def _default_plot_dir(output_dir: Path) -> Path:
     return output_dir / "plots"
+
+
+def _git_commit() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            text=True,
+            capture_output=True,
+            cwd=_project_root(),
+        )
+    except Exception:
+        return "unknown"
+    return result.stdout.strip()
 
 
 def _truthy(value: Any) -> bool:
@@ -297,9 +312,16 @@ def _write_include(path: Path, figure_rel_path: str, width: str) -> Path:
     return path
 
 
-def run(bundle_dir: Path, output_dir: Path, plot_dir: Path) -> list[Path]:
+def run(
+    bundle_dir: Path,
+    output_dir: Path,
+    plot_dir: Path,
+    focus_sweep_id: str | None = None,
+) -> list[Path]:
     all_runs = _load_runs(bundle_dir)
-    focus_id = _focus_sweep(all_runs)
+    focus_id = str(focus_sweep_id) if focus_sweep_id else _focus_sweep(all_runs)
+    if focus_id not in set(all_runs["sweep_id"].astype(str).unique()):
+        raise ValueError(f"Requested focus sweep_id not found: {focus_id}")
     focus_runs = all_runs[all_runs["sweep_id"] == focus_id].copy()
     alpha_mode = _alpha_mode_summary(focus_runs)
     deltas = _alpha_deltas(alpha_mode)
@@ -324,6 +346,9 @@ def run(bundle_dir: Path, output_dir: Path, plot_dir: Path) -> list[Path]:
     headline = {
         "bundle": str(bundle_dir),
         "focus_cohort": "max_alpha_coverage",
+        "focus_sweep_id": focus_id,
+        "focus_run_count": int(len(focus_runs)),
+        "git_commit": _git_commit(),
         "alpha_cells": int(deltas["alpha"].nunique()) if not deltas.empty else 0,
         "alpha_min": float(deltas["alpha"].min()) if not deltas.empty else None,
         "alpha_max": float(deltas["alpha"].max()) if not deltas.empty else None,
@@ -390,6 +415,7 @@ def main() -> None:
     parser.add_argument("--bundle-dir", type=Path, default=_default_bundle_dir())
     parser.add_argument("--output-dir", type=Path, default=_default_output_dir())
     parser.add_argument("--plot-dir", type=Path, default=None)
+    parser.add_argument("--focus-sweep-id", type=str, default=None)
     args = parser.parse_args()
 
     _configure_style()
@@ -399,7 +425,10 @@ def main() -> None:
         else _default_plot_dir(args.output_dir)
     )
     outputs = run(
-        bundle_dir=args.bundle_dir, output_dir=args.output_dir, plot_dir=plot_dir
+        bundle_dir=args.bundle_dir,
+        output_dir=args.output_dir,
+        plot_dir=plot_dir,
+        focus_sweep_id=args.focus_sweep_id,
     )
     for path in outputs:
         print(path)

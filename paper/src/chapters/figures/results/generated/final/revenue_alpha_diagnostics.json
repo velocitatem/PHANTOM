@@ -1,0 +1,24 @@
+{
+  "normality": {
+    "test": "jarque_bera",
+    "available": true,
+    "statistic": 362.38850707984324,
+    "p_value": 2.0339278125496517e-79
+  },
+  "heteroskedasticity": {
+    "test": "breusch_pagan",
+    "available": true,
+    "lm_stat": 6.0366025380616275,
+    "df": 1,
+    "p_value": 0.014012224810767138
+  },
+  "influence": {
+    "max_leverage": 0.03769234230180875,
+    "mean_leverage": 0.021052631578947392,
+    "high_leverage_threshold": 0.042105263157894736,
+    "high_leverage_count": 0,
+    "max_cooks_distance": 0.29121755538277183,
+    "high_cooks_threshold": 0.042105263157894736,
+    "high_cooks_count": 6
+  }
+}
