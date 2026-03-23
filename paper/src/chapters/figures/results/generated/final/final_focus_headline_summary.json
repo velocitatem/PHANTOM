@@ -1,0 +1,27 @@
+{
+  "bundle": "engine/studies/results/wandb_sweep_bundles/bundle_20260317_093826",
+  "focus_cohort": "max_alpha_coverage",
+  "alpha_cells": 11,
+  "alpha_min": 0.0,
+  "alpha_max": 1.0,
+  "mean_revenue_delta_pct": -4.787221975639986,
+  "mean_reward_delta_pct": -4.91730667541704,
+  "zone_summary": [
+    {
+      "zone": "high_alpha_0_7_plus",
+      "alpha_cells": 4,
+      "revenue_delta_pct_mean": -4.0614492886173466,
+      "reward_delta_pct_mean": -4.2039358642972955,
+      "coi_leakage_delta_mean": -0.0018236753956396637,
+      "volatility_delta_mean": 0.00026289072427068336
+    },
+    {
+      "zone": "low_alpha_below_0_7",
+      "alpha_cells": 7,
+      "revenue_delta_pct_mean": -5.201949225367208,
+      "reward_delta_pct_mean": -5.324947138914036,
+      "coi_leakage_delta_mean": -0.0037041938968711296,
+      "volatility_delta_mean": 0.00011102505536893832
+    }
+  ]
+}
