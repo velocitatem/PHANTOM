@@ -80,7 +80,11 @@ def train_qtable(
                 "train/global_step": int(steps),
             }
             if wandb_live:
-                wandb.log(dict(event), step=step_offset + int(steps))
+                try:
+                    wandb.log(dict(event), step=step_offset + int(steps))
+                except Exception:
+                    wandb_live = False
+                    train_events.append(event)
             else:
                 train_events.append(event)
             if console_progress:
@@ -113,7 +117,11 @@ def train_qtable(
             "train/global_step": int(steps),
         }
         if wandb_live:
-            wandb.log(dict(tail_event), step=step_offset + int(steps))
+            try:
+                wandb.log(dict(tail_event), step=step_offset + int(steps))
+            except Exception:
+                wandb_live = False
+                train_events.append(tail_event)
         else:
             train_events.append(tail_event)
 

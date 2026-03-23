@@ -9,6 +9,7 @@ from ..telemetry.wandb import (
     get_wandb_module,
     init_run,
     run_agent,
+    update_summary,
 )
 from .train import run_with_active_sweep_run
 
@@ -43,13 +44,23 @@ def run_sweep_agent(
             spec = TrainSpec.from_flat(merged)
             if run is not None:
                 run.name = run_name(spec, kind=kind, scenario=scenario)
-            run_with_active_sweep_run(
-                spec,
-                kind=kind,
-                scenario=scenario,
-                group=group,
-                extra_tags=extra_tags,
-            )
+            try:
+                run_with_active_sweep_run(
+                    spec,
+                    kind=kind,
+                    scenario=scenario,
+                    group=group,
+                    extra_tags=extra_tags,
+                )
+                update_summary({"run/status": "finished"})
+            except Exception as exc:
+                update_summary(
+                    {
+                        "run/status": "crashed",
+                        "run/error": str(exc),
+                    }
+                )
+                raise
         finally:
             finish_run()
 

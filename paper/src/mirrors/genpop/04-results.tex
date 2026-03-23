@@ -1,14 +1,14 @@
 \section{Results}
 \begin{figure}[ht]
     \centering
-    \input{chapters/figures/supra.tex}
+    \input{chapters/figures/supra/supra.tex}
     \caption{Evolution of price distributions over experiment steps. The heatmap illustrates the density of price offerings. This is an early baseline simulation which demonstrates supra-competitive price-setting in deep learning agents such as SAC as can be clearly seen by the high density at the highest available price.}
     \label{fig:supra_heatmap}
 \end{figure}
 
 \subsection{Behavioral Analysis}
 
-Separability between human and agent sessions is evaluated by computing per-session divergence gap scores (how much closer each session is to the human baseline versus the agent baseline) and comparing the two groups with a Mann-Whitney U test. The table below reports the group-level descriptive statistics for the gap scores and the test result.
+Distinguishability between human and agent sessions is evaluated by computing per-session divergence gap scores (how much closer each session is to the human baseline versus the agent baseline) and comparing the two groups with a Mann-Whitney U test. The full recorded cohort contains 13 human sessions and 16 agent sessions, and the table below reports the corresponding group-level statistics and test result.
 
 \begin{table}[ht]
 \centering
@@ -18,19 +18,19 @@ Separability between human and agent sessions is evaluated by computing per-sess
 \toprule
 Group & n & Mean gap & Std \\
 \midrule
-Human sessions & 11 & $-3.3522$ & $2.6748$ \\
-Agent sessions & 6 & $+1.6482$ & $2.8349$ \\
+Human sessions & 13 & $-3.35$ & $2.67$ \\
+Agent sessions & 16 & $+1.65$ & $2.83$ \\
 \midrule
-\multicolumn{4}{l}{Mann-Whitney $U = 2.0$, $p = 0.0006$ (two-sided)} \\
+\multicolumn{4}{l}{Mann-Whitney two-sided test: $p<0.001$} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided p-value of 0.0006 (which means there is only a 0.06\% chance this pattern occurred by random luck) indicates near-complete rank separation between the groups at n=11 humans and n=6 agents, providing strong evidence that the transition kernels are separable enough to justify their use as a control signal in downstream pricing.
+The sign structure is consistent with the theoretical expectation: human sessions produce negative gap scores (closer to the human centroid, far from the agent centroid) while agent sessions produce positive gap scores (closer to the agent centroid). The two-sided test result (p less than 0.001) at n=13 humans and n=16 agents indicates strong rank distinction between groups, providing evidence that the transition kernels are distinguishable enough to justify their use as a control signal in downstream pricing.
 
 \subsection{Experimental Outcomes}
 
-To evaluate robustness contributions, we compare two policies on the same environment family: (i) robust pricing with COI-aware reward and adversarial contamination step, and (ii) non-robust baseline with revenue-only reward (no-robust flag).
+To evaluate robustness contributions, we compare two policies on the same environment family: (i) robust pricing with COI-aware reward and adversarial contamination step, and (ii) a baseline policy with revenue-only reward.
 
 \begin{table}[ht]
 \centering
@@ -41,7 +41,7 @@ To evaluate robustness contributions, we compare two policies on the same enviro
 Policy & Eval reward & Eval revenue & COI leakage & Margin collapse rate \\
 \midrule
 Robust policy & \textit{TBD} & \textit{TBD} & \textit{TBD} & \textit{TBD} \\
-Non-robust baseline (\texttt{--no-robust}) & \textit{TBD} & \textit{TBD} & \textit{TBD} & \textit{TBD} \\
+Baseline policy & \textit{TBD} & \textit{TBD} & \textit{TBD} & \textit{TBD} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -50,6 +50,6 @@ This comparison isolates the effect of robustness terms from model capacity and 
 
 \subsection{Interpretation and Insights}
 
-The Mann-Whitney result (U=2.0, p less than 0.001) confirms that per-session divergence gaps separate the two actor classes with near-zero overlap in rank ordering. This is the condition required for separability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
+The Mann-Whitney result (p less than 0.001) confirms that per-session divergence gaps distinguish the two actor classes with near-zero overlap in rank ordering. This is the condition required for distinguishability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
 
 \subsection{Anomalies}

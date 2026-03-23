@@ -156,14 +156,17 @@ class ProviderBenchmark:
 
                 # log to wandb if available
                 if HAS_WANDB and wandb.run is not None:
-                    wandb.log(
-                        {
-                            f"benchmark/{name}/revenue": result.mean_revenue,
-                            f"benchmark/{name}/coi_preserved": result.coi_preserved_pct,
-                            f"benchmark/{name}/margin": result.margin_integrity,
-                            "benchmark/alpha": alpha,
-                        }
-                    )
+                    try:
+                        wandb.log(
+                            {
+                                f"benchmark/{name}/revenue": result.mean_revenue,
+                                f"benchmark/{name}/coi_preserved": result.coi_preserved_pct,
+                                f"benchmark/{name}/margin": result.margin_integrity,
+                                "benchmark/alpha": alpha,
+                            }
+                        )
+                    except Exception:
+                        pass
 
         return self.results
 

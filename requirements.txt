@@ -4,6 +4,7 @@ pandas
 jupyter
 ipykernel
 matplotlib
+tikzplotlib
 graphviz
 browser-use
 pytest
@@ -13,3 +14,4 @@ scikit-learn
 supabase
 pymc
 wandb
+huggingface_hub

@@ -32,17 +32,23 @@ class EconomicMetricsWrapper(gym.Wrapper):
         obs, reward, terminated, truncated, info = self.env.step(action)
 
         # extract from unwrapped env
-        prices = self.env.unwrapped._prices
+        quoted_prices = np.asarray(self.env.unwrapped._prices, dtype=float)
+        effective_prices = np.asarray(
+            info.get("effective_prices", quoted_prices), dtype=float
+        )
+        if effective_prices.shape != quoted_prices.shape:
+            effective_prices = quoted_prices
         demand_dict = self.env.unwrapped._demand
-        demand = np.array([demand_dict.get(i, 0.0) for i in range(len(prices))])
+        demand = np.array([demand_dict.get(i, 0.0) for i in range(len(quoted_prices))])
 
         # core calculations
-        revenue = float(np.sum(prices * demand))
-        avg_price = float(np.mean(prices))
+        revenue = float(info.get("revenue", np.sum(effective_prices * demand)))
+        quoted_revenue = float(np.sum(quoted_prices * demand))
+        avg_price = float(np.mean(effective_prices))
         margin = (avg_price - self.p_min) / max(avg_price, 1e-6)
         coi_level = avg_price - self.p_min  # E[P] - p_min per thesis Def 1
 
-        self._price_history.append(prices.copy())
+        self._price_history.append(effective_prices.copy())
         self._revenue_history.append(revenue)
 
         # regret vs baseline (golden path)
@@ -53,6 +59,7 @@ class EconomicMetricsWrapper(gym.Wrapper):
         # inject structured metrics into info
         info["economics"] = {
             "revenue": revenue,
+            "quoted_revenue": quoted_revenue,
             "margin": margin,
             "coi_level": coi_level,
             "regret": regret,
@@ -64,6 +71,10 @@ class EconomicMetricsWrapper(gym.Wrapper):
             "coi_penalty",
             "ux_penalty",
             "volatility",
+            "upward_volatility",
+            "supra_penalty",
+            "supra_share",
+            "competitive_anchor",
             "profit",
             "cost_floor",
             "reward_revenue",
@@ -71,10 +82,13 @@ class EconomicMetricsWrapper(gym.Wrapper):
             "agent_prob",
             "alpha_adv",
             "alpha_nominal",
+            "erosion_share",
+            "effective_price_mean",
         ):
             if key in info:
                 info["economics"][key] = info[key]
-        info["prices"] = prices.copy()
+        info["prices"] = quoted_prices.copy()
+        info["effective_prices"] = effective_prices.copy()
         info["demand"] = demand.copy()
 
         return obs, reward, terminated, truncated, info

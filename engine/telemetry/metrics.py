@@ -36,7 +36,12 @@ def canonicalize_metrics(raw: Mapping[str, Any], spec: TrainSpec) -> dict[str, A
 
     eval_reward = (
         _as_float(
-            metrics.get("eval/robust_reward_worst", metrics.get("eval/reward_mean")),
+            metrics.get(
+                "eval/stress_reward_worst",
+                metrics.get(
+                    "eval/robust_reward_worst", metrics.get("eval/reward_mean")
+                ),
+            ),
             0.0,
         )
         or 0.0
@@ -51,9 +56,12 @@ def canonicalize_metrics(raw: Mapping[str, Any], spec: TrainSpec) -> dict[str, A
     metrics["objective/coi_preserved"] = 0.0 if coi_level is None else coi_level
 
     metrics["study/alpha"] = spec.study.alpha
+    metrics["study/mode"] = "baseline" if bool(spec.study.no_robust) else "defended"
+    metrics["study/baseline_mode"] = float(bool(spec.study.no_robust))
     metrics["study/lambda_coi"] = spec.study.lambda_coi
-    metrics["study/robust_radius"] = spec.study.robust_radius
+    metrics["study/ambiguity_radius"] = spec.study.robust_radius
     metrics["study/info_value"] = spec.study.info_value
+    metrics["tiers"] = spec.algorithm.name
 
     metrics["runtime/backend"] = spec.runtime.backend
     metrics["runtime/device"] = spec.runtime.device

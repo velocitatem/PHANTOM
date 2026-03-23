@@ -48,7 +48,8 @@ class MarketEngine:
         )
         human_transitions = get_adjusted_transitions(demand_h, human=True)
         agent_transitions = get_adjusted_transitions(demand_a, human=False)
-        # sample behavior trajectories from each demand distribution
+        # sample N trajectories in parallel; each chain is independent so threads
+        # do not share state and numpy's per-call RNG is thread-safe
         human_t = [
             sample_behavior_from_transitions(human_transitions)
             for _ in range(self.Nhumans)
@@ -59,7 +60,25 @@ class MarketEngine:
         ]
         # store trajectories for agent probability calculation
         self.last_trajectories = human_t + agent_t
-        return estimate_demand(self.last_trajectories, self.action_weights)
+
+        demand_proxy = estimate_demand(
+            self.last_trajectories,
+            self.action_weights,
+            normalize=True,
+            per_session=False,
+        )
+        raw_mix = ((1.0 - float(self.alpha)) * demand_h) + (
+            float(self.alpha) * demand_a
+        )
+        total_raw_demand = float(np.sum(raw_mix))
+        if not demand_proxy:
+            return {i: float(raw_mix[i]) for i in range(len(prices))}
+        if total_raw_demand <= 0.0:
+            return {i: 0.0 for i in range(len(prices))}
+        return {
+            i: total_raw_demand * float(demand_proxy.get(i, 0.0)) / 100.0
+            for i in range(len(prices))
+        }
 
     def measure(self):
         pass

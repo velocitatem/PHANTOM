@@ -20,7 +20,7 @@ def _tags_for_run(spec: TrainSpec, kind: str, extra_tags: Sequence[str]) -> list
         kind,
         spec.algorithm.name,
         spec.runtime.backend,
-        "vanilla" if spec.study.no_robust else "robust",
+        "baseline" if spec.study.no_robust else "defended",
     ]
     tags.extend([tag for tag in extra_tags if tag])
     return tags

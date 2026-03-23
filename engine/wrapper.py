@@ -10,6 +10,7 @@ from .lib.coi import (
 )
 from .lib.behavior import get_transition_models, trajectory_to_events
 from .lib.wrappers import EconomicMetricsWrapper
+from .jax.robust import select_adversarial_alpha_jax, _JAX_OK
 
 
 class _ActionPricingEngine(PricingEngine):
@@ -121,6 +122,7 @@ class PHANTOM(gym.Env):
         self._prices = None
         self._demand = None
         self._step_count = 0
+        self._global_step = 0  # monotonic; used as JAX RNG seed across resets
         self._demand_history = []
         self._price_history = []
         self._revenue_history = []
@@ -128,6 +130,13 @@ class PHANTOM(gym.Env):
         self._initial_episode_prices = None
         self._trajectories = []  # session trajectories for agent prob calculation
         self.baseline_prices = np.full(self.n_products, self.price_bounds[0])
+        self.anchor_prices = np.full(
+            self.n_products,
+            float(np.clip(float(self.human_params[0]), *self.price_bounds)),
+        )
+        self.competitive_cap = float(
+            min(self.price_bounds[1], float(np.mean(self.anchor_prices)) * 1.15)
+        )
         self._low_margin_streak = 0  # consecutive steps below margin_floor
         self._last_agent_prob = float(self.alpha)
         self._last_alpha_adv = float(self.alpha)
@@ -167,19 +176,28 @@ class PHANTOM(gym.Env):
         self.market.Nhumans = self.N - n_agents
 
     def _decode_action(self, action) -> np.ndarray:
-        base = (
-            self._prices
-            if self._prices is not None
-            else np.full(self.n_products, self.price_bounds[0], dtype=float)
-        )
+        prev = self._prices
+        base = self.anchor_prices
+
+        def _blend(target: np.ndarray) -> np.ndarray:
+            if prev is None:
+                lower = float(self.price_bounds[0])
+                return np.clip(target, lower, self.competitive_cap)
+            blended = 0.75 * np.asarray(prev, dtype=float) + 0.25 * target
+            lower = float(self.price_bounds[0])
+            return np.clip(blended, lower, self.competitive_cap)
+
         if np.isscalar(action):
             idx = int(np.clip(int(action), 0, self.action_levels - 1))
-            return np.clip(base * self._action_scales[idx], *self.price_bounds)
+            target = base * self._action_scales[idx]
+            return _blend(target)
         a = np.asarray(action)
         if a.size == 1:
             idx = int(np.clip(int(a.reshape(-1)[0]), 0, self.action_levels - 1))
-            return np.clip(base * self._action_scales[idx], *self.price_bounds)
-        return np.clip(a.astype(float), *self.price_bounds)
+            target = base * self._action_scales[idx]
+            return _blend(target)
+        lower = float(self.price_bounds[0])
+        return np.clip(a.astype(float), lower, self.competitive_cap)
 
     def _compute_agent_prob(self, trajectories=None) -> float:
         trajectories = (
@@ -214,18 +232,23 @@ class PHANTOM(gym.Env):
         coi_penalty = self.lambda_coi * coi_leakage * info_budget
 
         if len(self._price_history) > 0:
-            volatility = float(
-                np.mean(
-                    np.abs(prices - self._price_history[-1])
-                    / np.maximum(self.baseline_prices, 1.0)
-                )
-            )
+            prev_prices = np.asarray(self._price_history[-1], dtype=float)
+            rel_change = (prices - prev_prices) / np.maximum(prev_prices, 1.0)
+            volatility = float(np.mean(np.abs(rel_change)))
+            upward_volatility = float(np.mean(np.clip(rel_change, 0.0, None)))
         else:
             volatility = 0.0
-        ux_penalty = self.eta_ux * info_budget * volatility
+            upward_volatility = 0.0
+        ux_penalty = self.eta_ux * info_budget * (volatility + 0.5 * upward_volatility)
+
+        competitive_anchor = float(np.mean(self.anchor_prices))
+        price_ratio = prices / max(competitive_anchor, 1.0)
+        supra_excess = np.clip(price_ratio - 1.15, 0.0, None)
+        supra_penalty = 4.0 * info_budget * float(np.mean(np.square(supra_excess)))
+        supra_share = float(np.mean(supra_excess > 0.0))
 
         reward_revenue = self.reward_profit_weight * profit
-        reward = reward_revenue - coi_penalty - ux_penalty
+        reward = reward_revenue - coi_penalty - ux_penalty - supra_penalty
 
         return reward, {
             "revenue": revenue,
@@ -238,6 +261,10 @@ class PHANTOM(gym.Env):
             "coi_info_budget": info_budget,
             "ux_penalty": ux_penalty,
             "volatility": volatility,
+            "upward_volatility": upward_volatility,
+            "supra_penalty": supra_penalty,
+            "supra_share": supra_share,
+            "competitive_anchor": competitive_anchor,
             "reward_revenue": reward_revenue,
             "reward_total": reward,
         }
@@ -261,8 +288,37 @@ class PHANTOM(gym.Env):
         return float(np.mean(rewards)) if rewards else 0.0
 
     def _select_adversarial_alpha(self, prices: np.ndarray) -> float:
-        """inner robust step: evaluate candidates and pick worst-case alpha"""
+        """inner robust step: pick worst-case alpha from the ambiguity interval.
+
+        when JAX is available and robust_rollouts==1 we use a vmapped pass over
+        all K candidates in a single call (no Python loop, no market.act overhead).
+        the JAX path approximates demand as the mixed closed-form d(p;theta) signal
+        rather than running full trajectory sampling, which is accurate for the
+        alpha-selection decision while being dramatically cheaper.
+
+        when robust_rollouts>1 or JAX is unavailable we fall back to the sequential
+        market.act() loop so behavior is identical to the original implementation.
+        """
         candidates = self._alpha_candidates()
+        if len(candidates) == 1:
+            return float(candidates[0])
+
+        if _JAX_OK and self.robust_rollouts == 1:
+            best_alpha, _ = select_adversarial_alpha_jax(
+                candidates=candidates,
+                prices=prices,
+                human_params=self.market.human_params,
+                agent_params=self.market.agent_params,
+                noise_std=self.market.noise_std,
+                baseline_prices=self.baseline_prices,
+                lambda_coi=self.lambda_coi,
+                info_value=self.info_value,
+                reward_profit_weight=self.reward_profit_weight,
+                rng_seed=self._global_step,
+            )
+            return best_alpha
+
+        # fallback: full trajectory-based sequential evaluation
         evaluations = [
             (float(alpha), self._evaluate_candidate(float(alpha), prices))
             for alpha in candidates
@@ -299,6 +355,7 @@ class PHANTOM(gym.Env):
     def step(self, action):
         self._prices = self._decode_action(action)
         alpha_adv = self._select_adversarial_alpha(self._prices)
+        self._global_step += 1  # always increment; JAX path may have already done so
         self._set_market_mix(alpha_adv)
         self._platform_stub.set_prices(self._prices)
         self._step_count += 1

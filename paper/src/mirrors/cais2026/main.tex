@@ -41,7 +41,7 @@
 
 \begin{abstract}
 Dynamic pricing pipelines in e-commerce consume behavioral demand signals to set prices, but the growing presence of LLM-powered agents introduces a novel contamination vector: these agents decouple information gathering from transaction execution across isolated sessions, eroding the platform's pricing power.
-We present PHANTOM, a modular compound system that addresses this threat end-to-end. The system is composed of five orchestrated components: (1)~a configurable e-commerce research platform with dual-stream Kafka ingestion for behavioral and price-exposure events, (2)~a GOFAI-based weak labeling stage that partitions sessions into human and agent classes using rule-based predicates, (3)~a transition-kernel estimator that learns separable Markov models for each actor type and constructs a Contamination Generator for controlled simulation, (4)~a Distributionally Robust Reinforcement Learning policy that optimizes pricing under a Wasserstein ambiguity set conditioned on per-session divergence signals, and (5)~an Airflow-orchestrated pipeline that connects online data collection to offline policy training via Redis-backed model serving.
+We present PHANTOM, a modular compound system that addresses this threat end-to-end. The system is composed of five orchestrated components: (1)~a configurable e-commerce research platform with dual-stream Kafka ingestion for behavioral and price-exposure events, (2)~a GOFAI-based weak labeling stage that partitions sessions into human and agent classes using rule-based predicates, (3)~a transition-kernel estimator that learns distinguishable Markov models for each actor type and constructs a Contamination Generator for controlled simulation, (4)~a Distributionally Robust Reinforcement Learning policy that optimizes pricing under a Wasserstein ambiguity set conditioned on per-session divergence signals, and (5)~an Airflow-orchestrated pipeline that connects online data collection to offline policy training via Redis-backed model serving.
 We formally derive the Cost of Information Theorem, proving that standard pricing mechanisms become incentive-incompatible as agent query volume grows. The system architecture, interaction schema, and factorial experiment harness are designed for reproducibility and are released as open artifacts. We evaluate system-level tradeoffs between revenue protection, information leakage, and user-experience degradation through a three-objective reward structure.
 \end{abstract}
 
@@ -58,7 +58,7 @@ The current innovation boom in generative artificial intelligence and its applic
 
 The key technical risk is not ``agents buying things'' per se, but agents shaping the behavioral and demand signals that downstream pricing systems consume and depend on. Dynamic pricing algorithms rely on directly translating demand features $q$ to new price assignments $\hat{p}$ across a catalogue of products of size $N$. When agent-driven reconnaissance traffic contaminates these demand signals, the pricing pipeline produces biased estimates that erode margins. This is not a single-model failure but a \textit{compound system} failure: the data ingestion, demand estimation, policy optimization, and model serving stages each propagate and amplify the contamination.
 
-Existing work treats bot detection and dynamic pricing as separate concerns. Dynamic pricing assumes demand proxies are behaviorally meaningful, while bot detection aims at security and access control. The missing bridge is a principled framework for separating non-human reconnaissance from genuine human demand expression and integrating that separation into pricing heuristics without degrading legitimate user experience. This gap is what our contribution aims to address.
+Existing work treats bot detection and dynamic pricing as separate concerns. Dynamic pricing assumes demand proxies are behaviorally meaningful, while bot detection aims at security and access control. The missing bridge is a principled framework for distinguishing non-human reconnaissance from genuine human demand expression and integrating that distinguishability into pricing heuristics without degrading legitimate user experience. This gap is what our contribution aims to address.
 
 \subsection{System-Level Contributions}
 
@@ -78,7 +78,7 @@ We frame our contribution along the four CAIS pillars---architectural patterns, 
 
 This work addresses three core research questions:
 \begin{enumerate}
-    \item[\textbf{RQ1}] \textit{Separability}: Can agent and human sessions be reliably distinguished from behavioral interaction signals alone, without relying on network-level or device fingerprinting?
+    \item[\textbf{RQ1}] \textit{Distinguishability}: Can agent and human sessions be reliably distinguished from behavioral interaction signals alone, without relying on network-level or device fingerprinting?
     \item[\textbf{RQ2}] \textit{Theoretical Impact}: What is the formal relationship between agent contamination levels and the erosion of pricing power in dynamic pricing systems?
     \item[\textbf{RQ3}] \textit{Robust Mitigation}: How can pricing policies be constructed to maintain margin integrity under unknown and non-stationary levels of agent contamination?
 \end{enumerate}
@@ -115,7 +115,7 @@ Each price query generates a record $(i, p, \text{sid}, \phi, t)$ associating th
 
 \subsection{Offline Loop: Policy Training}
 
-The Kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The offline loop consumes collected trajectories, performs weak labeling and transition-kernel estimation (Section~\ref{sec:separability}), trains the DR-RL policy (Section~\ref{sec:drrl}) in a simulator, and pushes the resulting policy to Redis for the pricing provider to read.
+The Kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The offline loop consumes collected trajectories, performs weak labeling and transition-kernel estimation (Section~\ref{sec:distinguishability}), trains the DR-RL policy (Section~\ref{sec:drrl}) in a simulator, and pushes the resulting policy to Redis for the pricing provider to read.
 
 \subsection{Online Dynamic Pricing (Baseline)}
 
@@ -165,7 +165,7 @@ The metadata record $\mu$ varies by action type. This heterogeneous structure is
 %% ====================================================================
 \section{Methodology: Pipeline Components}
 
-This section details the theoretical and practical framework behind each pipeline component. We formalize the problem environment, derive the \textit{Cost of Information} (COI) theorem that motivates the system design, describe the separability and contamination modules, and formulate the robust pricing policy.
+This section details the theoretical and practical framework behind each pipeline component. We formalize the problem environment, derive the \textit{Cost of Information} (COI) theorem that motivates the system design, describe the distinguishability and contamination modules, and formulate the robust pricing policy.
 
 \subsection{Problem Formalization}
 
@@ -225,15 +225,15 @@ Since the integrand vanishes as $N \to \infty$ for all $t > \underline{p}$, the 
 This result is the theoretical motivation for the system design: it proves that standard pricing policies $\pi$ fail to extract surplus in the presence of large-scale agentic search, necessitating a contamination-aware component in the pipeline.
 
 
-\subsection{Module: Separability and Contamination Generation}
-\label{sec:separability}
+\subsection{Module: Distinguishability and Contamination Generation}
+\label{sec:distinguishability}
 
 To train a robust pricing learner, we need a simulator that can generate realistic interaction data under controlled contamination. We build this from collected data using a two-stage approach.
 
 \subsubsection{GOFAI-Based Weak Labeling.}
-We use Good Old-Fashioned AI (GOFAI) heuristics to generate weak labels for separability. A set of rule-based predicates $\phi_j: \tau \to \{0,1\}$ partitions dataset $\mathcal{D}$ into high-confidence sets $\mathcal{D}_H$ and $\mathcal{D}_A$. We then estimate separate transition models for both groups and ask a direct methodological question: are the kernels separable enough to justify downstream pricing control that depends on that separability?
+We use Good Old-Fashioned AI (GOFAI) heuristics to generate weak labels for distinguishability. A set of rule-based predicates $\phi_j: \tau \to \{0,1\}$ partitions dataset $\mathcal{D}$ into high-confidence sets $\mathcal{D}_H$ and $\mathcal{D}_A$. We then estimate separate transition models for both groups and ask a direct methodological question: are the kernels distinguishable enough to justify downstream pricing control that depends on that distinguishability?
 
-To answer this, we compute average KL divergence between transition probability matrices. This statistic gives global separability and event-level diagnostics at the same time. In our balanced dataset (50\% human, 50\% agent), the average divergence is approximately $1.8$.
+To answer this, we compute average KL divergence between transition probability matrices. This statistic gives global distinguishability and event-level diagnostics at the same time. In our recorded dataset (13 human sessions, 16 agent sessions; 45\%/55\%), the average divergence is approximately $1.8$.
 
 \begin{definition}[KL Divergence for Transition Distributions]
 Let $P_e$ and $Q_e$ be categorical distributions over destination states following event $e$, derived from human and agent trajectories respectively. The KL divergence between these distributions is:
@@ -243,7 +243,7 @@ Let $P_e$ and $Q_e$ be categorical distributions over destination states followi
 where $\mathcal{S}_e$ denotes the set of destination events that follow $e$ in the human trajectories.
 \end{definition}
 
-With these divergence features we train a contrastive model to estimate a weak agent probability $f(\tau)\in[0,1]$, which serves as the interface between the separability module and the downstream pricing policy.
+With these divergence features we train a contrastive model to estimate a weak agent probability $f(\tau)\in[0,1]$, which serves as the interface between the distinguishability module and the downstream pricing policy.
 
 \subsubsection{Transition-Kernel Estimation and Contamination Generator.}
 \label{sec:tpe}
@@ -282,12 +282,12 @@ Given a newly observed partial trajectory $\tau'$, we compute its empirical tran
   \Delta_A(\tau') &= D_{KL}(\hat{\mathcal{T}}^\prime \parallel \bar{\mathcal{T}}_A)
 \end{align}
 
-These divergence statistics serve as the operational connector between the separability module and the pricing policy. We define the per-session contamination estimate as:
+These divergence statistics serve as the operational connector between the distinguishability module and the pricing policy. We define the per-session contamination estimate as:
 \begin{equation}
 \label{eq:alpha_hat}
     \hat{\alpha}(\tau') = \sigma\big(\beta(\Delta_H(\tau') - \Delta_A(\tau'))\big)
 \end{equation}
-where $\sigma$ is the logistic function and $\beta > 0$ is a temperature parameter. This maps separability directly into a scalar control input for the pricing objective.
+where $\sigma$ is the logistic function and $\beta > 0$ is a temperature parameter. This maps distinguishability directly into a scalar control input for the pricing objective.
 
 \subsubsection{Ambiguity Set Construction.}
 Because the contamination level $\alpha$ and demand shift are non-stationary, a point estimate of the demand distribution is insufficient. Let $\hat{P}_N$ denote the empirical reference distribution induced by the Contamination Generator $\mathcal{G}(\alpha)$. We define the Wasserstein ambiguity set:
@@ -344,7 +344,7 @@ The simulator has multiple configurable factors, including valuation distributio
 
 Our training budget spans 384 TPU chips across v4, v5e, and v6e generations, distributed across Europe and U.S. regions with a spot-heavy mix and an on-demand reserve. At peak BF16 throughput this corresponds to roughly 160 PFLOPS of aggregate compute. We allocate v6e capacity to the heaviest policy training, use v5e for broad hyperparameter sweeps, and reserve on-demand v4 quota for runs that should not be preempted \parencite{noauthor_tpu_2026,noauthor_tpu_2025-1,noauthor_tpu_2025}.
 
-Our process follows three stages: (1)~observe and \textit{vectorize} behavioral interactions, (2)~learn separability to characterize human versus agent patterns, and (3)~use the learned signal to train a defensive policy in a controlled dynamic-pricing simulator.
+Our process follows three stages: (1)~observe and \textit{vectorize} behavioral interactions, (2)~learn distinguishability to characterize human versus agent patterns, and (3)~use the learned signal to train a defensive policy in a controlled dynamic-pricing simulator.
 
 Operationally, goals and experiment runs are tracked in PostgreSQL (goal table, run table, and assignment mapping). This data-acquisition phase is intentionally a disconnected component that feeds the later contributions.
 
@@ -375,7 +375,7 @@ Initialize contamination estimate $\hat\alpha \leftarrow 0.2$\;
     $\mathcal S_t \leftarrow \mathcal S_t \cup \{\tau_m\}$\;
   }
 
-  \tcp{Estimate contamination from separability module}
+  \tcp{Estimate contamination from distinguishability module}
   compute $\hat\alpha \leftarrow \frac{1}{M}\sum_{\tau\in\mathcal S_t} \Big[\sigma\big(\beta(\Delta_H(\tau)-\Delta_A(\tau))\big)\Big]$\;
 
   compute $J_t \leftarrow \text{Revenue}(p_t,\hat Q_t) - \lambda\cdot \text{COILeak}(\hat\alpha) - \eta\cdot \text{UX}(\hat\alpha)$\;
@@ -430,7 +430,7 @@ We formally defined the Cost of Information and proved that as the saturation of
 
 The system architecture, interaction schema, configurable e-commerce testbed, and factorial experiment harness are designed for reproducibility and released as open artifacts. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks. We intentionally put emphasis on the development of this infrastructure to establish a reproducible framework for interaction and to minimize any noise.
 
-Future work includes full factorial evaluation of the DR-RL policy across contamination levels, online adaptation of the ambiguity radius $\epsilon$ as a function of live divergence estimates, extension to multi-agent market maker settings, and integration of the HAP protocol~\cite{dhir_http_2025} as an additional signal source for the separability module.
+Future work includes full factorial evaluation of the DR-RL policy across contamination levels, online adaptation of the ambiguity radius $\epsilon$ as a function of live divergence estimates, extension to multi-agent market maker settings, and integration of the HAP protocol~\cite{dhir_http_2025} as an additional signal source for the distinguishability module.
 
 
 %% ====================================================================
