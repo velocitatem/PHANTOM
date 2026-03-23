@@ -1,0 +1,60 @@
+method: grid
+metric:
+  name: eval/stress_reward_worst
+  goal: maximize
+command:
+  - ${env}
+  - python
+  - -m
+  - engine.train
+parameters:
+  algo:
+    value: ppo
+  backend:
+    value: sb3
+  device:
+    value: cpu
+  seed:
+    values: [42, 1337, 7777]
+  alpha:
+    values: [0.1, 0.2, 0.3, 0.4, 0.6, 0.8]
+  n_products:
+    values: [25, 50, 100]
+  N:
+    value: 100
+  no_robust:
+    values: [false, true]
+  lambda_coi:
+    values: [0.15, 0.30]
+  robust_radius:
+    value: 0.2
+  robust_points:
+    value: 7
+  robust_rollouts:
+    value: 1
+  eta_ux:
+    value: 0.5
+  reward_profit_weight:
+    value: 1.0
+  action_levels:
+    value: 9
+  action_scale_low:
+    value: 0.8
+  action_scale_high:
+    value: 1.2
+  total_timesteps:
+    value: 100000
+  eval_episodes:
+    value: 12
+  eval_freq:
+    value: 1000
+  log_freq:
+    value: 100
+  hist_freq:
+    value: 500
+  learning_rate:
+    value: 0.0003
+  batch_size:
+    value: 256
+  n_steps:
+    value: 2048
