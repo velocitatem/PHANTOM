@@ -1,9 +1,9 @@
 {
-  "bundle": "engine/studies/results/wandb_sweep_bundles/bundle_20260317_122818",
+  "bundle": "/home/velocitatem/Documents/Projects/PHANTOM/engine/studies/results/wandb_sweep_bundles/bundle_20260317_122818",
   "focus_cohort": "max_alpha_coverage",
   "focus_sweep_id": "i88nw811",
   "focus_run_count": 768,
-  "git_commit": "e62e842faad79b143f5555d187075e85c8926363",
+  "git_commit": "105b01497600fd31ec07ae49271e680517321cba",
   "alpha_cells": 11,
   "alpha_min": 0.0,
   "alpha_max": 1.0,

@@ -23,7 +23,7 @@ where:
 The platform does not directly observe the true underlying demand function $d(p)$. Instead, it observes a behavioral proxy $\hat{q}_t$, which is a composite signal derived from the mixture of actor types. We define the demand proxy for product $i$ at epoch $t$ as a weighted aggregation of events:
 \begin{equation}
 \label{eq:qhat}
-\hat{q}_{t,i} = \sum_{s \in \mathcal{S}_t} \sum_{k=1}^{L_s} \omega(a_{s,k}) \cdot \mathbb{1}[i_{s,k} = i]
+\hat{q}_{t,i} = \sum_{s \in \mathcal{S}_t} \sum_{k=1}^{L_s} \omega(a_{s,k}) \cdot \mathds{1}[i_{s,k} = i]
 \end{equation}
 where $\omega: \mathcal{A} \to \mathbb{R}_+$ assigns weights to actions based on their signal strength regarding willingness to pay.
 
@@ -318,7 +318,7 @@ To train a robust pricing learner, we need a simulator that can generate realist
 \subsubsection{Ground-Truth Distinguishability}
 Because sessions are collected under controlled experimental conditions where each actor is assigned a known type at the start of the trial, labels $\theta_s \in \{H, A\}$ are available as ground truth rather than as the output of a heuristic classifier. We therefore estimate separate transition kernels directly from each labeled partition $\mathcal{D}_H$ and $\mathcal{D}_A$, treating the resulting $\hat{\mathcal{T}}_H$ and $\hat{\mathcal{T}}_A$ as the ground-truth behavioral profiles for each class. We then ask a direct methodological question: are the kernels distinguishable enough to justify downstream pricing control that depends on that distinguishability?
 
-To answer this, we compute per-session KL divergence scores against both class-level centroids. For each session $s$ in either partition, we fit a session-level event transition kernel $\hat{\mathcal{T}}_s$ from that session's trajectory alone, then compute its average KL divergence to the human centroid ($\Delta_{H,s}$) and to the agent centroid ($\Delta_{A,s}$). The per-session distinguishability score is the gap $\Delta_{H,s} - \Delta_{A,s}$: a negative value indicates proximity to human behavior, a positive value indicates proximity to agent behavior.
+To answer this, we compute per-session KL divergence scores against both class-level centroids. For each session $s$ in either partition, we fit a session-level event transition kernel $\hat{\mathcal{T}}_s$ from that session's trajectory alone, then compute its average KL divergence to the human centroid ($\Delta_{H,s}$) and to the agent centroid ($\Delta_{A,s}$). The per-session distinguishability score is the gap $\Delta_{H,s} - \Delta_{A,s}$: a negative value indicates proximity to human behavior, a positive value indicates proximity to agent behavior. The reason behind KL divergence for profile analysis is grounded in its nature and tailored characteristics for probability distributions.
 
 The normality assumption cannot be made for KL divergence distributions, which are right-skewed and bounded below by zero, so we do not use a Student's $t$-test. Instead we apply a Mann-Whitney $U$ test \parencite{mann_test_1947} on the per-session gap scores between the two groups. The Mann-Whitney test is a rank-based nonparametric test that compares the stochastic ordering of two independent samples without distributional assumptions, making it appropriate for small samples drawn from skewed populations. We report $U$, the exact two-sided $p$-value, and group-level descriptive statistics for the gap scores.
 
@@ -471,13 +471,16 @@ The robust policy $\pi^*$ is obtained by solving the maximin problem:
 \label{eq:robust_policy}
 \pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}_{\text{leak}}(p,\tau') \right]
 \end{equation}
-where $R(p, d)$ is the revenue function and $\lambda$ weighs the information-leakage penalty.
+where $R(p, d)$ is the revenue function and $\lambda$ weighs the information-leakage penalty. We note that $p$ is directly dependent on $\pi$ which is the one deicing that as its action.
+
 
 In practice, we parameterize this with a session-level leakage term:
 \begin{equation}
 \text{COI}_{\text{leak}}(p,\tau') = f(\tau')\cdot \text{InfoValue}(p,\tau')
 \end{equation}
 where $f(\tau')$ is the weak agent probability and $\text{InfoValue}$ is implemented either as a constant query-tax surrogate or as a revelation surrogate $-\log\pi(p\mid\tau')$.
+
+To make the intuition of our $\max \min$ easier in connection to the COI term which we are subtracting, we introduce the strongest possible penalization and try to maximize only for the worst case scenario in which the leakage is extremely high and that negation sends a signal to pick the candidate of the hardest problem.
 
 For the baseline engine reported here, we intentionally use the constant query-tax surrogate to keep the mechanism minimal:
 \begin{equation}
@@ -501,7 +504,7 @@ As part of reward engineering, we keep a UX factor ($UX\in[0,1]$) as an auxiliar
   \resizebox{0.5\columnwidth}{!}{%
     \input{chapters/balance_figure.tex}
   }
-  \caption{Introducing the UX index allows us to better distinguish the kind of impact different methods have and allows us to compare them on this Pareto-like scale.}
+  \caption{Introducing the UX index allows us to better distinguish the kind of impact different methods have and allows us to compare them on this Pareto-efficiency-like scale.}
 \end{figure}
 
 We also consider taxation-like overlays for agent traffic under strategy-proof mechanism design (e.g., Vickrey-Clarke-Groves style rules). This remains an extension path and is not part of the main implementation in this thesis.
