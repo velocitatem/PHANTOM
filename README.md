@@ -6,10 +6,12 @@
 
 Agent-aware dynamic pricing research platform for studying how automated transaction orchestration changes pricing power, and for testing defenses that recover margin while protecting legitimate user experience.
 
-[![Build PDF](https://github.com/velocitatem/PHANTOM/actions/workflows/latex.yml/badge.svg)](https://github.com/velocitatem/PHANTOM/actions/workflows/latex.yml)
-[![Paper](https://img.shields.io/badge/Paper-PDF-red?logo=adobe-acrobat-reader)](https://pub-d5b94a3c29fd40c6b3881946e463fdb7.r2.dev/thesis-latest.pdf)
-[![Dataset on HF](https://huggingface.co/datasets/huggingface/badges/resolve/main/dataset-on-hf-sm.svg)](https://huggingface.co/datasets/velocitatem/whoclickedit)
-[![TPU Research Cloud](https://img.shields.io/badge/TPU%20Research%20Cloud-TRC%20supported-4285F4?logo=googlecloud&logoColor=white)](https://sites.research.google/trc/faq/)
+<p>
+  <a href="https://github.com/velocitatem/PHANTOM/actions/workflows/latex.yml"><img src="https://github.com/velocitatem/PHANTOM/actions/workflows/latex.yml/badge.svg" alt="Build PDF" style="vertical-align: middle;" /></a>
+  <a href="https://pub-d5b94a3c29fd40c6b3881946e463fdb7.r2.dev/thesis-latest.pdf"><img src="https://img.shields.io/badge/Paper-PDF-red?logo=adobe-acrobat-reader" alt="Paper PDF" style="vertical-align: middle;" /></a>
+  <a href="https://huggingface.co/datasets/velocitatem/whoclickedit"><img src="https://huggingface.co/datasets/huggingface/badges/resolve/main/dataset-on-hf-sm.svg" alt="Dataset on Hugging Face" style="vertical-align: middle; position: relative; top: 1px;" /></a>
+  <a href="https://sites.research.google/trc/faq/"><img src="https://img.shields.io/badge/TPU%20Research%20Cloud-TRC%20supported-4285F4?logo=googlecloud&logoColor=white" alt="TPU Research Cloud" style="vertical-align: middle;" /></a>
+</p>
 
 **Live demos:** [Hotel](https://phantom-hotel.vercel.app) | [Airline](https://phantom-airline.vercel.app) | [Academic page](https://velocitatem.github.io/PHANTOM/)
 
