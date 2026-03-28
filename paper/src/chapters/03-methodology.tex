@@ -23,7 +23,7 @@ where:
 The platform does not directly observe the true underlying demand function $d(p)$. Instead, it observes a behavioral proxy $\hat{q}_t$, which is a composite signal derived from the mixture of actor types. We define the demand proxy for product $i$ at epoch $t$ as a weighted aggregation of events:
 \begin{equation}
 \label{eq:qhat}
-\hat{q}_{t,i} = \sum_{s \in \mathcal{S}_t} \sum_{k=1}^{L_s} \omega(a_{s,k}) \cdot \mathds{1}[i_{s,k} = i]
+\hat{q}_{t,i} = \sum_{s \in \mathcal{S}_t} \sum_{k=1}^{L_s} \omega(a_{s,k}) \cdot \mathbf{1}[i_{s,k} = i]
 \end{equation}
 where $\omega: \mathcal{A} \to \mathbb{R}_+$ assigns weights to actions based on their signal strength regarding willingness to pay.
 
