@@ -4,15 +4,34 @@ set -euo pipefail
 
 cmd="${1:-}"
 
+sync_mdp_figures() {
+  local script_dir project_root sim_dir chapters_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  project_root="$(cd "$script_dir/.." && pwd)"
+  sim_dir="$project_root/sim/rl/behavior_loader"
+  chapters_dir="$project_root/paper/src/chapters"
+
+  printf '%s\n' 'Refreshing MDP figures for paper...'
+  (
+    cd "$sim_dir"
+    python models.py
+  )
+
+  cp "$sim_dir/human_mdp_viz.pdf" "$chapters_dir/mdp_human.pdf"
+  cp "$sim_dir/agent_mdp_viz.pdf" "$chapters_dir/mdp_agent.pdf"
+}
+
 case "$cmd" in
   build)
     mkdir -p paper/build
+    sync_mdp_figures
     bash paper/concat_code.sh
     cd paper/src
     latexmk -pdf -jobname=main -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main.tex
     ;;
   watch)
     mkdir -p paper/build
+    sync_mdp_figures
     cd paper/src
     latexmk -pvc -pdf -jobname=main -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main.tex
     ;;
@@ -33,11 +52,13 @@ case "$cmd" in
     ;;
   build-genpop)
     mkdir -p paper/build
+    sync_mdp_figures
     cd paper/src
     latexmk -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
     ;;
   watch-genpop)
     mkdir -p paper/build
+    sync_mdp_figures
     cd paper/src
     latexmk -pvc -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
     ;;
