@@ -40,12 +40,26 @@ We report two preliminary stages before the full factorial interpretation. First
 
 \subsubsection{The Impact of Contamination on Revenue}
 
-The contamination--revenue slope is estimated on a controlled cohort (single sweep, baseline policy, $n_{\text{products}}=100$, $n=95$). In this setting, contamination $\alpha$ is set exogenously by the experiment, so the slope identifies the within-sweep causal effect of contamination on revenue under fixed policy and environment settings. The fitted linear model is
+The contamination--revenue slope is estimated on a controlled cohort (single sweep, baseline policy, $n_{\text{products}}=100$, $n=95$). In this setting, contamination $\alpha$ is set exogenously by the experiment, so the slope identifies the within-sweep causal effect of contamination on revenue under fixed policy and environment settings.
 
-\[
-\widehat{y}=348{,}823.41-90{,}140.53\,\alpha,
-\]
-with $t(93)=-61.45$, $p=4.27\times10^{-77}$, $R^2=0.976$, and a 95\% confidence interval for the slope of $[-93{,}053.38,\,-87{,}227.68]$. Interpreted on the contamination grid, a $+0.1$ increase in $\alpha$ corresponds to an average revenue decrease of about $9{,}014$ units. A heteroskedasticity-robust check (HC1) preserves the same direction and significance ($t=-41.25$, $p=1.42\times10^{-61}$), supporting a large and statistically stable impact in this controlled regime.
+\begin{table}[ht]
+\centering
+\caption{Slope verification table for contamination versus revenue (OLS-style report).}
+\label{tab:contamination_slope_table}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Term & Coef. & Std. Err. & $t$ & $p>|t|$ & 95\% CI \\
+\midrule
+Intercept & 348,823.41 & 784.29 & 444.77 & $<10^{-99}$ & $[347,264.96,\,350,381.86]$ \\
+$\alpha$ & $-90,140.53$ & 1,466.90 & $-61.45$ & $4.27\times10^{-77}$ & $[-93,053.38,\,-87,227.68]$ \\
+\midrule
+HC1 robust check ($\alpha$) & $-90,140.53$ & 2,185.22 & $-41.25$ & $1.42\times10^{-61}$ & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Interpreted on the contamination grid, a $+0.1$ increase in $\alpha$ corresponds to an average revenue decrease of about $9{,}014$ units, and the robust check preserves both direction and significance.
+% TODO: add a compact proposal note for re-running tests with statsmodels in the appendix methodology notes.
 
 \subsubsection{Large Scale Factorial Training}
 

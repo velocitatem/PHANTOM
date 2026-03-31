@@ -1,0 +1,17 @@
+\begin{tikzpicture}[
+  level distance=14mm,
+  sibling distance=36mm,
+  decision/.style={rectangle, draw, rounded corners=2pt, align=center, minimum width=26mm, minimum height=8mm, font=\small},
+  leaf/.style={rectangle, draw, align=center, minimum width=30mm, minimum height=8mm, font=\small},
+  edge from parent/.style={draw, -{Latex[length=2mm]}}
+]
+\node[decision] {Participant}
+  child {
+    node[decision] {Platform: Hotel}
+      child {node[leaf] {Task sampled\\from hotel pool}}
+  }
+  child {
+    node[decision] {Platform: Airline}
+      child {node[leaf] {Task sampled\\from airline pool}}
+  };
+\end{tikzpicture}

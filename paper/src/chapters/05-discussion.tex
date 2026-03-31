@@ -11,8 +11,22 @@ However, ecommerce commodities differ fundamentally from financial securities: t
 
 
 \subsection{Risk Assessment and Limitations}
+\label{sec:limitations_risks}
 
 This technology does not come without a more bitter side, ethical concerns do arise from the idea of deploying black-box like solutions to set prices based on a behavioral attributes. Approaches like universal behavioral profile modeling (UBPM) used in recommendation systems is very broadly utilized.
+
+In our experimental setup we randomly assign each user to a platform and, within that platform, assign them to a task. Figure~\ref{fig:exp_design_tree} summarizes this design decision tree.
+
+\begin{figure}[ht]
+  \centering
+  \resizebox{0.92\columnwidth}{!}{%
+    \input{chapters/figures/experiment_design_tree.tex}
+  }
+  \caption{Experimental design decision tree for participant assignment.}
+  \label{fig:exp_design_tree}
+\end{figure}
+
+Although our participant sample size is somewhat low for humans, we do a one-to-one balance of human-to-agent experimental sessions. This way we are observing a uniform distribution of participation from each participating side. Our sample size of participants might look scarce, but each participant generates a rich amount of data, with a totality of 3,874 rows of data.
 
 With a system like this there is potential for strong drift given the rapid advance of agentic systems and user preference. Our intent behind adding the UX term into the reward shaping process was to further address the risk of degraded user experience. Looking deeper at the underlying methodology, reinforcement learning does not come without it's complications such as reward hacking and often the lack of intepretability which is quite critical in systems that have a strong impact on the revenue of a company.
 
