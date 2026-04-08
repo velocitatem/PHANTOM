@@ -92,19 +92,7 @@ In our complete training runs we logged $\approx 180$ days of net compute time. 
     \label{fig:final_focus_coi_preservation_grid}
 \end{figure}
 
-\begin{figure}[ht]
-    \centering
-    \input{chapters/figures/results/includes/final_focus_revenue_delta.tex}
-    \caption{Defended-minus-baseline revenue delta over contamination for the final cohort. The strongest high-contamination deviation begins at $\alpha=0.7$, followed by recovery toward near parity by $\alpha=1.0$.}
-    \label{fig:final_focus_revenue_delta}
-\end{figure}
 
-\begin{figure}[ht]
-    \centering
-    \input{chapters/figures/results/includes/final_focus_risk_deltas.tex}
-    \caption{Defended-minus-baseline leakage and volatility deltas for the final cohort. Leakage remains lower for the defended policy across the full contamination range.}
-    \label{fig:final_focus_risk_deltas}
-\end{figure}
 
 \subsection{Interpretation and Insights}
 The Mann-Whitney result ($p<0.001$) confirms that per-session divergence gaps distinguish the two actor classes with near-zero overlap in rank ordering. This is the condition required for distinguishability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
