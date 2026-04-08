@@ -142,7 +142,10 @@ flowchart LR
 | `experiments/` | Data processing, ETL ideas, and analysis assets |
 | `docker/` | Dockerfiles for platform services |
 | `tests/e2e/` | Playwright end-to-end tests |
-| `docs/` | Academic project page source |
+| `docs/` | Academic project page (GitHub Pages root) + MkDocs config |
+| `docs/src/` | Markdown sources for the operator documentation site |
+| `docs/documentation/` | MkDocs build output (gitignored; run `make docs.platform`; served at `/documentation/` on Pages) |
+| `SETUP.md` | Unified operator guide: stack, kernels, RL training, thesis refs by chapter |
 
 ## Operational notes
 
@@ -150,6 +153,11 @@ flowchart LR
 - `make test.e2e` expects backend (`5000`), web (`3000`), and Airflow (`8085`) to be up.
 - Research commands (`make train`, `make benchmark*`, `make train.agent`) auto-load `.env.sweep`.
 - Paper builds call `paper/concat_code.sh` before compilation to flatten code into the appendix.
+
+## Operator documentation
+
+- Full setup guide (platform + research): [`SETUP.md`](SETUP.md)
+- Hosted operator docs (after `make docs.platform`): […/PHANTOM/documentation/](https://velocitatem.github.io/PHANTOM/documentation/) on GitHub Pages
 
 ## Research artifacts
 
