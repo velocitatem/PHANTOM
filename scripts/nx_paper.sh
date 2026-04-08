@@ -71,6 +71,16 @@ case "$cmd" in
     pdflatex -interaction=nonstopmode -file-line-error main.tex
     cp main.pdf ../../../build/main-arxiv.pdf
     ;;
+  build-summary)
+    mkdir -p paper/build
+    cd paper/src
+    latexmk -pdf -jobname=summary -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build summary.tex
+    ;;
+  watch-summary)
+    mkdir -p paper/build
+    cd paper/src
+    latexmk -pvc -pdf -jobname=summary -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build summary.tex
+    ;;
   *)
     printf '%s\n' "Unknown paper command: $cmd" >&2
     exit 1
