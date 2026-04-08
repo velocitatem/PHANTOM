@@ -25,6 +25,7 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{booktabs}
+\usepackage[american]{babel}
 \usepackage{csquotes}
 \usepackage{subcaption}
 \usepackage{siunitx}
@@ -57,8 +58,8 @@
     literate={·}{{\textperiodcentered}}1 {−}{{\textminus}}1 {—}{{---}}1 {–}{{--}}1
 }
 
-% Use biblatex with authoryear style for in-text citations like (Author, Year)
-\usepackage[backend=bibtex,style=authoryear,natbib=true,maxcitenames=2]{biblatex}
+% APA 7-style references and citations (requires biber)
+\usepackage[style=apa,backend=biber]{biblatex}
 \addbibresource{bib/references.bib}
 
 % Page headers (SciTech format)
