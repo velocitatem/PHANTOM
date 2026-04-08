@@ -21,6 +21,6 @@
    (LaTeX-add-labels
     "app:compute_budget"
     "tab:compute_derivation"
-    "app:whoclicked_card"))
+    "app:kl_zeros"))
  :latex)
 

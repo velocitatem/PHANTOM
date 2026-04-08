@@ -84,4 +84,11 @@ v4             &  64 & 275 & $64  \times 275 = 17{,}600$  \\
 
 Converting to petaFLOPS: 160,320 TFLOPS equals approximately 160 PFLOPS. This is the theoretical peak under sustained arithmetic operations; realized throughput depends on memory bandwidth utilization and inter-chip communication overhead, but the figure serves as a useful upper bound for provisioning decisions.
 
+\section{KL divergence when the reference has zeros}
+\label{app:kl_zeros}
+
+The textbook definition $D_{\mathrm{KL}}(P\parallel Q)=\sum_k P(k)\log(P(k)/Q(k))$ is not usable as-is when our empirical reference puts $Q(k)=0$ somewhere the session distribution still visits: if $P(k)>0$ and $Q(k)=0$, that term wants to blow up to infinity. With only 29 sessions the estimated transition rows are incredibly sparse, so ``never seen in the prototype'' happens a lot.
+
+In code we do the boring fix: add a tiny floor $\varepsilon$ to both the numerator and denominator inside the log so nothing is exactly zero, which turns the sum into a finite, smoothed surrogate rather than a literal KL to raw counts. We also skip source states that do not exist at all in the reference kernel, because there is nowhere honest to compare against. This keeps the pipeline running and the divergence scores on a comparable scale, at the cost that the number is regularized KL-ish behavior, not a purist information-theoretic quantity---which is acceptable here because we only use the gap between human-anchored and agent-anchored scores as a weak separability signal, not as a calibrated physical constant.
+
 \end{document}

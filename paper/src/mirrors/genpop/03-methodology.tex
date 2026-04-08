@@ -132,7 +132,7 @@ The dynamic pricing mechanism elicited immediate behavioral adjustments. Partici
 
 \subsubsection{Design of Training Factorial Study}
 
-The simulator has multiple configurable factors. We design a multi-factor study across five axes derived from the sweep configurations: (1) RL algorithm (PPO, A2C, DQN, Q-table; 4 levels), (2) contamination ratio sampled at four representative levels between 0.1 and 0.6, (3) robustness radius (3 levels), (4) COI penalty weight at two reference levels, and (5) pricing action granularity (two discretization settings for action levels); giving a grid of 192 configurations. Statistical power for the behavioral comparisons is determined by a two-sample test over per-session divergence scores.
+The simulator has multiple configurable factors. We design a multi-factor study across five axes derived from the sweep configurations: (1) RL algorithm (PPO, A2C, DQN, Q-table; 4 levels), (2) contamination ratio sampled at four representative levels between 0.1 and 0.6, (3) robustness radius (3 levels), (4) COI penalty weight at two reference levels, and (5) pricing action granularity (two discretization settings for action levels); giving a grid of 192 configurations. Behavioral distinguishability is assessed with a two-sample Mann--Whitney test on per-session divergence gap scores at cohort sizes $n_H=13$ and $n_A=16$.
 
 While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable.
 
