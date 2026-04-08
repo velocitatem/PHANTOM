@@ -21,18 +21,26 @@ sync_mdp_figures() {
   cp "$sim_dir/agent_mdp_viz.pdf" "$chapters_dir/mdp_agent.pdf"
 }
 
+# Biber runs with cwd paper/build; \addbibresource{bib/references.bib} must resolve there.
+# Symlink makes biber log 'bib/references.bib' (not ../src/...) so latexmk's post-check passes.
+link_build_bib() {
+  ln -sfn ../src/bib ../build/bib
+}
+
 case "$cmd" in
   build)
     mkdir -p paper/build
     sync_mdp_figures
     bash paper/concat_code.sh
     cd paper/src
+    link_build_bib
     latexmk -pdf -jobname=main -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main.tex
     ;;
   watch)
     mkdir -p paper/build
     sync_mdp_figures
     cd paper/src
+    link_build_bib
     latexmk -pvc -pdf -jobname=main -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main.tex
     ;;
   clean)
@@ -54,12 +62,14 @@ case "$cmd" in
     mkdir -p paper/build
     sync_mdp_figures
     cd paper/src
+    link_build_bib
     latexmk -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
     ;;
   watch-genpop)
     mkdir -p paper/build
     sync_mdp_figures
     cd paper/src
+    link_build_bib
     latexmk -pvc -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
     ;;
   build-arxiv)
@@ -74,11 +84,13 @@ case "$cmd" in
   build-summary)
     mkdir -p paper/build
     cd paper/src
+    link_build_bib
     latexmk -pdf -jobname=summary -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build summary.tex
     ;;
   watch-summary)
     mkdir -p paper/build
     cd paper/src
+    link_build_bib
     latexmk -pvc -pdf -jobname=summary -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build summary.tex
     ;;
   *)
