@@ -44,7 +44,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 
 .PHONY: help
 help:
-	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.arxiv | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines | manim.render manim.render.all"
+	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.arxiv | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines | manim.defense manim.defense.hq manim.render manim.render.full manim.render.poster manim.render.appendix manim.render.all"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
 	@echo "data.pull data.push data.whoclicked.publish | study.margin-erosion study.margin-erosion.quick study.margin-erosion.plot"
 	@echo "tpu.ray.bootstrap tpu.ray.deps tpu.ray.verify tpu.ray.teardown"
@@ -235,9 +235,25 @@ count-lines:
 all:
 	@$(NX) run paper:build
 
-.PHONY: manim.render manim.render.all
+.PHONY: manim.defense manim.defense.hq manim.render manim.render.full manim.render.poster manim.render.appendix manim.render.all
+# Main defense reel (paper/defense/manim/render_defense); uses paper/defense/.venv when present
+manim.defense:
+	@cd paper/defense/manim && ./render_defense full
+
+manim.defense.hq:
+	@cd paper/defense/manim && ./render_defense full --quality qh
+
 manim.render:
 	@$(NX) run manim:render
+
+manim.render.full:
+	@$(NX) run manim:render-full
+
+manim.render.poster:
+	@$(NX) run manim:render-poster
+
+manim.render.appendix:
+	@$(NX) run manim:render-appendix
 
 manim.render.all:
 	@$(NX) run manim:render-all

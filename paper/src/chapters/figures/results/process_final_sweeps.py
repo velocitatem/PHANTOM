@@ -639,7 +639,7 @@ def run(
         )
     )
 
-    include_dir = Path(__file__).resolve().parent / "includes" / "final"
+    include_dir = Path(__file__).resolve().parent / "includes"
     written.append(
         _write_include(
             include_dir / "final_focus_revenue_by_alpha.tex",
