@@ -1,31 +1,25 @@
 \section{Discussion}
 
+% TODO: Gpdr here
 
 
 \subsection{Transition to Agentic Market Microstructure}
 
-Our analysis of interaction dynamics between the platform and non-human actors suggests that static posted-price models are a weak match for an economy in which software agents mediate search and purchase. If one pushes toward direct-revelation or auction-like pricing, volatility rises: prices behave more like traded claims than like sticky retail quotes, though without the fungibility of securities.
+Our analysis of the interaction dynamics between the platform and non-human actors suggests that the current static pricing models are insufficient for an agent-mediated economy. If we assume a transition toward a direct revelation mechanism, where actors must reveal their true valuation of a good through bidding dynamics, we inevitably introduce significant stochasticity into the pricing system. Unlike traditional e-commerce where prices are relatively sticky, such a mechanism implies a high volatility characteristic of financial equity markets (without the fungibility however).
 
-E-commerce goods differ from financial assets in a hard way: unit economics and reservation values set a floor. The market might ``want'' an iPhone at \$1, however that is not permissible. Pricing therefore needs an anchor $P_{0}$ (cost plus target margin) around which offers may move. In that setting, large language model (LLM) agents resemble institutional liquidity providers: they quote, probe, and clear subsets of flow. As autonomy of agentic systems increases, end users may delegate browsing and checkout to assistants rather than to retailer sites directly, which shifts where demand signals originate. The scenario presumes agents eventually hold delegated payment authority; until then, our results bound a near-term reconnaissance-heavy regime.
+However, e-commerce commodities differ fundamentally from financial securities: they possess a hard floor defined by unit economics and reservation prices. The market might react enthusiastically to an iPhone priced at \$1. Such a transaction is not permissible. The platform must establish an initial valuation anchor ($P_0$) defined by the marginal cost plus a target margin, around which the market price is permitted to fluctuate.
+
+We float the introduction of GenAI Agents as Institutional Market Makers. As the arms race for greater autonomy of agentic systems grows, the commercial viability of AI agents has the potential to disseminate into everyday users directly interacting with them rather than e-commerce platforms. This is also under the assumption of expected transactional capabilities being given to AI Agents.
 
 \subsection{Risk Assessment and Limitations}
 \label{sec:limitations_risks}
 
-Behavior-based pricing raises predictable ethics questions when models are opaque: a behavioral profile can become a basis for price discrimination or exclusion if deployed without governance. Universal behavioral profile modeling (UBPM) in recommendation already shows how fine-grained traces enable strong personalization; the same machinery applied to prices needs guardrails.
+Behavior-based pricing raises predictable ethics questions when models are opaque: a behavioral profile can become a basis for price discrimination or exclusion if deployed without governance. Universal behavioral profile modeling (UBPM) in recommendation already shows how fine-grained traces enable strong personalization. The same machinery applied to prices needs guardrails.
 
-In our experiments participants are randomized to platform mode and task. Figure~\ref{fig:exp_design_tree} summarizes the assignment tree.
 
-\begin{figure}[ht]
-  \centering
-  \resizebox{0.92\columnwidth}{!}{%
-    \input{chapters/figures/experiment_design_tree.tex}
-  }
-  \caption{Experimental design decision tree for participant assignment.}
-  \label{fig:exp_design_tree}
-\end{figure}
+We balance human and agent sessions near one-to-one so cohorts are comparable despite different population sizes. The row-level dataset still contains thousands of events.
 
-The human sample is small but each session is long-form; we balance human and agent sessions one-to-one so cohorts are comparable despite different population sizes. The row-level dataset still contains thousands of events.
-
-Rapid change in agent capabilities and user expectations induces model drift; the UX term in reward shaping was included partly to penalize policies that sacrifice legitimate users for short-run revenue. Reinforcement learning adds its own risks---reward hacking and limited interpretability---which matter when policies touch live revenue; deployment would require monitoring and constraints beyond what we exercised here.
+% Rapid change in agent capabilities and user expectations induces model drift; the UX term in reward shaping was included partly to penalize policies that sacrifice legitimate users for short-run revenue. Reinforcement learning adds its own risks---reward hacking and limited interpretability---which matter when policies touch live revenue; deployment would require monitoring and constraints beyond what we exercised here.
+With the exponential growth in capability of agents aswell as user expectations, a degree of model drift is expected in this setting. The computational requirements for continuous extraction of margin as demonstrated by our work are required by the persistent speed of the market. Reinforcement learning that sacrifices legitimate user experience for short run revenue does not hold up in the long run. Reward hacking, to which pricing algorithms are not impervious due to their limited interpretability is a significant risk for a company if live revenue is in play. Deployment requires consistent monitoring and constraints beyond what was done as exercise in this work.
 
 % \subsection{Implications of Findings} Interpretation of results and altenrative scenarios with broader market implications.

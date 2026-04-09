@@ -1,9 +1,28 @@
+% Horizontal tree: level distance must exceed ~half parent + half child width or nodes overlap (resizebox does not fix that).
 \begin{tikzpicture}[
-  level distance=14mm,
-  sibling distance=36mm,
-  decision/.style={rectangle, draw, rounded corners=2pt, align=center, minimum width=26mm, minimum height=8mm, font=\small},
-  leaf/.style={rectangle, draw, align=center, minimum width=30mm, minimum height=8mm, font=\small},
-  edge from parent/.style={draw, -{Latex[length=2mm]}}
+  grow=right,
+  level distance=30mm,
+  sibling distance=23mm,
+  decision/.style={
+    rectangle,
+    draw,
+    rounded corners=1.5pt,
+    align=center,
+    inner sep=1.2pt,
+    minimum width=14mm,
+    minimum height=4.8mm,
+    font=\scriptsize,
+  },
+  leaf/.style={
+    rectangle,
+    draw,
+    align=center,
+    inner sep=1.2pt,
+    text width=19mm,
+    minimum height=4mm,
+    font=\scriptsize,
+  },
+  edge from parent/.style={draw, -{Latex[length=1.2mm]}},
 ]
 \node[decision] {Participant}
   child {
