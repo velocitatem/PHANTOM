@@ -300,9 +300,9 @@ where $W_p$ is the $p$-Wasserstein distance and $\epsilon > 0$ is the ambiguity 
 The platform seeks a policy $\pi^*$ that maximizes worst-case revenue over the ambiguity set while penalizing information leakage to suspected agents:
 \begin{equation}
 \label{eq:robust_policy}
-\pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \; \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}_{\text{leak}}(p, \tau') - \eta \cdot \text{UX}(\tau', p) \right]
+\pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \; \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}_{\text{leak}}(p, \tau') - \eta_{\text{ux}} \cdot \text{UX}(\tau', p) \right]
 \end{equation}
-where $R(p, d) = p \cdot d$ is the revenue function.
+where $R(p, d) = p \cdot d$ is the revenue function, $\lambda$ scales COI leakage, and $\eta_{\text{ux}}$ scales the UX penalty with $\text{UX}(\tau', p)\in[0,1]$.
 
 \begin{definition}[COI Leakage]
 The per-query information leakage cost is:

@@ -80,7 +80,7 @@ Because contamination level $\alpha$ and demand shift are non-stationary online,
 We therefore use a Distributionally Robust Optimization objective.
 We define an ambiguity set $\mathcal{U}_\epsilon(\hat{P}_N)$ centered around our empirical reference distribution $\hat{P}_N$ (derived from the generator $\mathcal{G}$).
 We utilize the Wasserstein distance metric to define the set of plausible demand distributions the agent might face.
-The robust policy $\pi^*$ is obtained by solving the maximin problem $\pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}_{\text{leak}}(p,\tau') \right]$ where $R(p, d)$ is the revenue function and $\lambda$ weighs the information-leakage penalty.
+The robust policy $\pi^*$ is obtained by solving the maximin problem $\pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}_{\text{leak}}(p,\tau') - \eta_{\text{ux}} \cdot \text{UX}(\tau', p) \right]$ where $R(p, d)$ is the revenue function, $\lambda$ weighs the information-leakage penalty, and $\eta_{\text{ux}}$ weighs the UX term.
 In practice, we parameterize this with a session-level leakage term $\text{COI}_{\text{leak}}(p,\tau') = f(\tau')\cdot \text{InfoValue}(p,\tau')$ where $f(\tau')$ is the weak agent probability.
 As part of reward engineering, we keep a UX factor ($UX\in[0,1]$) as an auxiliary evaluation axis.
 Our training budget is provisioned through TPU Research Cloud and spans 384 chips across TPU v4, v5e, and v6e generations, with a spot-heavy allocation plus an on-demand reserve.
