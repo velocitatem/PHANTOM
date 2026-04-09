@@ -332,7 +332,6 @@ def _plot_focus_revenue_by_alpha(alpha_mode: pd.DataFrame, out_path: Path) -> Pa
             color=color,
             label=label,
         )
-    ax.axvline(0.7, color="#666666", linewidth=1.0, linestyle="--")
     ax.set_xlabel(r"Contamination $\alpha$")
     ax.set_ylabel("Mean episode revenue")
     ax.set_title("Final Cohort Revenue Curves")
@@ -392,7 +391,6 @@ def _plot_focus_coi_by_alpha(alpha_mode: pd.DataFrame, out_path: Path) -> Path:
                 label="Gap",
             )
 
-    ax.axvline(0.7, color="#666666", linewidth=1.0, linestyle="--")
     ax.set_xlabel(r"Contamination $\alpha$")
     ax.set_ylabel("Mean COI level")
     ax.set_title("Final Cohort COI Curves")
@@ -489,7 +487,6 @@ def _plot_focus_revenue_delta(alpha_deltas: pd.DataFrame, out_path: Path) -> Pat
     ax.plot(x, y, marker="o", linewidth=2.0, markersize=4, color="#C44E52")
     ax.fill_between(x, y, 0.0, color="#C44E52", alpha=0.12)
     ax.axhline(0.0, color="#444444", linewidth=1.0, linestyle="--")
-    ax.axvline(0.7, color="#666666", linewidth=1.0, linestyle="--")
     high = alpha_deltas[alpha_deltas["alpha"] >= 0.7]
     if not high.empty:
         best = high.reindex(
@@ -537,7 +534,6 @@ def _plot_focus_risk_deltas(alpha_deltas: pd.DataFrame, out_path: Path) -> Path:
         label="Volatility delta",
     )
     ax.axhline(0.0, color="#444444", linewidth=1.0, linestyle="--")
-    ax.axvline(0.7, color="#666666", linewidth=1.0, linestyle="--")
     ax.set_xlabel(r"Contamination $\alpha$")
     ax.set_ylabel("Defended minus baseline")
     ax.set_title("Leakage and Stability Deltas (Final Cohort)")

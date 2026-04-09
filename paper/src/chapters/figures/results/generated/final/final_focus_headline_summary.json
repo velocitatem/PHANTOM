@@ -3,7 +3,7 @@
   "focus_cohort": "max_alpha_coverage",
   "focus_sweep_id": "i88nw811",
   "focus_run_count": 768,
-  "git_commit": "105b01497600fd31ec07ae49271e680517321cba",
+  "git_commit": "ace52e8e14e0f7fa96ab5eb113c0c898b0bce1a0",
   "alpha_cells": 11,
   "alpha_min": 0.0,
   "alpha_max": 1.0,
