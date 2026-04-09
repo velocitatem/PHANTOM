@@ -19,11 +19,11 @@
 
 \begin{abstract}
 \noindent
-Large language model (LLM) agents are spreading in e-commerce; one consequence is intermediaries that can separate information gathering from transaction execution. This thesis studies dynamic pricing when agents reconnoitre in isolated sessions and thereby weaken the \emph{Cost of Information} (COI), the premium platforms typically extract once demand signals are expressed.
+Large language model (LLM) agents are spreading in e-commerce, one consequence is intermediaries that can separate information gathering from transaction execution. This thesis studies dynamic pricing when agents survey in isolated sessions and thereby weaken the \emph{Cost of Information} (COI), the premium platforms typically extract once demand signals are expressed.
 
-We formalize the phenomenon and prove a Cost of Information theorem: as independent, utility-maximizing agents saturate price queries, the platform's sustainable COI goes to zero, so ordinary dynamic pricing is incentive-incompatible in the limit.
+We formalize the phenomenon and prove a Cost of Information theorem: as independent, utility-maximizing agents saturate price queries, the platform's sustainable margin goes to zero, so ordinary dynamic pricing is incentive-incompatible in the limit.
 
-The defensive design combines behavioral signals with distributionally robust optimization (DRO). We implement a controlled storefront on a hybrid Kappa--Lambda architecture and show that human and agent sessions induce different transition kernels. Kullback--Leibler divergence to class prototypes yields session scores that feed a distributionally robust reinforcement learning (DR-RL) policy, posed as a Stackelberg game with a Wasserstein ambiguity set over demand so the learner does not collapse to a single empirical demand curve under shifting contamination.
+The defensive design combines behavioral signals with distributionally robust optimization (DRO). We implement a controlled storefront on a hybrid batch-streaming architecture and show that human and agent sessions induce different transition kernels. Kullback--Leibler divergence to class prototypes yields session scores that feed a distributionally robust reinforcement learning (DR-RL) policy, posed as a Stackelberg game with a Wasserstein ambiguity set over demand so the learner does not collapse to a single empirical demand curve under shifting contamination.
 
 Factorial training on TPUs shows the expected short-run revenue hit from contamination and that the robust objective recovers COI and equilibrium structure in harder regimes (higher contamination, larger catalogs), accounting for UX to prevent supra-competitive pricing. Code and an interaction dataset are released for work on agent-mediated traffic.
 \end{abstract}
