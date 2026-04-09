@@ -49,7 +49,7 @@
         <!-- COI Annotation -->
         <line x1="150" y1="150" x2="260" y2="150" stroke="#E37862" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
         <text x="310" y="138" font-size="16" fill="#E37862" text-anchor="middle">average information rent</text>
-        <text x="310" y="118" font-family="Georgia" font-style="italic" font-size="22" fill="#E37862" font-weight="bold" text-anchor="middle">COI := E[P] - <tspan text-decoration="underline">p</tspan></text>
+        <text x="310" y="118" font-family="Georgia" font-style="italic" font-size="22" fill="#E37862" font-weight="bold" text-anchor="middle">COI = E[P] - <tspan text-decoration="underline">p</tspan></text>
     </g>
 
     <!-- Bottom: Agent Saturation -->

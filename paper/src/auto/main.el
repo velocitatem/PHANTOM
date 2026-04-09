@@ -16,6 +16,7 @@
     "chapters/04-results"
     "chapters/05-discussion"
     "chapters/06-conclusion"
+    "chapters/acknowledgements"
     "article"
     "art12")
    (LaTeX-add-labels

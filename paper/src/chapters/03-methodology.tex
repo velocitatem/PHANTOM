@@ -128,7 +128,7 @@ Since the integrand vanishes as $N \to \infty$ for all $t > \underline{p}$, the 
 \end{proof}
 
 
-This result naively proves that standard pricing policies $\pi$ fail to extract surplus in the presence of large-scale agentic search, necessitating a robust counter-mechanism.
+This result implies that standard pricing policies $\pi$ cannot extract the same surplus under large-scale agentic search without additional structure, which motivates the robust control layer below.
 
 % The DRO objective creates a lower bound on COI extraction, effectively guaranteeing a minimum margin even in the presence of adversarial agents. we need to prove this and demonstrate that in a theorem.
 
@@ -137,22 +137,22 @@ This result naively proves that standard pricing policies $\pi$ fail to extract 
 
 \subsection{System Architecture: Hybrid Kappa-Lambda Architecture}
 
-In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation: airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplate which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an environment level argument which adjusts the proxy routing with a custom middleware inside next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
+In order for our research to have grounding in interactions we built a robust e-commerce web-platform. We initially conducted a survey of the leading platforms of airlines and hotel booking sites to identify the specific interface patterns that effectively manage complex travel data. Our analysis revealed a clear industry standard: while both sectors rely on tabbed service selection and left-sidebar filtering to streamline navigation, they diverge in result presentation: airlines utilize visual date-price bars and multi-step wizards to optimize for logistical transparency, whereas hotel platforms leverage image-led cards and scarcity triggers to drive emotional engagement and urgency. Our web framework defines a highly agnostic boilerplate which can be seeded with any data-modality with an easy-to-tailor pattern, which we leverage to define a \texttt{hotel} and \texttt{airline} mode. Both modes are then individually deployed via an environment-level argument which adjusts the proxy routing with custom middleware in Next.js to render only the desired mode. The purpose of this was to create a baseline adaptable to any use-case or desired commercial application.
 
-The architecture of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a kafka cluster. This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to. Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into kafka. This kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger. The final stage of the pricing pipeline, submits computed dynamic pricing results into a redis database for quick updates which is then read by the pricing provider and displayed on the webapp. This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks. We intentionally put emphasis on the development of this infrastructure to establish a reproducible framework for interaction and to minimize any noise.
+The architecture begins with deployed web applications posting interaction data to a backend that stores each record in Apache Kafka. Kafka acts as the reservoir linking sessions to experiments. Behavioral events and, separately, price observations from the pricing-provider microservice (invoked by the frontend) land in Kafka topics. A scheduled Airflow pipeline (with manual triggers) consumes the stream; the final pricing stage writes vectors to Redis for low-latency reads by the provider and display in the client. The pattern is deliberately standard---Kafka for durability and replay, Redis for serving---so the same skeleton applies across e-commerce settings. We invested in this stack to keep runs reproducible and to limit extraneous variance.
 
-\paragraph{Public Web Artifact} We transition the Kappa like architecture of the data collection to a Lambda architecture for actual learning in a surrogate environment. This allows us to move faster on data which is provided and helps us create a feedback loop for production deployment. To support further research in this intersection of fields we release P4P \footnote{\url{https://github.com/velocitatem/p4p}} as a public repository providing the interaction layer of the PHANTOM framework. This provides a configurable storefront which can be tailored to any commercial setting with a standardized session-level event tracking. We document the API adapters or what the framework expects in terms of schemas for pricing providers and log ingestion servicse. The repository is intended for controlled experimentation and method replication rather than production commerce deployment.
+\paragraph{Public Web Artifact} We transition the Kappa like architecture of the data collection to a Lambda architecture for actual learning in a surrogate environment. This allows us to move faster on data which is provided and helps us create a feedback loop for production deployment. To support further research in this intersection of fields we release P4P \footnote{\url{https://github.com/velocitatem/p4p}} as a public repository providing the interaction layer of the PHANTOM framework. This provides a configurable storefront which can be tailored to any commercial setting with a standardized session-level event tracking. We document the API adapters and expected schemas for pricing providers and log ingestion services. The repository is intended for controlled experimentation and method replication rather than production commerce deployment.
 
 \paragraph{Public Dataset} For reproducibility of the behavioral analysis and distinguishability experiments, we also release the interaction dataset used in this thesis as \textit{WhoClickedIt}. The dataset is hosted on Hugging Face \footnote{\url{https://huggingface.co/datasets/velocitatem/whoclickedit}} and is distributed as one flattened event sheet (\texttt{whoclicked.csv}) with explicit labels (\texttt{actor\_type}, \texttt{is\_agent}, and \texttt{record\_type}). The dataset card on that page documents the schema, collection process, and known limitations.
 
 
 \subsubsection{DevOps Principles}
 
-Reproducible results are key to quality research platforms, this is taken into mind when deploying and working with our research platform. From a deployment standpoint the platform can be deployed across a large variety of providers and can be run locally. When developing a new interaction modality apart from the ones that come out of the box, a simple template pattern can be followed. The middleware of the framework is designed to properly render the chosen modality from environmental variables, thus deployment of different or parallel version of the software can be easily parametrized.
+Reproducibility guided deployment choices: the stack runs locally or on common cloud providers. New interaction modalities follow a small template; middleware reads environment variables so parallel deployments (e.g.\ staging versus production-like experiments) differ only in configuration, not in forked codebases.
 
 \subsubsection{Online Dynamic Pricing}
 
-In order to collect data from actors under correct conditions we replicate a naive and simple dynamic pricing algorithm which runs in the background during the experiments.
+To expose participants to state-dependent prices without over-constraining the study, we run a transparent surge--discount heuristic in the background during data collection.
 The dynamic pricing done is handled by a pipeline which computes a demand estimate on a per-product basis of a specific window of the data, defined by the period $T$ which by default is 5 minutes. This dynamic pricing pipeline computes a demand estimate vector $\hat{q} \in \mathbb{R}^N$ by a weighted sum of interactions for each product, it additionally computes a price elasticity vector $\hat{\epsilon}$ in the same dimensions as our demand. The final features matrix is of the size $N \times 2$ which we translate to a new price vector $\hat{p} \in \mathbb{R}^N$.
 
 
@@ -181,7 +181,7 @@ where $p_0 \in \mathbb{R}^N$ is the base price vector (which is seeded into our 
 
 We start from a practical constraint: we do not have access to proprietary production data. Because of that, we design our own fictional platform that still represents how commercial platforms work in the real world. The design comes from a survey of hotel and airline websites, where we extracted common interface components and used them as a high-level template for dynamic pricing environments.
 
-The interface is organized as a product catalog where each product belongs to a time-bounded price vector (for example, a daily pricing period). During each period we collect interaction data by instrumenting UI components and predefined action templates that are still customizable. This gives us control without losing realism.
+The interface is organized as a product catalog where each product belongs to a time-bounded price vector (for example, a daily pricing period). During each period we collect interaction data by instrumenting UI components and predefined action templates that are still customizable. That yields controlled variation while keeping the interface credible.
 
 Since users act with motivations, we define a pool of tasks (jobs to be done) and assign tasks randomly to participants.
 We discuss limitations and choices made in this experimental design in Section~\ref{sec:limitations_risks}.
@@ -218,7 +218,7 @@ Our web platform (developed in similar spirit to RecSim \parencite{ie_recsim_201
 
 To speak to realism, user interviews reported that the platform architecture mirrored standard booking interfaces and reduced the cognitive load required to learn the system. One participant described the flow as ``intuitive'' and close to a ``normal'' transaction, suggesting observed behavior was primarily driven by pricing treatment rather than interface novelty.
 
-The dynamic pricing mechanism elicited immediate behavioral adjustments. Participants were sensitive to price volatility: sudden boosts triggered urgency and faster booking attempts, while large listing-to-final discrepancies triggered deeper comparison behavior. This is comforting because the controlled setup still produces commercially relevant interaction data.
+The dynamic pricing mechanism elicited immediate behavioral adjustments. Participants were sensitive to price volatility: sudden boosts triggered urgency and faster booking attempts, while large listing-to-final discrepancies triggered deeper comparison behavior. The responses match what one expects from live commerce: sharp reactions to volatility and to list--checkout gaps, which supports external validity despite the lab setting.
 
 
 \subsubsection{Design of Training Factorial Study}
@@ -264,9 +264,9 @@ v4 & 64 (32 + 32) & us-central2-b & 32 Spot + 32 On-demand \\
 For connections from Madrid, we prioritize the europe-west4 allocation for latency-sensitive runs with the benefit of having the most grouped chips within a single region. This regional grouping is important for the deployment of our Kubernetes cluster which cannot span multiple regions. All sweep metadata, model checkpoints, and reward traces are logged in Weights \& Biases. % TODO: cite this (from bib)
 Hardware specifications are from the official Google Cloud TPU documentation \parencite{noauthor_tpu_2026,noauthor_tpu_2025-1,noauthor_tpu_2025}.
 
-Design of training processes: we build docker image with the fact in mind of different caching over layers in order to most speed up docker re-building and such we place the most volatile steps towards the end of the image building. What is means in practice is that any dependency installations are isolated so edits to source code do no trigger rebuilds. Only if we update our entry point of training a sweep, Docker will also rebuild the source-code copy stage. % TODO: cite Docker best practices on cache-efficient Dockerfile layering.
+Training images follow Docker layer caching: dependency layers are separate from the copy of application source so routine code edits do not invalidate the entire build; only changes to the training entrypoint or dependencies force a full rebuild.
 
-Due to the preemptive nature of the current demand of TPU chips we sttle for running our on demeaned as the primary source of compute. The on demand TPU pod of 32 chips spread across 4 virtual hosts creates a relatively unique parallelization setup. Despite our desire to use a traditional approach of clustering and perhaps deploying SLURM jobs of our sweep agent, the lack of predictability in provisioning each instance of a compute resource makes this an high friction layer we do not want to add.
+TPU capacity is scarce and often preemptible, so we rely primarily on on-demand pods for workloads that must finish without interruption. A typical reservation is a 32-chip pod across four worker VMs; that layout already gives enough parallelism for our sweep driver without adding a separate cluster scheduler. We considered SLURM-style job arrays, but fluctuating provisioning times would have added operational overhead with little benefit for our workload, so orchestration stays in the container and Ray layer described below.
 
 \subsubsection{Interaction Schema}
 
@@ -301,9 +301,7 @@ $\mathcal{A}_{\text{filter}}$ & \texttt{search}, \texttt{filter\_date}, \texttt{
 \end{table}
 
 This partition enables the weight function $\omega$ from Eq.~\ref{eq:qhat} to assign category-specific signal strengths, with $\omega(\mathcal{A}_{\text{cart}}) > \omega(\mathcal{A}_{\text{dwell}}) > \omega(\mathcal{A}_{\text{nav}}) > \omega(\mathcal{A}_{\text{filter}})$ reflecting decreasing commitment.
-It's important to acknowledge that this creates a very blatant assumption in the weighting, and we motivate the scale of each weight by the per-category observed divergence between each behavioral profile.
-In the simulator baseline this order is encoded with a compact fixed scale: cart $=4.0$, dwell $=2.0$, nav $=1.0$, filter $=0.5$. Unknown actions are mapped by prefix heuristics to the nearest category.
-We back this up by saying that each weight was assigned by observing an initial small dataset and computing KL divergence between each interaction type; the ones with the highest divergence receive a proportionately high weight in our demand estimation. From the order which we observe in divergences, we assign a multiple of 2 increase in weight ascending form the lowest weight of $0.5$ in rare filtering operations.
+The ordering cart $>$ dwell $>$ nav $>$ filter is a deliberate simplification: we set it from early data by ranking categories by KL divergence between human and agent transition rows and then spacing weights in powers of two. The simulator encodes cart $=4.0$, dwell $=2.0$, nav $=1.0$, filter $=0.5$; unknown actions map by prefix to the nearest category.
 
 The metadata record $\mu$ varies by action type. For product views, $\mu$ contains the observed price $p_{\text{obs}}$ and product attributes. For dwell events, $\mu$ includes the element text and accumulated hover duration. This heterogeneous structure is captured via a schema-on-read approach in our Kafka ingestion pipeline, where events are validated against type-specific schemas before storage.
 
@@ -320,9 +318,9 @@ To train a robust pricing learner, we need a simulator that can generate realist
 \subsubsection{Ground-Truth Distinguishability}
 Because sessions are collected under controlled experimental conditions where each actor is assigned a known type at the start of the trial, labels $Y_s \in \{H, A\}$ are available as ground truth rather than as the output of a heuristic classifier. We therefore estimate separate transition kernels directly from each labeled partition $\mathcal{D}_H$ and $\mathcal{D}_A$, treating the resulting $\hat{\mathcal{T}}_H$ and $\hat{\mathcal{T}}_A$ as the ground-truth behavioral profiles for each class. We then ask a direct methodological question: are the kernels distinguishable enough to justify downstream pricing control that depends on that distinguishability?
 
-To answer this, we compute per-session KL divergence scores against both class-level centroids. For each session $s$ in either partition, we fit a session-level event transition kernel $\hat{\mathcal{T}}_s$ from that session's trajectory alone, then compute its average KL divergence to the human centroid ($\Delta_{H,s}$) and to the agent centroid ($\Delta_{A,s}$). The per-session distinguishability score is the gap $\Delta_{H,s} - \Delta_{A,s}$: a negative value indicates proximity to human behavior, a positive value indicates proximity to agent behavior. The reason behind KL divergence for profile analysis is grounded in its nature and tailored characteristics for probability distributions.
+For each session $s$ we fit a session-level transition kernel $\hat{\mathcal{T}}_s$, then average KL divergence to the human centroid ($\Delta_{H,s}$) and to the agent centroid ($\Delta_{A,s}$). The distinguishability score is the gap $\Delta_{H,s} - \Delta_{A,s}$ (negative $\approx$ human-like, positive $\approx$ agent-like). KL is used because it compares full categorical rows, not single features.
 
-The normality assumption cannot be made for KL divergence distributions, which are right-skewed and bounded below by zero, so we do not use a Student's $t$-test. Instead we apply a Mann-Whitney $U$ test \parencite{mann_test_1947} on the per-session gap scores between the two groups. The Mann-Whitney test is a rank-based nonparametric test that compares the stochastic ordering of two independent samples without distributional assumptions, making it appropriate for small samples drawn from skewed populations. We report $U$, the exact two-sided $p$-value, and group-level descriptive statistics for the gap scores.
+Gap scores are skewed and nonnegative, so we test cohort differences with a Mann--Whitney $U$ test \parencite{mann_test_1947} rather than a $t$-test. We report $U$, the two-sided $p$-value, and descriptive statistics for each group.
 
 \begin{definition}[Kullback-Leibler Divergence for Transition Distributions]
 Let $P_e$ and $Q_e$ be categorical distributions over destination states following event $e$, derived from human and agent trajectories respectively. The KL divergence between these distributions is:
@@ -331,7 +329,7 @@ Let $P_e$ and $Q_e$ be categorical distributions over destination states followi
 \end{equation}
 where $\mathcal{S}_e$ denotes the set of destination events that follow $e$ in the human trajectories.
 \end{definition}
-The asymmetry of KL divergence is a point we leverage to natively create divergence from human behavior, to gather signal of the dissimilarity from human-like interactions.
+We exploit KL asymmetry so that ``distance from human-like'' is explicit in the score, not only distance from agents.
 
 To obtain this statistic, we aggregate transitions by triggering event $e$ and treat normalized outgoing probabilities as categorical distributions $P_e$ (human) and $Q_e$ (agent). We intersect shared event labels, then accumulate log-ratio contributions over shared destinations. Large contributions, including near-zero $Q_e(k)$ cases, identify transitions where one actor class is difficult to mimic.
 
@@ -382,27 +380,27 @@ Because contamination level $\alpha$ and demand shift are non-stationary online,
 
 From these two divergences we define the gap score:
 \begin{equation}
-g(\tau') := \Delta_H(\tau') - \Delta_A(\tau').
+g(\tau') = \Delta_H(\tau') - \Delta_A(\tau').
 \end{equation}
 Positive values indicate trajectories farther from the human centroid and closer to the agent centroid.
 
 We map this gap to a weak agent probability using a temperature-controlled logistic map:
 \begin{equation}
-f(\tau') := P(Y=A\mid\tau') = \operatorname{softmax}(-\Delta_A,-\Delta_H)_A = \sigma\left(\frac{\Delta_H-\Delta_A}{T}\right), \quad T>0.
+f(\tau') = P(Y=A\mid\tau') = \operatorname{softmax}(-\Delta_A,-\Delta_H)_A = \sigma\left(\frac{\Delta_H-\Delta_A}{T}\right), \quad T>0.
 \end{equation}
 The session-level control signal injected into pricing is then
 \begin{equation}
-\hat{\alpha}(\tau') := f(\tau').
+\hat{\alpha}(\tau') = f(\tau').
 \end{equation}
 
 This turns distinguishability into an operational control input in the engine. On a per-customer or use-case basis, a similar data collection and fitting process should be repeated to obtain domain-specific behavior kernels.
 
-In implementation, we maintain an alternating game-history stack (our \textit{Limbo} stack) and execute it explicitly every epoch with exactly two transitions: first the platform publishes a price vector (leader move), then the market responds with trajectory-derived demand (follower move).
+In implementation we keep an alternating game-history buffer and advance it each epoch with two transitions: the platform publishes a price vector (leader move), then the environment returns trajectory-derived demand (follower move). The codebase names this structure \textit{Limbo}; the appendix lists it under the same label for readers who inspect the repository.
 
 To avoid notation drift, we separate two COI objects used for different purposes:
 \begin{align}
-\text{COI}_{\text{level}}(\pi) &:= \mathbb{E}[P]-\underline{p} \quad \text{(global reporting KPI)} \\
-\text{COI}_{\text{leak}}(p,\tau') &:= f(\tau')\cdot \text{InfoValue}(p,\tau') \quad \text{(local control penalty)}
+\text{COI}_{\text{level}}(\pi) &= \mathbb{E}[P]-\underline{p} \quad \text{(global reporting KPI)} \\
+\text{COI}_{\text{leak}}(p,\tau') &= f(\tau')\cdot \text{InfoValue}(p,\tau') \quad \text{(local control penalty)}
 \end{align}
 where $\text{COI}_{\text{level}}$ is evaluated at policy level and $\text{COI}_{\text{leak}}$ is evaluated per observed quote during training. We connect local leakage to expected global erosion with the operational assumption
 \begin{equation}
@@ -485,7 +483,7 @@ In practice, we parameterize this with a session-level leakage term:
 \end{equation}
 where $f(\tau')$ is the weak agent probability and $\text{InfoValue}$ is implemented either as a constant query-tax surrogate or as a revelation surrogate $-\log\pi(p\mid\tau')$.
 
-To make the intuition of our $\max \min$ easier in connection to the COI term which we are subtracting, we introduce the strongest possible penalization and try to maximize only for the worst case scenario in which the leakage is extremely high and that negation sends a signal to pick the candidate of the hardest problem.
+The inner minimization selects the contamination candidate that makes the penalized reward smallest, so the outer policy update faces the worst plausible leakage scenario inside the ambiguity set rather than an average case.
 
 For the baseline engine reported here, we intentionally use the constant query-tax surrogate to keep the mechanism minimal:
 \begin{equation}
@@ -547,13 +545,13 @@ We now present the complete pricing mechanism that integrates the behavioral dis
 \end{algorithm}
 
 
-The algorithm operates in discrete epochs indexed by $t$. At each epoch, the platform applies one discrete multiplicative price action, the environment samples a batch of sessions, and demand is recomputed from weighted events. Robustness is implemented as an inner minimization over a small local grid of contamination candidates around nominal $\alpha_0$, matching the current engine implementation. The history buffer $\mathcal{L}$ (what we are calling the ``Limbo'' stack in our implementation) enforces the alternating Stackelberg structure by preserving the temporal sequence of price publications and demand observations.
+The algorithm operates in discrete epochs indexed by $t$. At each epoch, the platform applies one discrete multiplicative price action, the environment samples a batch of sessions, and demand is recomputed from weighted events. Robustness is implemented as an inner minimization over a small local grid of contamination candidates around nominal $\alpha_0$, matching the current engine implementation. The history buffer $\mathcal{L}$ enforces the alternating Stackelberg structure by preserving the temporal sequence of price publications and demand observations.
 
 %The defensive price update in Line 24 implements contamination-aware margin shrinkage: as estimated contamination $\hat{\alpha}_t$ rises, the margin $(p^{\mathrm{ref}} - c)$ is reduced by factor $\kappa\in[0,1]$, with projection $\Pi_{\mathcal{P}}$ ensuring feasibility. In subsequent experiments this heuristic rule is replaced by DR-RL policy $\pi^*$ from Eq.~\ref{eq:robust_policy}.
 
 \subsection{Parallelization Strategy}
 
-To avoid preemption of compute mid-training we settle on using a v4 generation, 40 chip compute node with 5 parallel workers. The login node creates an orchestration node with Ray \parencite{moritz_ray_2018} and we distribute ray compute nodes per each other worker.
+To reduce mid-job preemption we standardize on a TPU v4 allocation with 40 chips and five workers. A head process launches Ray \parencite{moritz_ray_2018} and attaches workers across the remaining hosts.
 
 \subsubsection{Computational Cost Analysis of the Simulation Step}
 The per-step cost of Algorithm~\ref{alg:phantom_loop_clean} is not uniform across its components. To inform hardware provisioning and to identify where algorithmic improvements are most impactful, we profile the hot path of the engine using Python's \texttt{cProfile} instrumentation over 20 environment steps under two configurations: a baseline with the robustness inner loop disabled ($K=1$, $\epsilon_\alpha=0$) and a standard robust setting ($K=5$, $\epsilon_\alpha=0.2$). Both runs use $M=10$ sessions per market call and $N=3$ products.
