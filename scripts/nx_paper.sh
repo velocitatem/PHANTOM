@@ -27,6 +27,20 @@ link_build_bib() {
   ln -sfn ../src/bib ../build/bib
 }
 
+# latexmk can exit non-zero with "biber ... gave an error in previous invocation" while the PDF is
+# already fine: incremental runs skip biber but keep a stale failure bit in main.fdb_latexmk.
+# One forced cycle (-g) re-runs biber and clears that state.
+latexmk_paper() {
+  local job="$1"
+  local tex="$2"
+  local -a common
+  common=( -pdf -jobname="$job" -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build )
+  latexmk "${common[@]}" "$tex" || {
+    printf '%s\n' "latexmk failed; retrying once with -g (clear stale biber/latexmk state)" >&2
+    latexmk -g "${common[@]}" "$tex"
+  }
+}
+
 case "$cmd" in
   build)
     mkdir -p paper/build
@@ -34,7 +48,7 @@ case "$cmd" in
     bash paper/concat_code.sh
     cd paper/src
     link_build_bib
-    latexmk -pdf -jobname=main -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main.tex
+    latexmk_paper main main.tex
     ;;
   watch)
     mkdir -p paper/build
@@ -63,7 +77,7 @@ case "$cmd" in
     sync_mdp_figures
     cd paper/src
     link_build_bib
-    latexmk -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
+    latexmk_paper main-genpop main-genpop.tex
     ;;
   watch-genpop)
     mkdir -p paper/build
@@ -85,7 +99,7 @@ case "$cmd" in
     mkdir -p paper/build
     cd paper/src
     link_build_bib
-    latexmk -pdf -jobname=summary -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build summary.tex
+    latexmk_paper summary summary.tex
     ;;
   watch-summary)
     mkdir -p paper/build
