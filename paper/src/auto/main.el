@@ -22,6 +22,7 @@
    (LaTeX-add-labels
     "app:compute_budget"
     "tab:compute_derivation"
-    "app:kl_zeros"))
+    "app:kl_zeros"
+    "app:revelation_log"))
  :latex)
 

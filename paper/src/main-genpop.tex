@@ -94,10 +94,8 @@ In code we do the boring fix: add a tiny floor $\varepsilon$ to both the numerat
 \section{Why the logarithm appears in the revelation surrogate}
 \label{app:revelation_log}
 
-Recall that $\text{COI}_{\text{leak}}(p,\tau') = f(\tau')\cdot\text{InfoValue}(p,\tau')$. The query-tax surrogate fixes $\text{InfoValue}$ to a positive constant: every suspected reconnaissance quote is penalized equally, which tracks the erosion story where independent query volume drives COI to zero. The revelation surrogate instead sets $\text{InfoValue}(p,\tau') = -\log \pi(p\mid\tau')$, where $\pi(\cdot\mid\tau')$ is the pricing policy's distribution over quoted prices in context $\tau'$ (after whatever discretization or binning the engine uses).
+$\text{COI}_{\text{leak}} = f(\tau')\cdot\text{InfoValue}$. Either $\text{InfoValue}=c>0$ (query-tax) or $\text{InfoValue}=-\log\pi(p\mid\tau')$ (revelation), with $\pi(\cdot\mid\tau')$ the policy over quoted prices in context $\tau'$.
 
-For an outcome with probability $q$, the quantity $-\log q$ is \emph{surprisal}: likely draws are unsurprising, rare draws are highly surprising. That matches the informal ``surprise'' people talk about in recommender systems when they formalize novelty as low predicted probability---here the model is our own policy. The log is the standard information-theoretic way to turn ``how probable was this draw?'' into a penalty that grows sharply in the tails. In the reconnaissance reading, a price from a thin slice of the policy's support is more identifying than a typical quote.
-
-So the revelation form is \emph{contamination-weighted surprisal}: $f(\tau')$ scales how agent-like we judge the session, and $-\log\pi(p\mid\tau')$ scales how informative that price is relative to $\pi(\cdot\mid\tau')$. In code you still floor $\pi(p\mid\tau')$ away from zero so tail bins do not explode the penalty, same spirit as Appendix~\ref{app:kl_zeros}.
+For probability $q$, $-\log q$ is surprisal; for independent events, $-\log\prod_i q_i=\sum_i(-\log q_i)$. The revelation surrogate is that surprisal under $\pi(\cdot\mid\tau')$, scaled by $f(\tau')$. Use $\max\{\pi,\varepsilon\}$ so the term stays finite (cf.\ Appendix~\ref{app:kl_zeros}).
 
 \end{document}

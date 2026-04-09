@@ -478,7 +478,7 @@ In practice, we parameterize this with a session-level leakage term:
 \begin{equation}
 \text{COI}_{\text{leak}}(p,\tau') = f(\tau')\cdot \text{InfoValue}(p,\tau')
 \end{equation}
-where $f(\tau')$ is the weak agent probability and $\text{InfoValue}$ is implemented either as a constant query-tax surrogate or as a revelation surrogate $-\log\pi(p\mid\tau')$. In the latter case, leakage is \emph{contamination-weighted surprisal}: $f(\tau')$ scales how much we treat the session as agentic, and $-\log\pi(p\mid\tau')$ scores how unexpected the realized quote is under the policy's own distribution over prices. Appendix~\ref{app:revelation_log} records why the logarithm is the conventional choice for that second factor.
+where $f(\tau')$ is the weak agent probability and $\text{InfoValue}$ is implemented either as a constant query-tax surrogate or as a revelation surrogate $-\log\pi(p\mid\tau')$. This is the surprise of the probability of a certain price-setting probability. Essentially, we proxy the leakage term as a surprise of the price our policy is setting, weighted by the contamination estimate. Appendix~\ref{app:revelation_log} expands on why the logarithm is used in the revelation surrogate.
 
 The inner minimization selects the contamination candidate that makes the penalized reward smallest, so the outer policy update faces the worst plausible leakage scenario inside the ambiguity set rather than an average case.
 
