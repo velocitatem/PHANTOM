@@ -123,6 +123,20 @@ The textbook definition $D_{\mathrm{KL}}(P\parallel Q)=\sum_k P(k)\log(P(k)/Q(k)
 In code we do the basic fix: add a tiny floor $\varepsilon$ to both the numerator and denominator inside the log so nothing is exactly zero, which turns the sum into a finite, smoothed surrogate rather than a literal KL to raw counts. We also skip source states that do not exist at all in the reference kernel, because there is nowhere honest to compare against. This keeps the pipeline running and the divergence scores on a comparable scale, at the cost that the number is regularized KL behavior, not a purist information-theoretic quantity, which is acceptable here because we only use the gap between human-anchored and agent-anchored scores as a weak separability signal.
 
 
+\section{Why the logarithm appears in the revelation surrogate}
+\label{app:revelation_log}
+
+Recall that $\text{COI}_{\text{leak}}(p,\tau') = f(\tau')\cdot\text{InfoValue}(p,\tau')$. The query-tax surrogate fixes $\text{InfoValue}$ to a positive constant: every suspected reconnaissance quote is penalized equally, which tracks the erosion theorem where independent query volume drives COI to zero. The revelation surrogate instead sets
+\begin{equation}
+\text{InfoValue}(p,\tau') = -\log \pi(p\mid\tau'),
+\end{equation}
+where $\pi(\cdot\mid\tau')$ is the pricing policy's distribution over quoted prices in context $\tau'$ (after whatever discretization or binning the engine uses).
+
+For an outcome that occurs with probability $q$, the quantity $-\log q$ is the usual \emph{surprisal}: likely draws have small surprisal, rare draws have large surprisal. That is the same ``surprise'' people import into recommender systems when they formalize novelty as low predicted probability under a model---here the model is our own policy. The log is not decorative: it is the standard information-theoretic coding of ``how unexpected was this draw under $\pi$?'' In the reconnaissance reading, a quote from a thin slice of the policy's support is more identifying than a modal quote, because it pins down what the rule is willing to do in places where little mass sits.
+
+Put together, the revelation form is \emph{contamination-weighted surprisal}: $f(\tau')$ scales how agent-like we judge the session, and $-\log\pi(p\mid\tau')$ scales how informative that realized price is relative to $\pi(\cdot\mid\tau')$. In implementation you still floor $\pi(p\mid\tau')$ away from zero so tail bins do not explode the penalty---the same honesty as Appendix~\ref{app:kl_zeros}: we use a regularized surrogate, not a literal infinite penalty.
+
+
 % \input{../build/concatenated_code}
 
 \end{document}

@@ -221,9 +221,9 @@ To speak to realism, user interviews reported that the platform architecture mir
 The dynamic pricing mechanism elicited immediate behavioral adjustments. Participants were sensitive to price volatility: sudden boosts triggered urgency and faster booking attempts, while large listing-to-final discrepancies triggered deeper comparison behavior. The responses match what one expects from live commerce: sharp reactions to volatility and to list--checkout gaps, which supports external validity despite the lab setting.
 
 
-\subsubsection{Design of Training Factorial Study}
+\subsubsection{Design of Training Sweeps}
 
-The simulator has multiple configurable factors. We design a multi-factor study across five axes derived from the sweep configurations: (1) RL algorithm (\texttt{ppo}, \texttt{a2c}, \texttt{dqn}, \texttt{qtable}; 4 levels), (2) contamination ratio $\alpha$ sampled from $[0.1, 0.6]$ at four representative levels, (3) robustness radius $\epsilon_\alpha \in \{0.0, 0.15, 0.3\}$ (3 levels), (4) COI penalty weight $\lambda_\text{coi}$ at two reference levels, and (5) pricing action granularity (two discretization settings for \texttt{action\_levels}); giving a grid of $4\times4\times3\times2\times2 = 192$ configurations. Behavioral distinguishability is assessed with a two-sample Mann--Whitney test on per-session divergence gap scores at cohort sizes $n_H=13$ and $n_A=16$.
+The simulator has multiple configurable factors. Training runs are driven by Weights \& Biases sweep definitions versioned with the codebase, mixing random and grid schedules rather than a single full factorial. For the contamination ratio $\alpha$, exploratory sweeps draw $\alpha$ uniformly on $[0.1,0.6]$; some sweeps use the narrower interval $[0.1,0.5]$. Grid sweeps fix explicit level sets, for example $\alpha\in\{0.1,0.2,0.3,0.4,0.6,0.8\}$ (six levels, including $0.8$ beyond the typical exploratory upper endpoint) or five levels $\{0.1,0.2,0.3,0.4,0.6\}$. Auxiliary schedules also include $\alpha=0$ alongside positive values. Robustness radius $\epsilon_\alpha$, COI penalty $\lambda_\text{coi}$, RL algorithm (\texttt{ppo}, \texttt{a2c}, \texttt{dqn}, \texttt{qtable}), and the discretization of the price action grid vary by sweep. Broad random search may use uniform $\epsilon_\alpha\in[0,0.3]$ and $\lambda_\text{coi}\in[0.05,0.6]$; tighter grids may fix $\epsilon_\alpha=0.2$ and restrict $\lambda_\text{coi}$ to $\{0.15,0.30\}$. Behavioral distinguishability is assessed with a two-sample Mann--Whitney test on per-session divergence gap scores at cohort sizes $n_H=13$ and $n_A=16$.
 While this scale is generally expensive for reinforcement learning, we execute it on a large TPU cluster to make the sweep tractable.
 
 Our training budget is provisioned through TPU Research Cloud and spans 384 chips across TPU v4, v5e, and v6e generations, with a spot-heavy allocation plus an on-demand reserve. At peak BF16 throughput this corresponds to approximately 160\,PFLOPS of aggregate compute (derivation in Appendix~\ref{app:compute_budget}), which makes repeated seeds, ablations, and sensitivity sweeps feasible within practical wall-clock limits. We allocate v6e capacity to the highest-intensity policy training jobs, use v5e for wider hyperparameter exploration where throughput-per-dollar is favorable, and reserve on-demand v4 capacity for runs that should not be interrupted.
@@ -261,8 +261,9 @@ v4 & 64 (32 + 32) & us-central2-b & 32 Spot + 32 On-demand \\
 \end{tabular}
 \end{table}
 
-For connections from Madrid, we prioritize the europe-west4 allocation for latency-sensitive runs with the benefit of having the most grouped chips within a single region. This regional grouping is important for the deployment of our Kubernetes cluster which cannot span multiple regions. All sweep metadata, model checkpoints, and reward traces are logged in Weights \& Biases. % TODO: cite this (from bib)
-Hardware specifications are from the official Google Cloud TPU documentation \parencite{noauthor_tpu_2026,noauthor_tpu_2025-1,noauthor_tpu_2025}.
+For connections from Madrid, we prioritize the europe-west4 allocation for the sake of latency and the benefit of having the most grouped chips within a single region. This regional grouping is important for the deployment of our Kubernetes cluster which cannot span multiple regions. All sweep metadata, model checkpoints, and reward traces are logged in Weights \& Biases. \parencite{noauthor_tpu_2026,noauthor_tpu_2025-1,noauthor_tpu_2025}.
+% TODO: cite this (from bib)
+
 
 Training images follow Docker layer caching: dependency layers are separate from the copy of application source so routine code edits do not invalidate the entire build; only changes to the training entrypoint or dependencies force a full rebuild.
 
@@ -395,18 +396,14 @@ The session-level control signal injected into pricing is then
 
 This turns distinguishability into an operational control input in the engine. On a per-customer or use-case basis, a similar data collection and fitting process should be repeated to obtain domain-specific behavior kernels.
 
-In implementation we keep an alternating game-history buffer and advance it each epoch with two transitions: the platform publishes a price vector (leader move), then the environment returns trajectory-derived demand (follower move). The codebase names this structure \textit{Limbo}; the appendix lists it under the same label for readers who inspect the repository.
+In implementation we keep an alternating game-history buffer and advance it each epoch with two transitions where the platform publishes a price vector (leader move), then the environment returns trajectory-derived demand (follower move). We call this the \textit{Limbo}.
 
 To avoid notation drift, we separate two COI objects used for different purposes:
 \begin{align}
-\text{COI}_{\text{level}}(\pi) &= \mathbb{E}[P]-\underline{p} \quad \text{(global reporting KPI)} \\
+\text{COI}_{\text{level}}(\pi) &= \mathbb{E}[P]-\underline{p}\\
 \text{COI}_{\text{leak}}(p,\tau') &= f(\tau')\cdot \text{InfoValue}(p,\tau') \quad \text{(local control penalty)}
 \end{align}
-where $\text{COI}_{\text{level}}$ is evaluated at policy level and $\text{COI}_{\text{leak}}$ is evaluated per observed quote during training. We connect local leakage to expected global erosion with the operational assumption
-\begin{equation}
-\mathbb{E}[\Delta\text{COI}_{\text{level},t} \mid \tau_t'] \approx -\kappa\,\text{COI}_{\text{leak}}(p_t,\tau_t') + \xi_t,
-\end{equation}
-where $\kappa>0$ and $\xi_t$ is residual noise. This keeps theorem-level COI erosion (global, asymptotic) distinct from training-time leakage control (local surrogate).
+where $\text{COI}_{\text{level}}$ is evaluated at policy level and $\text{COI}_{\text{leak}}$ is evaluated per observed quote during training. Subsequently, when discussing the reward structure, we will better understand the term of the information value.
 
 % Mention discretized action space and the clipping and over shotting in continuous action spaces
 % Also talk about catastrophic economics, we add termination on bankrupcy or zero demand so market collaps
@@ -481,7 +478,7 @@ In practice, we parameterize this with a session-level leakage term:
 \begin{equation}
 \text{COI}_{\text{leak}}(p,\tau') = f(\tau')\cdot \text{InfoValue}(p,\tau')
 \end{equation}
-where $f(\tau')$ is the weak agent probability and $\text{InfoValue}$ is implemented either as a constant query-tax surrogate or as a revelation surrogate $-\log\pi(p\mid\tau')$.
+where $f(\tau')$ is the weak agent probability and $\text{InfoValue}$ is implemented either as a constant query-tax surrogate or as a revelation surrogate $-\log\pi(p\mid\tau')$. In the latter case, leakage is \emph{contamination-weighted surprisal}: $f(\tau')$ scales how much we treat the session as agentic, and $-\log\pi(p\mid\tau')$ scores how unexpected the realized quote is under the policy's own distribution over prices. Appendix~\ref{app:revelation_log} records why the logarithm is the conventional choice for that second factor.
 
 The inner minimization selects the contamination candidate that makes the penalized reward smallest, so the outer policy update faces the worst plausible leakage scenario inside the ambiguity set rather than an average case.
 
