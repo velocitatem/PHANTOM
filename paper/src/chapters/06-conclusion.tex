@@ -1,8 +1,11 @@
 \section{Conclusion}
+\label{sec:conclusion}
 
 This thesis examined reinforcement-learning policies for dynamic pricing when a fraction of traffic is orchestrated by non-human agents intent on extracting information before purchase. We introduced COI-oriented metrics, a behavioral distinguishability layer, and a distributionally robust training loop; empirical runs show where robustness helps and where it must be tuned.
 
 \subsection{Summary of contributions}
+Our work has yielded a broad set of dependencies which we carefully orchestrated to give us measurable results. To give a clear picture we outline the specific contributions of each stage of our work. The theoretical component formalizes why agent-mediated reconnaissance erodes pricing power, the behavioral component establishes that such contamination is detectable from interaction traces alone, the control component translates that distinguishability into a robust pricing mechanism, and the systems component provides the controlled experimental environment required to observe, test, and reproduce these effects.
+
 \begin{itemize}
     \item TPU-accelerated parallelization of the behavioral simulation and reinforcement learning pipeline, making large factorial sweeps tractable.
     \item Formalization of non-human transaction orchestration in e-commerce as a distinct source of contamination in dynamic pricing systems.

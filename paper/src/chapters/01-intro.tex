@@ -7,6 +7,7 @@
 %% \end{figure}
 
 \section{Introduction}
+\label{sec:introduction}
 
 In this paper we present an exploration and defense against the presence of new commercial entities in digitally powered platforms, preserving market equilibrium in the age of AI. This research establishes the following contributions: definition and formalization of non-human transactors in e-commerce platforms, development of a testing-ground for capturing the behavioral essence of these transactors across a large variety of digital systems, construction of a discriminative model (to prove distinguishability) as a guiding teacher for downstream mitigation of contamination by non-human entities, translation of such learned distinguishability into existing dynamic pricing machine learning loops, and finally establishment of a high-level KPI-affecting causal effect and cost-saving framework for the future of internet commerce in the presence of such non-human learners.
 
@@ -26,13 +27,14 @@ Dynamic pricing systems, as presented by \textcite{mueller_low-rank_2019}, often
 We formally define interaction data as coming from some actor which can either be an agent ($A$) or human ($H$). For purposes of this research, an agent is an algorithmic loop with the ability to access a web platform and perform actions such as clicks, scrolls, and input field fills. The loop terminates when the internal large language model judges the provided task definition as complete. A detailed breakdown can be found in \cref{algagent-loop}.
 
 \subsection{Research Questions}
+\label{sec:research_questions}
 
 This dissertation is organized around one main research question and three supporting pillar questions:
 \begin{enumerate}
     \item[\textbf{Main RQ}] How can dynamic pricing systems preserve margin integrity when transaction orchestration is increasingly mediated by non-human agents?
-    \item[\textbf{SQ1}] \textit{Distinguishability}: Can agent and human sessions be reliably distinguished from behavioral interaction signals alone, without relying on network-level or device fingerprinting?
-    \item[\textbf{SQ2}] \textit{Theoretical Impact}: What is the formal relationship between agent contamination levels and the erosion of pricing power in dynamic pricing systems?
-    \item[\textbf{SQ3}] \textit{Robust Mitigation}: How can pricing policies be constructed to maintain margin integrity under unknown and non-stationary levels of agent contamination?
+    \item[\textbf{SQ1}] \hypertarget{sq1}{}\textit{Distinguishability}: Can agent and human sessions be reliably distinguished from behavioral interaction signals alone, without relying on network-level or device fingerprinting?
+    \item[\textbf{SQ2}] \hypertarget{sq2}{}\textit{Theoretical Impact}: What is the formal relationship between agent contamination levels and the erosion of pricing power in dynamic pricing systems?
+    \item[\textbf{SQ3}] \hypertarget{sq3}{}\textit{Robust Mitigation}: How can pricing policies be constructed to maintain margin integrity under unknown and non-stationary levels of agent contamination?
 \end{enumerate}
 
 
@@ -65,3 +67,6 @@ Extract final result $r$ from terminal state\;
 
 
 The previously described goal of distinguishability allows us to formulate a task which entails taking raw interaction data for either actor and creating a composite demand estimate $\hat{q}$. We propose a robust optimization objective defined in our methodology, transforming the pricing problem into a form of distributionally robust optimization \parencite{kuhn_distributionally_2025} in which the learner guards against adversarial contamination in observed demand \emph{distributions}. The decision rule (in the policy) must perform when the data-generating mechanism is not a single known distribution but any member of an ambiguity set described only partially. Here that mechanism is a mixture whose weight and components need not be stationary.
+
+% The contributions of this thesis are best understood as a dependency chain centered on dynamic pricing under agent-mediated contamination. The work begins with a formal account of why non-human reconnaissance threatens pricing power, then constructs a controlled platform capable of generating the interaction data needed to study that threat empirically. On top of that substrate, session behavior is modeled to determine whether human and agent traffic can be separated from behavioral traces alone. The resulting contamination estimate is then translated into the pricing loop itself, where it serves as an operational signal for robust control under distributional uncertainty. The breadth of the thesis is therefore a consequence of the problem structure: the theoretical, behavioral, systems, and control components are not separate projects, but successive requirements of a single argument.
+Our work's contributions are best understoo as a dependency chain centered around dynamic pricing. The work begins with a formal account of why a non human mediator threatens pricing power, then we construct a platform capable of generating the intraction data needed for our study of that threat. On to of that \textit{substrate} we build behaioral models to determine whether human and agent traffic can be separated. The resulting contamination estimate is then translated into the pricing core itself, where it serves as key signal for robust control under distributionall uncertainty. The breadth of the thesis is therefore a consequence of the problem structure: the theoretical, behavioral, systems, and control components are not separate projects, but successive requirements of a single argument.
