@@ -24,7 +24,6 @@
     pill/.style={ellipse, draw=black!50, fill=black!4, line width=0.75pt,
                  align=center, minimum width=1.6cm, minimum height=0.68cm},
     arr/.style={->, draw=black!80, line width=0.88pt},
-    bidir/.style={<->, draw=black!80, line width=0.88pt},
     darr/.style={->, draw=black!60, line width=0.80pt, densely dashed},
     crossA/.style={->, draw=heroAmberBorder!90!black, line width=1.15pt, dash pattern=on 3.5pt off 2pt},
     crossG/.style={->, draw=heroGreenBorder!90!black, line width=1.15pt, dash pattern=on 3.5pt off 2pt},
@@ -55,7 +54,8 @@
 \draw[arr]   (human.east)    -- (web.west);
 \draw[arr]   (agent.east)    -- (web.west);
 \draw[arr]   (web.east)      -- (provider.west);
-\draw[bidir] (provider.east) -- (redis.west);
+% single arrow: bidir on a short edge stacks two tips and reads as a messy cross
+\draw[arr] (provider.east) -- (redis.west);
 
 % web/provider -> kafka
 \draw[arr] (web.south)      -- (kBehav.north)
@@ -63,9 +63,9 @@
 \draw[arr] (provider.south) -- (kQuotes.north)
     node[midway, right, lbl] {$(i,p,\mathrm{sid},\phi,t)$};
 
-% kafka -> worker (straight south)
-\draw[arr] (kBehav.south)  -- (worker.north);
-\draw[arr] (kQuotes.south) -- (worker.north);
+% kafka -> worker: behavior stream vertical; price quotes L-shaped so both meet worker without a diagonal across the panel
+\draw[arr] (kBehav.south) -- (worker.north);
+\draw[arr, rounded corners=3pt] (kQuotes.south) -- (7.5, 5.35) -| (worker.north);
 
 % worker -> registry
 \draw[arr] (worker.east) -- (registry.west);
@@ -100,10 +100,10 @@
 \draw[arr, rounded corners=4pt] (empKern.south) -- (13.95, 6.8) -| (protoH.north);
 \draw[arr, rounded corners=4pt] (weakLab.south) -- (17.85, 6.8) -| (protoA.north);
 % weak labels -> protoH: go south then hard-left below weakLab
-\draw[arr, rounded corners=4pt] (weakLab.south) -- (17.85,6.8) -| (protoH.north east);
+\draw[arr, rounded corners=4pt] (weakLab.south) -- (17.85,6.8) -| (protoH.north);
 \draw[arr] (protoH.east)    -- (kldist.west);
 \draw[arr] (protoA.west)    -- (kldist.east);
-\draw[arr] (kldist.south)   -- (calHead.north east);
+\draw[arr, rounded corners=4pt] (kldist.south)  -- (calHead.north);
 \draw[arr] (calHead.east)   -- (score.west);
 
 %% ============================================================
