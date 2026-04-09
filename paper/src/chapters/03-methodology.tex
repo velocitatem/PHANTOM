@@ -504,9 +504,10 @@ The inner minimization selects the contamination candidate that makes the penali
 
 For the baseline engine reported here, we intentionally use the constant query-tax surrogate to keep the mechanism minimal:
 \begin{equation}
-r_t = \ldots - \lambda\,f(\tau_t')\,c_{\text{info}}
+\label{eq:baseline_step_reward}
+r_t = R\!\left(p_t,\hat{Q}_t\right) - \lambda\,f(\tau_t')\,c_{\text{info}} - \eta_{\text{ux}}\,\text{UX}(\tau_t', p_t)
 \end{equation}
-with fixed $c_{\text{info}}>0$.
+with fixed $c_{\text{info}}>0$, matching the leakage term $\text{COI}_{\text{leak}}=f(\tau_t')\,c_{\text{info}}$ and the user-experience penalty already introduced in~\eqref{eq:robust_policy}.
 
 
 Another possible extension is to adapt the ambiguity radius online, e.g., $\epsilon(\Delta_H)$, so the Wasserstein ball changes with live divergence. We keep this as future work and retain a fixed-radius setup because Wasserstein ambiguity already handles heavy-tail and ``black swan'' behavior without absolute continuity assumptions \parencite{kuhn_wasserstein_2024}.
