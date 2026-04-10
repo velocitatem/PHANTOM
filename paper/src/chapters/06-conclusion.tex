@@ -1,7 +1,7 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-This thesis examined reinforcement-learning policies for dynamic pricing when a fraction of traffic is orchestrated by non-human agents intent on extracting information before purchase. We introduced COI-oriented metrics, a behavioral distinguishability layer, and a distributionally robust training loop; empirical runs show where robustness helps and where it must be tuned.
+This thesis examined reinforcement-learning policies for dynamic pricing when a fraction of traffic is orchestrated by non-human agents intent on extracting information before purchase. We introduced COI-oriented metrics, a behavioral distinguishability layer, and a distributionally robust training loop, empirical runs show where robustness helps and where it must be tuned.
 
 \subsection{Summary of contributions}
 Our work has yielded a broad set of dependencies which we carefully orchestrated to give us measurable results. To give a clear picture we outline the specific contributions of each stage of our work. The theoretical component formalizes why agent-mediated reconnaissance erodes pricing power, the behavioral component establishes that such contamination is detectable from interaction traces alone, the control component translates that distinguishability into a robust pricing mechanism, and the systems component provides the controlled experimental environment required to observe, test, and reproduce these effects.
@@ -20,6 +20,8 @@ Our work has yielded a broad set of dependencies which we carefully orchestrated
 
 \subsection{Limitations and future work}
 
-Several constraints are intentional and could be relaxed later. Action weights in the demand proxy are hand-set; learning them from data is an obvious next step. The Stackelberg interface assumes a clean alternation between platform move and market response; richer histories (multi-agent, multi-platform) would need a less rigid state definition. Non-perishable catalog supply in the simulator widens the sim-to-real gap for inventory-constrained domains. Within-session contamination is modeled as stable; time-varying $\alpha$ inside a session would better match some attack patterns.
+Several constraints are intentional and could be relaxed later. Action weights in the demand proxy are currently derived from simple divergence rankings, learning them from data is an obvious next step. We propose a jointly learn the demand proxy, policy, and simulator parameters instead of treating them modularly. Another avenue we could not cover in this work is incorporating Bayesian methods better capture demand uncertainty and propagation of that uncertainty into reward systems.
+The Stackelberg interface assumes a clean alternation between platform move and market response. Richer histories (multi-agent, multi-platform) would need a less rigid state definition. Non-perishable catalog supply in the simulator widens the sim-to-real gap for inventory-constrained domains. Within-session contamination is modeled as stable, time-varying $\alpha$ inside a session would better match some attack patterns.
 
 Before any deployment, human baselines should grow beyond the convenience sample used here, catalog scaling laws should be re-checked when transition matrices grow with SKU count, and the full pipeline should be re-validated under production traffic volumes, governance constraints, and product mixes.
+We conclude our work with enthusiasm for future developments in the field of agent mediated commerce, we are excited to provide the foundations for these developments and hope to see future work in similar spirit.
