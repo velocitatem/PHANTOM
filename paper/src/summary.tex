@@ -53,10 +53,10 @@ As the number of independent competitive agents $N$ querying the system grows, t
 
 \vspace{0.5em}
 In order for our research to have grounding in interactions we built a robust e-commerce web-platform.
-The architecture of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a kafka cluster.
+The architecture of this platform begins with the deployed web-apps posting interaction data to our backend which processes them and stores each ingested interaction into a Kafka cluster.
 This serves as our data reservoir tracking and associating each interaction with its session and importantly with which experiment it belongs to.
-Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into kafka.
-This kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger.
+Not only do we track the behavioral interactions, but our pricing provider micro-service, once called by the frontend reports the observed/queried price-product into Kafka.
+This Kafka cluster is subscribed to by our pipeline which is configured on a schedule in Airflow, with the possibility of manual trigger.
 The final stage of the pricing pipeline, submits computed dynamic pricing results into a redis database for quick updates which is then read by the pricing provider and displayed on the webapp.
 This is a very generic end-to-end mechanism which is applicable to a variety of different e-commerce tasks.
 We intentionally put emphasis on the development of this infrastructure to establish a reproducible framework for interaction and to minimize any noise.
