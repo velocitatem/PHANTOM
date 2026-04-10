@@ -129,7 +129,7 @@ The platform **observes** behavioral proxies and quoted prices, not the latent d
 
 **Paths for data and runs:** Override with `PHANTOM_DATA_DIR`, `PHANTOM_SIM_RUNS_DIR`, `PHANTOM_MODEL_REGISTRY_DIR`, `PHANTOM_COLLECTED_DATA_DIR`, etc. (`[lib/config.py](lib/config.py)`).
 
-**Honest scope:** A new vertical (custom product ontology, checkout rules, pricing rules) means **new UI, events, and possibly new reward features** in the engine. Budget engineering time; the repo is a research platform, not a turnkey SaaS skin for arbitrary catalogs without code changes.
+**Scope:** A new vertical (custom product ontology, checkout rules, pricing rules) means **new UI, events, and possibly new reward features** in the engine. Budget engineering time; the repo is a research platform, not a turnkey SaaS skin for arbitrary catalogs without code changes.
 
 ### Theoretical implications
 
@@ -250,11 +250,11 @@ Non-stationary noise $\epsilon_t$ and drifting $\alpha$ confound benchmark inter
 
 ---
 
-## 14. Roadmap / gaps (honesty)
+## 14. Roadmap and gaps
 
-**Relatively turnkey:** Local dockerized stack, demo verticals, engine benchmarks, documented env and paths.
+**In repo:** Local dockerized stack, demo verticals, engine benchmarks, documented env and paths.
 
-**Typically custom:** Production catalog without Supabase, identity/fraud layers, legal review of logging, Kafka/Airflow SLAs, hardening the pricing provider for real money.
+**Usually custom:** Production catalog without Supabase, identity/fraud layers, legal review of logging, Kafka/Airflow SLAs, hardening the pricing provider for real money.
 
 **Thesis vs code:** The PDF is the **spec**; not every robustness term or large-catalog kernel construction is production-verified—see caveats in **Chapter 3**.
 
@@ -295,4 +295,4 @@ Use the **PDF table of contents** with these anchors:
 | `[tpu_orchestration/](tpu_orchestration/)`                                         | TPU configs and helpers.                           |
 
 
-You do **not** need a running storefront for many **offline** benchmarks if the research Python environment is installed; you **do** need aligned instrumentation to connect production trajectories to kernel estimation.
+Many offline benchmarks run without a storefront once the research Python environment is installed; connecting production trajectories to kernel estimation still requires aligned instrumentation.
