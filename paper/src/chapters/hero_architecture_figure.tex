@@ -20,11 +20,10 @@
     bA/.style={rectangle, rounded corners=3pt, draw=heroAmberBorder, fill=heroAmber,
                line width=0.9pt, align=center, minimum height=0.85cm},
     bY/.style={rectangle, rounded corners=3pt, draw=heroGrayBorder,  fill=heroGray,
-               line width=0.9pt, align=center, minimum height=0.82cm},
+               line width=0.9pt, align=center, minimum height=0.85cm},
     pill/.style={ellipse, draw=black!50, fill=black!4, line width=0.75pt,
                  align=center, minimum width=1.6cm, minimum height=0.68cm},
     arr/.style={->, draw=black!80, line width=0.88pt},
-    bidir/.style={<->, draw=black!80, line width=0.88pt},
     darr/.style={->, draw=black!60, line width=0.80pt, densely dashed},
     crossA/.style={->, draw=heroAmberBorder!90!black, line width=1.15pt, dash pattern=on 3.5pt off 2pt},
     crossG/.style={->, draw=heroGreenBorder!90!black, line width=1.15pt, dash pattern=on 3.5pt off 2pt},
@@ -55,7 +54,8 @@
 \draw[arr]   (human.east)    -- (web.west);
 \draw[arr]   (agent.east)    -- (web.west);
 \draw[arr]   (web.east)      -- (provider.west);
-\draw[bidir] (provider.east) -- (redis.west);
+% single arrow: bidir on a short edge stacks two tips and reads as a messy cross
+\draw[arr] (provider.east) -- (redis.west);
 
 % web/provider -> kafka
 \draw[arr] (web.south)      -- (kBehav.north)
@@ -63,9 +63,9 @@
 \draw[arr] (provider.south) -- (kQuotes.north)
     node[midway, right, lbl] {$(i,p,\mathrm{sid},\phi,t)$};
 
-% kafka -> worker (straight south)
-\draw[arr] (kBehav.south)  -- (worker.north);
-\draw[arr] (kQuotes.south) -- (worker.north);
+% kafka -> worker: behavior stream vertical; price quotes L-shaped so both meet worker without a diagonal across the panel
+\draw[arr] (kBehav.south) -- (worker.north);
+\draw[arr, rounded corners=3pt] (kQuotes.south) -- (7.5, 5.35) -| (worker.north);
 
 % worker -> registry
 \draw[arr] (worker.east) -- (registry.west);
@@ -79,36 +79,37 @@
     -- (provider.north);
 
 %% ============================================================
-%%  Panel B   x: 11.6–20.4    y: 2.2–10.0
+%%  Panel B   x: 11.6–20.0    y: 2.2–10.0
 %% ============================================================
-\draw[panel] (11.6,2.2) rectangle (19.8,10.0);
+\draw[panel] (11.6,2.2) rectangle (20.0,10.0);
 \node[anchor=west, font=\small\bfseries] at (11.85,9.72) {(b) Distinguishability layer};
 
-\node[bG, minimum width=2.4cm]  (session) at (14.0, 8.9)  {Session prefix\\$\tau'$};
-\node[bB, minimum width=2.4cm]  (empKern) at (13.65,7.45) {Empirical kernel\\$\hat T'$};
-\node[bY, minimum width=2.4cm]  (weakLab) at (17.55,8.9) {Weak labels\\$\mathcal{D}_H,\mathcal{D}_A$};
-\node[bY, minimum width=2.2cm]  (protoH)  at (12.8, 5.9)  {Prototype\\$\bar T_H$};
-\node[bA, minimum width=2.4cm]  (kldist)  at (15.55,5.9)  {KL distances\\$\Delta_H,\Delta_A$};
-\node[bY, minimum width=2.2cm]  (protoA)  at (18.3, 5.9)  {Prototype\\$\bar T_A$};
-\node[bB, minimum width=2.9cm]  (calHead) at (13.55,4.25) {Contrastive\\calibration head};
-\node[bG, minimum width=2.55cm] (score)   at (17.75,4.25) {Session score\\$f(\tau'),\hat\alpha(\tau')$};
+% x positions shifted +0.3 from the original layout (between left-heavy and +0.55 which hugged the right edge)
+\node[bG, minimum width=2.4cm]  (session) at (14.3, 8.9)  {Session prefix\\$\tau'$};
+\node[bB, minimum width=2.4cm]  (empKern) at (13.95,7.45) {Empirical kernel\\$\hat T'$};
+\node[bY, minimum width=2.4cm]  (weakLab) at (17.85,8.9) {Weak labels\\$\mathcal{D}_H,\mathcal{D}_A$};
+\node[bY, minimum width=2.2cm]  (protoH)  at (13.1, 5.9)  {Prototype\\$\bar T_H$};
+\node[bA, minimum width=2.4cm]  (kldist)  at (15.85,5.9)  {KL distances\\$\Delta_H,\Delta_A$};
+\node[bY, minimum width=2.2cm]  (protoA)  at (18.6, 5.9)  {Prototype\\$\bar T_A$};
+\node[bB, minimum width=2.9cm]  (calHead) at (13.85,4.25) {Contrastive\\calibration head};
+\node[bG, minimum width=2.55cm] (score)   at (18.05,4.25) {Session score\\$f(\tau'),\hat\alpha(\tau')$};
 
-\node[lbl] at (15.55, 3.15) {$\hat\alpha(\tau')=\sigma\!\left(\beta(\Delta_H-\Delta_A)\right)$};
+\node[lbl] at (15.85, 3.15) {$\hat\alpha(\tau')=\sigma\!\left(\beta(\Delta_H-\Delta_A)\right)$};
 
 \draw[arr, rounded corners=4pt] (session.south)  -- (empKern.north);
-\draw[arr, rounded corners=4pt] (empKern.south) -- (13.65, 6.8) -| (protoH.north);
-\draw[arr, rounded corners=4pt] (weakLab.south) -- (17.55, 6.8) -| (protoA.north);
+\draw[arr, rounded corners=4pt] (empKern.south) -- (13.95, 6.8) -| (protoH.north);
+\draw[arr, rounded corners=4pt] (weakLab.south) -- (17.85, 6.8) -| (protoA.north);
 % weak labels -> protoH: go south then hard-left below weakLab
-\draw[arr, rounded corners=4pt] (weakLab.south) -- (17.55,6.8) -| (protoH.north east);
+\draw[arr, rounded corners=4pt] (weakLab.south) -- (17.85,6.8) -| (protoH.north);
 \draw[arr] (protoH.east)    -- (kldist.west);
 \draw[arr] (protoA.west)    -- (kldist.east);
-\draw[arr] (kldist.south)   -- (calHead.north east);
+\draw[arr, rounded corners=4pt] (kldist.south)  -- (calHead.north);
 \draw[arr] (calHead.east)   -- (score.west);
 
 %% ============================================================
-%%  Panel C   x: 20.8–31.0    y: 2.2–10.0
+%%  Panel C   x: 20.4–31.0    y: 2.2–10.0
 %% ============================================================
-\draw[panel] (20.8,2.2) rectangle (31.0,10.0);
+\draw[panel] (20.4,2.2) rectangle (31.0,10.0);
 \node[anchor=west, font=\small\bfseries] at (21.05,9.72) {(c) Distributionally robust control};
 
 \node[bB, minimum width=3.1cm] (state)    at (23.15, 8.9)
@@ -129,13 +130,13 @@
 \draw[arr, rounded corners=4pt] (ambSet.south) -- (23.15, 6.6) -| ([xshift=-2cm]contScen.north);
 \draw[arr, rounded corners=4pt] (innerMin.south) -- (28.55, 6.6) -| ([xshift=2cm]contScen.north);
 \draw[arr] (contScen.south)   -- (reward.north);
-\draw[arr, rounded corners=6pt] (reward.south) -- (25.9, 3.7) -| (policy.north);
+% join reward to policy along policy.north y so the last segment never approaches north from below (avoids upward arrowhead on top edge)
+\draw[arr, rounded corners=4pt] (reward.south) -- (reward.south |- policy.north) -- (policy.north);
 \draw[arr] (policy.east)      -- (publish.west);
-% market response: up the right edge of panel C, entirely inside, rounded
+% market response: up the right edge, then left into state summary from the east
 \draw[arrG, rounded corners=6pt] (publish.east) -- (30.6, 3.05)
-    -- (30.6, 9.8)
-    -- node[midway, lbl] {market response} (state.north |- 0, 9.8)
-    -- (state.north);
+    -- (30.6, 8.9)
+    -- node[midway, above, lbl] {market response} (state.east);
 
 %% ============================================================
 %%  Cross-panel connectors – gutter at y = 1.0..2.2
@@ -152,8 +153,8 @@
 % 2. Score -> State  (depth y=1.45)
 \draw[crossG, rounded corners=6pt]
     (score.south) -- (score.south |- 0, 1.45)
-    -- node[pos=0.5, lbl] {contamination signal} (20.6, 1.45)
-    -- (20.6, 8.9)
+    -- node[pos=0.5, lbl] {contamination signal} (20.2, 1.45)
+    -- (20.2, 8.9)
     -- (state.west);
 
 % 3. Publish -> Provider  (depth y=1.05, deepest)

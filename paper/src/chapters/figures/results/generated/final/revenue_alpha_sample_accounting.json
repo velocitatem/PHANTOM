@@ -1,0 +1,37 @@
+{
+  "bundle_dir": "/home/velocitatem/Documents/Projects/PHANTOM/engine/studies/results/wandb_sweep_bundles/bundle_20260317_122818",
+  "git_commit": "e62e842faad79b143f5555d187075e85c8926363",
+  "cohort_name": "original_n95_baseline_n100",
+  "filters": {
+    "sweep_id": [
+      "i88nw811"
+    ],
+    "mode": "baseline",
+    "n_products": 100.0,
+    "eta_ux": 0.0,
+    "lambda_coi": null,
+    "alpha_min": 0.0,
+    "alpha_max": 1.0
+  },
+  "n_rows": 95,
+  "n_sweeps": 1,
+  "alpha_unique": [
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1.0
+  ],
+  "rows_by_sweep": {
+    "i88nw811": 95
+  },
+  "rows_by_mode": {
+    "baseline": 95
+  }
+}

@@ -1,8 +1,14 @@
 \section{Results}
+\label{sec:results}
+
+% The gap we target is not detection for its own sake but whether behavioral signals can support pricing decisions once agent traffic is present. This section follows the supporting questions in \cref{sec:research_questions}: we first establish session-level distinguishability (behavioral evidence and a rank test), then estimate how contamination shifts revenue in a controlled sweep, and finally compare robust and baseline policies under factorial training with COI and revenue readouts. The ordering is deliberate---each stage feeds the next so that separability, contamination effects, and policy outcomes form one connected line of evidence.
+
+In our work, the gap we target is not the detection for its own sake. Our aim is to understand behavioral signals which can support pricing decisions once agent traffic is present. Now we set to conclude and piece together the path we laid out in \cref{sec:research_questions}. We established distinguishability (behavioral evidence and test) that estimate how contamination shifts revenue in an adversarial environment and finally we compare robust and baseline pricing under factorial training.
+
 \begin{figure}[ht]
     \centering
     \input{chapters/figures/supra/supra.tex}
-    \caption{Evolution of price distributions over experiment steps. The heatmap illustrates the density of price offerings. This is an early baseline simulation which demonstrates supra-competitive price-setting in deep learning agents such as SAC as can be clearly seen by the high density at the highest available price.}
+    \caption{Evolution of price distributions over experiment steps. The heatmap illustrates the density of price offerings. This is an early baseline simulation which demonstrates supra-competitive price-setting in deep learning agents such as Soft Actor Critic as can be clearly seen by the high density at the highest available price.}
     \label{fig:supra_heatmap}
 \end{figure}
 
@@ -40,7 +46,26 @@ We report two preliminary stages before the full factorial interpretation. First
 
 \subsubsection{The Impact of Contamination on Revenue}
 
-A linear fit test on run-level data ($n=95$) shows a strong negative association between contamination and mean revenue. The fitted model mapping $\alpha \to \text{revenue}$ result in $t(93)=-8.2148$, $p=1.20\times 10^{-12}$, $R^2=0.4205$, and a 95\% confidence interval for the slope of $[-75{,}288.76,\,-45{,}975.13]$. In practical terms, a $+0.1$ increase in $\alpha$ corresponds to an average decrease of about $6{,}063$ revenue units within our environment.
+The contamination--revenue slope is estimated on a controlled cohort (single sweep, baseline policy, $n_{\text{products}}=100$, $n=95$). In this setting, contamination $\alpha$ is set exogenously by the experiment, so the slope identifies the within-sweep causal effect of contamination on revenue under fixed policy and environment settings. These results are in favor of our second research question \hyperlink{sq2}{\textbf{SQ2}} (\textit{Theoretical Impact}) from \cref{sec:research_questions}.
+
+\begin{table}[ht]
+\centering
+\caption{Slope verification table for contamination versus revenue.}
+\label{tab:contamination_slope_table}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Term & Coef. & Std. Err. & $t$ & $p>|t|$ & 95\% CI \\
+\midrule
+Intercept & 348,823.41 & 784.29 & 444.77 & $<10^{-99}$ & $[347,264.96,\,350,381.86]$ \\
+$\alpha$ & $-90,140.53$ & 1,466.90 & $-61.45$ & $4.27\times10^{-77}$ & $[-93,053.38,\,-87,227.68]$ \\
+\midrule
+HC1 robust check ($\alpha$) & $-90,140.53$ & 2,185.22 & $-41.25$ & $1.42\times10^{-61}$ & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Interpreted on the contamination grid, a $+0.1$ increase in $\alpha$ corresponds to an average revenue decrease of about $9{,}014$ units, and the robust check preserves both direction and significance.
+% TODO: add a compact proposal note for re-running tests with statsmodels in the appendix methodology notes.
 
 \subsubsection{Large Scale Factorial Training}
 
@@ -54,32 +79,33 @@ In our complete training runs we logged $\approx 180$ days of net compute time. 
 
 \begin{figure}[ht]
     \centering
-    \input{chapters/figures/results/includes/final/final_focus_revenue_by_alpha.tex}
+    \input{chapters/figures/results/includes/final_focus_revenue_by_alpha.tex}
     \caption{Revenue curves by contamination for the final cohort. The baseline remains above the defended curve in most cells, but the gap narrows in the high-contamination region.}
     \label{fig:final_focus_revenue_by_alpha}
 \end{figure}
-% TODO: we need a similar plot which shows the COI preserved (what we gain across teh multiple conatmination leves, showing that the robust method has better COI optimization.)
 
 \begin{figure}[ht]
     \centering
-    \input{chapters/figures/results/includes/final/final_focus_revenue_delta.tex}
-    \caption{Defended-minus-baseline revenue delta over contamination for the final cohort. The strongest high-contamination deviation begins at $\alpha=0.7$, followed by recovery toward near parity by $\alpha=1.0$.}
-    \label{fig:final_focus_revenue_delta}
+    \input{chapters/figures/results/includes/final_focus_coi_by_alpha.tex}
+    \caption{COI level curves by contamination for the final cohort. The shaded band marks the per-$\alpha$ gap between defended and baseline policies.}
+    \label{fig:final_focus_coi_by_alpha}
 \end{figure}
 
 \begin{figure}[ht]
     \centering
-    \input{chapters/figures/results/includes/final/final_focus_risk_deltas.tex}
-    \caption{Defended-minus-baseline leakage and volatility deltas for the final cohort. Leakage remains lower for the defended policy across the full contamination range.}
-    \label{fig:final_focus_risk_deltas}
+    \input{chapters/figures/results/includes/final_focus_coi_preservation_grid.tex}
+    \caption{COI preservation by product count at the contamination endpoints ($\alpha=0.0$ and $\alpha=1.0$). Bars report defended-minus-baseline mean COI level, with the zero line separating preservation from erosion.}
+    \label{fig:final_focus_coi_preservation_grid}
 \end{figure}
+
+
 
 \subsection{Interpretation and Insights}
-The Mann-Whitney result ($p<0.001$) confirms that per-session divergence gaps distinguish the two actor classes with near-zero overlap in rank ordering. This is the condition required for distinguishability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score.
+The Mann-Whitney result ($p<0.001$) confirms that per-session divergence gaps distinguish the two actor classes with near-zero overlap in rank ordering. This is the condition required for distinguishability to act as a useful control signal in the pricing loop rather than just an auxiliary classifier score. This is a direct result relevant to our first pillar \hyperlink{sq1}{\textbf{SQ1}} (\textit{Distinguishability}) from \cref{sec:research_questions}.
 
 The first calibration and paired benchmark runs additionally confirm three practical points aligned with the thesis. First, the control loop is reproducible end-to-end (training, evaluation, artifact generation) across algorithms and contamination levels. Second, policy class materially changes price trajectories and resulting COI/revenue profiles under identical environment settings. Third, objective improvements from robustness are regime-dependent in the current baseline, which is consistent with the thesis claim that contamination-aware pricing needs explicit calibration rather than a one-size-fits-all penalty.
 
-We also note that maximizing revenue in isolation can favor aggressive high-price behavior; even in these early runs, the non-robust aggregate shows slightly higher mean COI and margin. For this reason, all subsequent reporting in this thesis is interpreted on a multi-metric basis (objective, revenue, COI, and stability), and not by revenue alone.
+We also note that maximizing revenue in isolation can favor aggressive high-price behavior, even in our early runs, the non-robust aggregate shows slightly higher mean COI and margin. For this reason, all subsequent reporting in this thesis is interpreted on a multi-metric basis (objective, revenue, COI, and stability), and not by revenue alone. This is another direct answer to our third pillar \hyperlink{sq3}{\textbf{SQ3}} (\textit{Robust Mitigation}) from \cref{sec:research_questions}.
 
 
 \subsection{Anomalies}

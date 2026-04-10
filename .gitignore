@@ -34,6 +34,9 @@ dist/
 **/*.parquet
 **/_build/
 
+# mkdocs output (run make docs.platform locally or rely on CI)
+docs/documentation/
+
 # paper build artifacts
 paper/src/bib/auto
 paper/src/auto/*

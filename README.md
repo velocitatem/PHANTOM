@@ -6,10 +6,12 @@
 
 Agent-aware dynamic pricing research platform for studying how automated transaction orchestration changes pricing power, and for testing defenses that recover margin while protecting legitimate user experience.
 
-[![Build PDF](https://github.com/velocitatem/PHANTOM/actions/workflows/latex.yml/badge.svg)](https://github.com/velocitatem/PHANTOM/actions/workflows/latex.yml)
-[![Paper](https://img.shields.io/badge/Paper-PDF-red?logo=adobe-acrobat-reader)](https://pub-d5b94a3c29fd40c6b3881946e463fdb7.r2.dev/thesis-latest.pdf)
-[![Dataset on HF](https://huggingface.co/datasets/huggingface/badges/resolve/main/dataset-on-hf-sm.svg)](https://huggingface.co/datasets/velocitatem/whoclickedit)
-[![TPU Research Cloud](https://img.shields.io/badge/TPU%20Research%20Cloud-TRC%20supported-4285F4?logo=googlecloud&logoColor=white)](https://sites.research.google/trc/faq/)
+<p>
+  <a href="https://github.com/velocitatem/PHANTOM/actions/workflows/latex.yml"><img src="https://github.com/velocitatem/PHANTOM/actions/workflows/latex.yml/badge.svg" alt="Build PDF" style="vertical-align: middle;" /></a>
+  <a href="https://pub-d5b94a3c29fd40c6b3881946e463fdb7.r2.dev/thesis-latest.pdf"><img src="https://img.shields.io/badge/Paper-PDF-red?logo=adobe-acrobat-reader" alt="Paper PDF" style="vertical-align: middle;" /></a>
+  <a href="https://huggingface.co/datasets/velocitatem/whoclickedit"><img src="https://huggingface.co/datasets/huggingface/badges/resolve/main/dataset-on-hf-sm.svg" alt="Dataset on Hugging Face" style="vertical-align: middle; position: relative; top: 1px;" /></a>
+  <a href="https://sites.research.google/trc/faq/"><img src="https://img.shields.io/badge/TPU%20Research%20Cloud-TRC%20supported-4285F4?logo=googlecloud&logoColor=white" alt="TPU Research Cloud" style="vertical-align: middle;" /></a>
+</p>
 
 **Live demos:** [Hotel](https://phantom-hotel.vercel.app) | [Airline](https://phantom-airline.vercel.app) | [Academic page](https://velocitatem.github.io/PHANTOM/)
 
@@ -140,7 +142,10 @@ flowchart LR
 | `experiments/` | Data processing, ETL ideas, and analysis assets |
 | `docker/` | Dockerfiles for platform services |
 | `tests/e2e/` | Playwright end-to-end tests |
-| `docs/` | Academic project page source |
+| `docs/` | Academic project page (GitHub Pages root) + MkDocs config |
+| `docs/src/` | Markdown sources for the operator documentation site |
+| `docs/documentation/` | MkDocs build output (gitignored; run `make docs.platform`; served at `/documentation/` on Pages) |
+| `SETUP.md` | Unified operator guide: stack, kernels, RL training, thesis refs by chapter |
 
 ## Operational notes
 
@@ -148,6 +153,11 @@ flowchart LR
 - `make test.e2e` expects backend (`5000`), web (`3000`), and Airflow (`8085`) to be up.
 - Research commands (`make train`, `make benchmark*`, `make train.agent`) auto-load `.env.sweep`.
 - Paper builds call `paper/concat_code.sh` before compilation to flatten code into the appendix.
+
+## Operator documentation
+
+- Full setup guide (platform + research): [`SETUP.md`](SETUP.md)
+- Hosted operator docs (after `make docs.platform`): […/PHANTOM/documentation/](https://velocitatem.github.io/PHANTOM/documentation/) on GitHub Pages
 
 ## Research artifacts
 

@@ -1,0 +1,53 @@
+site_name: PHANTOM Platform
+site_description: Operator and research documentation for the PHANTOM dynamic pricing research platform.
+site_url: https://velocitatem.github.io/PHANTOM/documentation/
+site_author: Daniel Rösel
+
+repo_url: https://github.com/velocitatem/PHANTOM
+repo_name: velocitatem/PHANTOM
+
+docs_dir: src
+site_dir: documentation
+strict: true
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+nav:
+  - Home: index.md
+  - Setup: platform-setup.md
+  - Business overview: business.md
+  - Architecture: architecture.md
+  - Configuration: configuration.md
+  - Glossary: glossary.md
+  - Roadmap & implementation notes: roadmap.md
+
+markdown_extensions:
+  - pymdownx.snippets:
+      base_path:
+        - ..
+  - pymdownx.superfences
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search

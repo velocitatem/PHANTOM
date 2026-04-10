@@ -9,6 +9,12 @@ on:
     paths:
       - 'paper/**'
       - '.github/**'
+  workflow_dispatch:
+    inputs:
+      skip_mirrors:
+        description: Skip Codex mirror generation (avoids API quota use)
+        type: boolean
+        default: false
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,8 +30,10 @@ jobs:
       - name: Prepare appendix code snapshot
         run: bash paper/concat_code.sh
 
+      # Repo variable SKIP_CODEX_MIRRORS=true skips on push/PR; workflow_dispatch can set skip_mirrors.
       - name: Generate mirrors with Codex
-        if: ${{ env.OPENAI_API_KEY != '' }}
+        if: ${{ env.OPENAI_API_KEY != '' && vars.SKIP_CODEX_MIRRORS != 'true' && (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_mirrors != 'true') }}
+        continue-on-error: true
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ env.OPENAI_API_KEY }}

@@ -3,7 +3,7 @@ try:
 except ImportError:
     from sim.rl.behavior_loader.loader import Loader, AgentLoader, JointLoader
 from collections import defaultdict
-from typing import Dict, List, Tuple, Set
+from typing import Dict, List, Optional, Set, Tuple
 import numpy as np
 import graphviz
 import sys
@@ -195,6 +195,110 @@ def aggregate_event_transitions(mdp: Dict) -> Dict[str, Dict[str, float]]:
     return dict(evt_trans)
 
 
+def _resolve_event_order(
+    evt_trans: Dict[str, Dict[str, float]],
+    event_order: Optional[List[str]] = None,
+) -> List[str]:
+    observed = set(evt_trans.keys()) | {
+        dst for transitions in evt_trans.values() for dst in transitions
+    }
+    if event_order:
+        ordered = list(dict.fromkeys(event_order))
+        missing = sorted(observed - set(ordered))
+        return ordered + missing
+    return sorted(observed)
+
+
+def _compass_from_angle(angle_rad: float) -> str:
+    ports = ("e", "ne", "n", "nw", "w", "sw", "s", "se")
+    normalized = (angle_rad + (2 * np.pi)) % (2 * np.pi)
+    step = np.pi / 4
+    idx = int(np.round(normalized / step)) % len(ports)
+    return ports[idx]
+
+
+def _edge_ports(
+    src: str,
+    dst: str,
+    positions: Dict[str, Tuple[float, float]],
+    has_reverse: bool,
+) -> Tuple[str, str]:
+    src_x, src_y = positions[src]
+    dst_x, dst_y = positions[dst]
+    angle = float(np.arctan2(dst_y - src_y, dst_x - src_x))
+
+    if has_reverse:
+        bend = np.pi / 10
+        angle += bend if src < dst else -bend
+
+    tail_port = _compass_from_angle(angle)
+    head_port = _compass_from_angle(angle + np.pi)
+    return tail_port, head_port
+
+
+def _edge_style(prob: float) -> Dict[str, str]:
+    if prob >= 0.75:
+        edge_color = "#111827"
+    elif prob >= 0.50:
+        edge_color = "#374151"
+    elif prob >= 0.25:
+        edge_color = "#6b7280"
+    else:
+        edge_color = "#9ca3af"
+    return {
+        "color": edge_color,
+        "fontcolor": "#111827",
+        "fontsize": "10",
+        "penwidth": f"{0.9 + 3.6 * prob:.2f}",
+        "arrowsize": f"{0.55 + 0.55 * prob:.2f}",
+    }
+
+
+def _format_node_label(evt: str) -> str:
+    max_line_len = 16
+    tokens = evt.split("_")
+    if len(tokens) == 1:
+        return evt
+
+    lines: List[str] = []
+    curr = ""
+    for token in tokens:
+        piece = token if not curr else f"_{token}"
+        if curr and len(curr) + len(piece) > max_line_len:
+            lines.append(curr)
+            curr = token
+        else:
+            curr = f"{curr}{piece}" if curr else token
+    if curr:
+        lines.append(curr)
+    return "\n".join(lines)
+
+
+def _compute_flow_positions(
+    events: List[str],
+    layout_radius: float,
+) -> Dict[str, Tuple[float, float]]:
+    """Balanced grid layout for paper-friendly diagrams."""
+    if not events:
+        return {}
+
+    num_events = len(events)
+    cols = int(np.ceil(np.sqrt(num_events)))
+    rows = int(np.ceil(num_events / cols))
+    x_step = max(layout_radius * 1.10, 3.6)
+    y_step = max(layout_radius * 0.95, 3.2)
+
+    positions: Dict[str, Tuple[float, float]] = {}
+    for idx, evt in enumerate(events):
+        row = idx // cols
+        col = idx % cols
+        x = (col - (cols - 1) / 2.0) * x_step
+        y = ((rows - 1) / 2.0 - row) * y_step
+        positions[evt] = (float(x), float(y))
+
+    return positions
+
+
 def visualize_mdp(
     model: BehaviorModel,
     threshold: float = 0.05,
@@ -202,25 +306,91 @@ def visualize_mdp(
     fmt: str = "svg",
     view: bool = False,
     export_dot: bool = False,
+    event_order: Optional[List[str]] = None,
+    layout_radius: float = 10.0,
+    node_diameter: float = 1.8,
+    label_threshold: float = 0.08,
+    drop_isolated_nodes: bool = False,
 ):
     if not model.mdp:
         raise ValueError("build MDP first")
 
     evt_trans = aggregate_event_transitions(model.mdp)
-    g = graphviz.Digraph(format=fmt)
-    g.attr(rankdir="LR", size="30")
-    g.attr("node", shape="circle", width="1", height="1")
+    ordered_events = _resolve_event_order(evt_trans, event_order=event_order)
 
-    events = set(evt_trans.keys()) | {
-        e for trans in evt_trans.values() for e in trans.keys()
+    edges = [
+        (src, dst, prob)
+        for src, dsts in evt_trans.items()
+        for dst, prob in dsts.items()
+        if prob > threshold
+    ]
+    if drop_isolated_nodes:
+        connected = {src for src, _, _ in edges} | {dst for _, dst, _ in edges}
+        ordered_events = [evt for evt in ordered_events if evt in connected]
+
+    positions = _compute_flow_positions(ordered_events, layout_radius=layout_radius)
+
+    g = graphviz.Digraph(format=fmt, engine="neato")
+    g.attr(
+        overlap="false",
+        splines="true",
+        outputorder="edgesfirst",
+        pad="0.5",
+        sep="+9",
+        esep="+4",
+        bgcolor="white",
+        dpi="180",
+    )
+    g.attr(
+        "node",
+        shape="circle",
+        fixedsize="true",
+        width=f"{node_diameter:.2f}",
+        height=f"{node_diameter:.2f}",
+        fontsize="11",
+        fontname="Helvetica",
+        style="filled",
+        fillcolor="white",
+        color="#374151",
+        fontcolor="#111827",
+        penwidth="1.8",
+        peripheries="1",
+    )
+    g.attr(
+        "edge",
+        fontname="Helvetica",
+    )
+
+    for evt in ordered_events:
+        x, y = positions[evt]
+        g.node(evt, label=_format_node_label(evt), pos=f"{x:.2f},{y:.2f}!", pin="true")
+
+    edge_set = {
+        (src, dst) for src, dst, _ in edges if src in positions and dst in positions
     }
-    for evt in events:
-        g.node(evt)
 
-    for src, dsts in evt_trans.items():
-        for dst, prob in dsts.items():
-            if prob > threshold:
-                g.edge(src, dst, label=f"{prob:.2f}")
+    for src, dst, prob in sorted(edges, key=lambda row: row[2]):
+        if src not in positions or dst not in positions:
+            continue
+
+        edge_attrs: Dict[str, str] = _edge_style(prob)
+
+        if src == dst:
+            # pick a loop port away from the main flow
+            sx, sy = positions[src]
+            loop_port = "n" if sy <= 0 else "s"
+            edge_attrs.update({"tailport": loop_port, "headport": loop_port})
+        else:
+            has_reverse = (dst, src) in edge_set
+            tail_port, head_port = _edge_ports(src, dst, positions, has_reverse)
+            edge_attrs.update({"tailport": tail_port, "headport": head_port})
+            if has_reverse:
+                edge_attrs["constraint"] = "false"
+
+        if prob >= label_threshold or src == dst:
+            edge_attrs["label"] = f" {prob:.2f} "
+
+        g.edge(src, dst, **edge_attrs)
 
     g.render(output, view=view, cleanup=True)
     print(f"Saved MDP graph to {output}.{fmt}")
@@ -342,11 +512,6 @@ if __name__ == "__main__":
         f"Built MDP: {human_mdp['num_states']} states, "
         f"{sum(len(t) for t in human_mdp['transitions'].values())} transitions"
     )
-    if not human_mdp["states"]:
-        exit("No states found")
-    visualize_mdp(
-        human_model, threshold=0.05, output="human_mdp_viz", fmt="pdf", export_dot=True
-    )
 
     agent_model = AgentBehaviorModel(agent_dir)
     agent_mdp = agent_model.build_MDP()
@@ -355,14 +520,36 @@ if __name__ == "__main__":
         f"AGENT... Built MDP: {agent_mdp['num_states']} states, "
         f"{sum(len(t) for t in agent_mdp['transitions'].values())} transitions"
     )
-    if not agent_mdp["states"]:
-        exit("No states found")
-    visualize_mdp(
-        agent_model, threshold=0.05, output="agent_mdp_viz", fmt="pdf", export_dot=True
-    )
 
     human_evt = aggregate_event_transitions(human_mdp)
     agent_evt = aggregate_event_transitions(agent_mdp)
+    canonical_events = sorted(
+        (set(human_evt.keys()) | {e for tr in human_evt.values() for e in tr.keys()})
+        | (set(agent_evt.keys()) | {e for tr in agent_evt.values() for e in tr.keys()})
+    )
+
+    if not human_mdp["states"]:
+        exit("No states found")
+    visualize_mdp(
+        human_model,
+        threshold=0.05,
+        output="human_mdp_viz",
+        fmt="pdf",
+        export_dot=True,
+        event_order=canonical_events,
+    )
+
+    if not agent_mdp["states"]:
+        exit("No states found")
+    visualize_mdp(
+        agent_model,
+        threshold=0.05,
+        output="agent_mdp_viz",
+        fmt="pdf",
+        export_dot=True,
+        event_order=canonical_events,
+        drop_isolated_nodes=True,
+    )
 
     common = set(human_evt.keys()) & set(agent_evt.keys())
 
@@ -394,6 +581,7 @@ if __name__ == "__main__":
             output="joint_mdp_viz",
             fmt="pdf",
             export_dot=True,
+            event_order=canonical_events,
         )
 
     inter_class_avg = float(np.mean([kl for _, kl in kl_divs]))

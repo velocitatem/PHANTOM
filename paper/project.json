@@ -44,6 +44,23 @@
         "command": "bash scripts/nx_paper.sh build-arxiv",
         "cwd": "."
       }
+    },
+    "build-summary": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/build/summary.pdf"
+      ],
+      "options": {
+        "command": "bash scripts/nx_paper.sh build-summary",
+        "cwd": "."
+      }
+    },
+    "watch-summary": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/nx_paper.sh watch-summary",
+        "cwd": "."
+      }
     }
   },
   "tags": [
