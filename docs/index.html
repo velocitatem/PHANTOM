@@ -340,10 +340,13 @@
         <h2 class="title is-3">Abstract</h2>
         <div class="content has-text-justified">
           <p>
-            When you shop online, prices often change based on how much interest you show — the more you browse, the more the site learns about your intent and may raise prices accordingly. This works because stores assume that a curious, engaged shopper is more likely to buy. But AI assistants are now doing the shopping research on behalf of users: they browse in one session to gather price information and then let the user purchase in a fresh session at the lower, unadjusted price. The store never sees the connection between the two, so it never gets to factor in that genuine intent — and loses the revenue it would have earned.
+            Dynamic pricing extracts margin by exploiting the gap between what a platform knows and what a buyer knows. A user who browses a hotel across several sessions signals intent; the platform raises the price accordingly. That information asymmetry — the <em>Cost of Information</em> — is the economic engine behind session-based pricing in travel, hospitality, and e-commerce.
           </p>
           <p>
-            PHANTOM studies this problem and builds defenses against it. We created a realistic fake store (in hotel and airline modes) where both real people and AI agents were given shopping tasks, and we recorded every click, scroll, and page visit. By comparing how humans and AI agents move through a site, we found clear patterns that tell them apart. We then used those patterns to build a smarter pricing system that can recognize when it is likely talking to an AI scout and adjust its strategy accordingly — protecting the store's margins without making things worse for genuine shoppers.
+            LLM agents break the engine. An agent conducting reconnaissance in isolated sessions accumulates zero demand signal, then routes the purchase through a clean session at the floor price. As the number of independent querying agents grows, the realizable price converges to its minimum order statistic and COI collapses to zero. This is not a future risk; it is a structural failure mode in any pricing system that treats sessions independently.
+          </p>
+          <p>
+            PHANTOM formalizes the failure, measures it on real human and agent interaction data, and builds a defense. We prove the COI erosion theorem, collect 29 labeled sessions (13 human, 16 agent) across hotel and airline storefronts under goal-driven tasks, learn class-specific Markov transition kernels, and train a Distributionally Robust RL pricing policy over a Wasserstein ambiguity set. Behavioral separability is statistically significant (Mann–Whitney <em>U</em> = 2.0, <em>p</em> = 0.0006). The per-session agent probability signal <em>f</em>(τ) feeds directly into the robust policy reward as a COI-leakage penalty.
           </p>
         </div>
       </div>
@@ -355,18 +358,30 @@
 <section class="section">
   <div class="container is-max-desktop">
     <div class="content has-text-justified">
-      <h2 class="title is-3 has-text-centered">Project Scope</h2>
+      <h2 class="title is-3 has-text-centered">How it works</h2>
       <p>
-        The current thesis revision extends both theory and implementation. The main research question is how a pricing system can preserve margin integrity when browsing and purchasing are increasingly orchestrated by AI agents.
+        The methodology runs in three stages: observe, distinguish, defend.
       </p>
-      <ul>
-        <li>Formal contribution: a Cost of Information erosion theorem showing why price-query saturation can collapse dynamic pricing power.</li>
-        <li>System contribution: a hybrid online/offline stack (Next.js storefront, pricing provider, Kafka event streams, Airflow ETL, Redis serving layer).</li>
-        <li>Modeling contribution: class-specific transition kernels for human and agent behavior, with KL-divergence based separability scores.</li>
-        <li>Control contribution: a contamination-aware DR-RL pricing policy trained under distributional uncertainty using Wasserstein-style robustness.</li>
-      </ul>
+
+      <h3 class="title is-4">Stage 1 — Observe</h3>
       <p>
-        Controlled trials currently include balanced human and agent sessions with goal-driven tasks across hotel and airline interfaces. Early separability results are strong (Mann-Whitney U=2.0, p=0.0006), while robust pricing gains remain regime-dependent and are being calibrated in larger sweeps.
+        Both human participants and LLM agents are assigned goal-driven tasks on a live instrumented storefront (hotel or airline mode). Every interaction is logged as a timestamped event tuple <code>(action, item, timestamp)</code>. Actions are partitioned into four semantic categories — cart, dwell, navigation, filter — with decreasing signal weights (4.0, 2.0, 1.0, 0.5) calibrated by the KL divergence between human and agent transition rows. Price quotes are streamed to a separate Kafka topic, enabling joint analysis of behavior and pricing exposure. The platform runs a surge-discount heuristic during collection to expose participants to state-dependent prices.
+      </p>
+
+      <h3 class="title is-4">Stage 2 — Distinguish</h3>
+      <p>
+        From the labeled session trajectories, we estimate class-specific Markov transition kernels <em>T̂<sub>H</sub></em> and <em>T̂<sub>A</sub></em> by maximum likelihood. For any new partial trajectory τ', we compute KL divergence to each prototype:
+      </p>
+      <p style="text-align:center; font-style:italic; margin: 1rem 0;">
+        Δ<sub>H</sub> = D<sub>KL</sub>(T̂' ∥ T̄<sub>H</sub>), &nbsp; Δ<sub>A</sub> = D<sub>KL</sub>(T̂' ∥ T̄<sub>A</sub>)
+      </p>
+      <p>
+        The gap score <em>g</em>(τ') = Δ<sub>H</sub> − Δ<sub>A</sub> maps to a weak agent probability via a temperature-controlled logistic function: <em>f</em>(τ') = σ((Δ<sub>H</sub> − Δ<sub>A</sub>) / T). This is a continuous signal, not a binary bot flag. The Mann–Whitney test on gap scores between the 13-human and 16-agent cohorts yields U = 2.0, p = 0.0006 — the behavioral distributions are well separated.
+      </p>
+
+      <h3 class="title is-4">Stage 3 — Defend</h3>
+      <p>
+        A contamination generator G(α) mixes real human trajectories with synthetic agent trajectories drawn from <em>T̂<sub>A</sub></em> to produce training distributions at any contamination level α ∈ [0, 1]. The pricing policy is trained as a Stackelberg leader against a Wasserstein ambiguity set around the generator's empirical distribution, minimizing worst-case regret over plausible demand shifts. The per-step reward penalizes COI leakage — weighted by <em>f</em>(τ') — while a UX index bounds harm to legitimate users. Sweeps ran across 384 TPU chips (v4, v5e, v6e Trillium) covering six contamination levels and multiple algorithm variants (PPO, A2C, DQN, Q-table).
       </p>
     </div>
   </div>
