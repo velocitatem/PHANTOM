@@ -39,7 +39,7 @@ In this paper we present an exploration and defense against the presence of new 
 We formally define interaction data as coming from some actor which can either be an agent ($A$) or human ($H$).
 Dynamic pricing algorithms rely on directly translating demand features $q$ to new price assignments $\hat{p}$ across a catalogue of products of size $N$.
 This opens opportunities to design a \textit{tabula rasa} of digital market mechanisms that will shape the future of commerce in the age of artificial intelligence.
-We propose a robust optimization objective defined in our methodology, transforming the pricing problem into a form of Distributionally Robust Optimization \parencite{kuhn_distributionally_2025} where the learner must guard against adversarial contamination in observed demand distributors.
+We propose a robust optimization objective defined in our methodology, transforming the pricing problem into a form of Distributionally Robust Optimization \parencite{kuhn_distributionally_2025} where the learner must guard against adversarial contamination in observed demand distributions.
 For purposes of this research, an agent is an algorithmic loop with the ability to access a web platform and perform actions such as clicks, scrolls, and input field fills.
 
 \vspace{0.5em}
@@ -63,7 +63,7 @@ We intentionally put emphasis on the development of this infrastructure to estab
 In addition to behavioral events, the platform logs price observations to a separate Kafka topic.
 Each price query generates a record $(i, p, \text{sid}, \phi, t)$ associating the product, displayed price, requesting session, platform mode, and timestamp.
 This dual-stream architecture enables joint analysis of price exposure and behavioral response.
-We transition the Kappa like architecture of the data collection to a Lambda architecture for actual learning in a surrogate environment.
+We transition the Kappa-like architecture of the data collection to a Lambda architecture for actual learning in a surrogate environment.
 This allows us to move faster on data which is provided and helps us create a feedback loop for production deployment.
 Operationally, goals and experiment runs are tracked in PostgreSQL (goal table, run table, and assignment mapping).
 This data-acquisition phase is the first half of the methodology and is intentionally a disconnected component that feeds the later contributions.
@@ -83,7 +83,7 @@ We utilize the Wasserstein distance metric to define the set of plausible demand
 The robust policy $\pi^*$ is obtained by solving the maximin problem $\pi^* = \arg \max_{\pi} \min_{Q \in \mathcal{U}_\epsilon} \mathbb{E}_{d \sim Q} \left[ R(p, d) - \lambda \cdot \text{COI}_{\text{leak}}(p,\tau') - \eta_{\text{ux}} \cdot \text{UX}(\tau', p) \right]$ where $R(p, d)$ is the revenue function, $\lambda$ weighs the information-leakage penalty, and $\eta_{\text{ux}}$ weighs the UX term.
 In practice, we parameterize this with a session-level leakage term $\text{COI}_{\text{leak}}(p,\tau') = f(\tau')\cdot \text{InfoValue}(p,\tau')$ where $f(\tau')$ is the weak agent probability.
 As part of reward engineering, we keep a UX factor ($UX\in[0,1]$) as an auxiliary evaluation axis.
-Our training budget is provisioned through TPU Research Cloud and spans 384 chips across TPU v4, v5e, and v6e generations, with a spot-heavy allocation plus an on-demand reserve.
+Our training budget is provisioned through TPU Research Cloud and spans 320 chips across TPU v4, v5e, and v6e generations, with a spot-heavy allocation plus an on-demand reserve.
 At peak BF16 throughput this corresponds to approximately $160$\,PFLOPS of aggregate compute.
 
 \vspace{0.5em}
