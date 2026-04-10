@@ -27,18 +27,17 @@ link_build_bib() {
   ln -sfn ../src/bib ../build/bib
 }
 
-# latexmk can exit non-zero with "biber ... gave an error in previous invocation" while the PDF is
-# already fine: incremental runs skip biber but keep a stale failure bit in main.fdb_latexmk.
-# One forced cycle (-g) re-runs biber and clears that state.
-latexmk_paper() {
-  local job="$1"
-  local tex="$2"
-  local -a common
-  common=( -pdf -jobname="$job" -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build )
-  latexmk "${common[@]}" "$tex" || {
-    printf '%s\n' "latexmk failed; retrying once with -g (clear stale biber/latexmk state)" >&2
-    latexmk -g "${common[@]}" "$tex"
-  }
+# Biblatex uses biber; a stale latexmk fdb can still record ["bibtex <job>"], so latexmk skips
+# biber, main.bbl is missing or wrong, and every citation stays undefined. Drop only that case.
+drop_stale_latexmk_bibtex_fdb() {
+  local job fdb tag
+  for job in main main-genpop summary; do
+    fdb="../build/${job}.fdb_latexmk"
+    tag=$(printf '["bibtex %s"]' "$job")
+    if [[ -f "$fdb" ]] && grep -Fq "$tag" "$fdb"; then
+      rm -f "$fdb"
+    fi
+  done
 }
 
 case "$cmd" in
@@ -48,13 +47,15 @@ case "$cmd" in
     bash paper/concat_code.sh
     cd paper/src
     link_build_bib
-    latexmk_paper main main.tex
+    drop_stale_latexmk_bibtex_fdb
+    latexmk -pdf -jobname=main -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main.tex
     ;;
   watch)
     mkdir -p paper/build
     sync_mdp_figures
     cd paper/src
     link_build_bib
+    drop_stale_latexmk_bibtex_fdb
     latexmk -pvc -pdf -jobname=main -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main.tex
     ;;
   clean)
@@ -77,13 +78,15 @@ case "$cmd" in
     sync_mdp_figures
     cd paper/src
     link_build_bib
-    latexmk_paper main-genpop main-genpop.tex
+    drop_stale_latexmk_bibtex_fdb
+    latexmk -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
     ;;
   watch-genpop)
     mkdir -p paper/build
     sync_mdp_figures
     cd paper/src
     link_build_bib
+    drop_stale_latexmk_bibtex_fdb
     latexmk -pvc -pdf -jobname=main-genpop -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build main-genpop.tex
     ;;
   build-arxiv)
@@ -99,12 +102,14 @@ case "$cmd" in
     mkdir -p paper/build
     cd paper/src
     link_build_bib
-    latexmk_paper summary summary.tex
+    drop_stale_latexmk_bibtex_fdb
+    latexmk -pdf -jobname=summary -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build summary.tex
     ;;
   watch-summary)
     mkdir -p paper/build
     cd paper/src
     link_build_bib
+    drop_stale_latexmk_bibtex_fdb
     latexmk -pvc -pdf -jobname=summary -f -interaction=nonstopmode -file-line-error -r ../.latexmkrc -outdir=../build summary.tex
     ;;
   *)

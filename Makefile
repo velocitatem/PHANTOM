@@ -253,8 +253,8 @@ test:
 count-lines:
 	@$(NX) run research:stats
 
-all:
-	@$(NX) run paper:build
+# Default artifact set for this repo: thesis PDF (same as pdf).
+all: pdf
 
 .PHONY: manim.defense manim.defense.hq manim.render manim.render.full manim.render.poster manim.render.appendix manim.render.all
 # Main defense reel (paper/defense/manim/render_defense); uses paper/defense/.venv when present
