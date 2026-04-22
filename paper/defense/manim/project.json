@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "manim",
+  "projectType": "application",
+  "sourceRoot": "paper/defense/manim",
+  "targets": {
+    "render": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash -c 'source ../.venv/bin/activate && PYTHONPATH=. python render.py'",
+        "cwd": "paper/defense/manim"
+      }
+    },
+    "render-all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash -c 'source ../.venv/bin/activate && PYTHONPATH=. python render.py --all'",
+        "cwd": "paper/defense/manim"
+      }
+    },
+    "render-full": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash -c 'source ../.venv/bin/activate && PYTHONPATH=. python render.py --group final-full'",
+        "cwd": "paper/defense/manim"
+      }
+    },
+    "render-poster": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash -c 'source ../.venv/bin/activate && PYTHONPATH=. python render.py --group poster'",
+        "cwd": "paper/defense/manim"
+      }
+    },
+    "render-appendix": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash -c 'source ../.venv/bin/activate && PYTHONPATH=. python render.py --group behavior-appendix && PYTHONPATH=. python render.py --group coi-appendix'",
+        "cwd": "paper/defense/manim"
+      }
+    }
+  },
+  "tags": [
+    "scope:presentation",
+    "type:manim"
+  ]
+}

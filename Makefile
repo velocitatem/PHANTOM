@@ -44,7 +44,7 @@ SWEEP_ENV_LOAD = set -a; [ -f "$(SWEEP_ENV_FILE)" ] && . "$(SWEEP_ENV_FILE)" || 
 
 .PHONY: help
 help:
-	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.summary pdf.summary.watch pdf.arxiv | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines | docs.platform | manim.defense manim.defense.hq manim.render manim.render.full manim.render.poster manim.render.appendix manim.render.all"
+	@echo "pdf.build pdf.watch pdf.clean pdf.genpop pdf.genpop.watch pdf.summary pdf.summary.watch pdf.arxiv pdf.defense | test.backend test.e2e test.all | web.dev | install | train | benchmark | benchmark.simple | benchmark.agent | train.agent | train.bootstrap | stats.lines | docs.platform | manim.defense manim.defense.hq manim.render manim.render.full manim.render.poster manim.render.appendix manim.render.all"
 	@echo "backend.server backend.provider backend.worker | platform.up platform.down platform.logs | docker.train.publish"
 	@echo "data.pull data.push data.whoclicked.publish | study.margin-erosion study.margin-erosion.quick study.margin-erosion.plot"
 	@echo "tpu.ray.bootstrap tpu.ray.deps tpu.ray.verify tpu.ray.teardown"
@@ -109,6 +109,10 @@ pdf.summary:
 .PHONY: pdf.summary.watch
 pdf.summary.watch:
 	@bash scripts/nx_paper.sh watch-summary
+
+.PHONY: pdf.defense
+pdf.defense:
+	@cd paper/defense && pdflatex -interaction=nonstopmode defense.tex && pdflatex -interaction=nonstopmode defense.tex
 
 .PHONY: test.backend
 test.backend:
