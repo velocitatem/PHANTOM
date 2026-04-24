@@ -124,6 +124,8 @@
   \begin{block}{Main research question}
     How can dynamic pricing preserve margin integrity when transactions are increasingly mediated by non-human agents?
   \end{block}
+  \vspace{0.35em}
+  {\footnotesize Dynamic pricing has often been treated as a secondary optimization layer; agent-mediated shopping turns it into a primary margin-risk surface.}
   \stagebar{1}
 \end{frame}
 
@@ -134,40 +136,43 @@
     flow/.style={draw=PhantomInk,rounded corners=6pt,minimum width=5.3cm,minimum height=1.25cm,align=center},
     note/.style={draw=PhantomInk!55,rounded corners=4pt,minimum width=11.2cm,minimum height=0.95cm,align=center,fill=white,font=\scriptsize}
   ]
-    \node[flow,fill=PhantomCyan!18] (recon) at (-3.1,1.1)
+    \path[use as bounding box] (-6.1,-1.25) rectangle (6.1,2.25);
+    \node<1->[flow,fill=PhantomCyan!18] (recon) at (-3.1,1.1)
       {\textbf{Recon session}\\samples multiple quotes};
-    \node[flow,fill=PhantomIndigo!16] (buy) at (3.1,1.1)
+    \node<2->[flow,fill=PhantomIndigo!16] (buy) at (3.1,1.1)
       {\textbf{Clean execution session}\\buys using the best found quote};
-    \draw[-{Stealth[length=3mm]},ultra thick,PhantomSlate] (recon.east) -- (buy.west);
-    \node[font=\scriptsize\bfseries,text=PhantomSlate] at (0,1.98)
+    \draw<2->[-{Stealth[length=3mm]},ultra thick,PhantomSlate] (recon.east) -- (buy.west);
+    \node<2->[font=\scriptsize\bfseries,text=PhantomSlate] at (0,1.98)
       {query and purchase are decoupled};
-    \draw[densely dashed,thick,PhantomCyan!90!black]
+    \draw<3->[densely dashed,thick,PhantomCyan!90!black]
       (recon.south east) .. controls +(1.15,-0.95) and +(-1.15,-0.95) .. (buy.south west);
-    \node[note] at (0,-0.65)
+    \node<3->[note] at (0,-0.65)
       {The platform sees behavior proxy $\hat q$, while true demand response $d(p\mid\theta)$ stays latent.};
   \end{tikzpicture}
 
   \vspace{0.25em}
   \begin{tikzpicture}[font=\scriptsize\sffamily,
     card/.style={draw=PhantomInk,rounded corners=4pt,minimum width=3.85cm,text width=3.55cm,minimum height=1.4cm,align=center}]
-    \node[card,fill=PhantomInk,text=white] at (-4.05,0)
+    \path[use as bounding box] (-6.05,-0.95) rectangle (6.05,0.95);
+    \node<4->[card,fill=PhantomInk,text=white] at (-4.05,0)
       {\large$\mathrm{COI}(\pi)=\mathbb{E}[P]-\underline p$\\[-0.05em]\footnotesize pricing power KPI};
-    \node[card,fill=PhantomCyan!16,text=PhantomSlate] at (0,0)
+    \node<5->[card,fill=PhantomCyan!16,text=PhantomSlate] at (0,0)
       {\Large\bfseries$-9{,}014$\\[-0.05em]\footnotesize revenue units\\per +0.1 contamination};
-    \node[card,fill=PhantomIndigo!12,text=PhantomSlate] at (4.05,0)
-      {\large$\lim_{N\to\infty}\mathrm{COI}=0$\\[-0.05em]\footnotesize theorem-level pressure};
+    \node<6->[card,fill=PhantomIndigo!12,text=PhantomSlate] at (4.05,0)
+      {\large$\lim_{N\to\infty}\mathrm{COI}=0$\\[-0.05em]\footnotesize theorem as intuition guide};
   \end{tikzpicture}
 
   \vspace{0.15em}
-  {\footnotesize\textbf{Implication:} if quote discovery and purchase split, standard session-based pricing overestimates willingness to pay.}
+  \uncover<6->{\scriptsize\textit{The theorem is used to guide intuition: independent reconnaissance pressure can drive realizable prices toward the floor.}}\\[0.2em]
+  \uncover<7->{\footnotesize\textbf{Implication:} most production dynamic pricing stacks are not yet ready for AI-agent traffic; when quote discovery and purchase split, session-based pricing overestimates willingness to pay.}
   \stagebar{1}
 \end{frame}
 
 \begin{frame}{The thesis answers one chain: mechanism \(\to\) signal \(\to\) control}
   \begin{enumerate}[<+->]\setlength{\itemsep}{0.45em}
-    \item \textbf{Mechanism (SQ2):} independent reconnaissance pushes realizable price toward the order-statistics floor.
-    \item \textbf{Signal (SQ1):} human and agent sessions are behaviorally separable from trajectories alone.
-    \item \textbf{Control (SQ3):} the session score feeds a robust pricing learner under contamination uncertainty.
+    \item Can agent and human sessions be reliably distinguished from behavioral interaction signals alone?
+    \item How do agents affect prices and revenue that can be generated?
+    \item Can we make new policies that maintain margin in agent contaminated systems?
   \end{enumerate}
 
   \vspace{0.35em}
@@ -222,18 +227,15 @@
     ]
       \node[draw=PhantomInk,rounded corners=5pt,fill=white,minimum width=6.85cm,minimum height=4.45cm] at (0,0) {};
       \node[anchor=west,font=\footnotesize\bfseries,text=PhantomInk] at (-3.2,1.72) {WhoClickedIt dataset card};
-      \node[anchor=west,draw=PhantomInk!35,rounded corners=2pt,fill=PhantomCyan!10,inner xsep=4pt,inner ysep=3pt,font=\scriptsize\ttfamily,text=PhantomSlate] at (-3.2,1.22)
+      \node[anchor=west,draw=PhantomInk!35,rounded corners=2pt,fill=PhantomCyan!10,inner xsep=4pt,inner ysep=3pt,text width=6.15cm,align=left,font=\tiny\ttfamily,text=PhantomSlate] at (-3.2,1.22)
         {huggingface.co/datasets/velocitatem/whoclickedit};
 
-      \node[anchor=west,chip,fill=PhantomCyan!12] at (-3.2,0.65) {\textbf{Rows} 3874};
-      \node[anchor=west,chip,fill=PhantomCyan!12] at (-1.70,0.65) {\textbf{Cols} 42};
-      \node[anchor=west,chip,fill=PhantomCyan!12] at (-0.25,0.65) {\textbf{Sessions} 36};
-      \node[anchor=west,chip,fill=PhantomIndigo!12] (humanrows) at (-3.2,0.03) {\textbf{Human rows} 798};
+      \node[anchor=west,chip,fill=PhantomIndigo!12] (humanrows) at (-3.2,0.52) {\textbf{Human rows} 798};
       \node[anchor=west,chip,fill=PhantomIndigo!12] at ([xshift=0.16cm]humanrows.east) {\textbf{Agent rows} 3076};
 
-      \node[body,text=PhantomSlate] at (-3.2,-0.68)
+      \node[body,text=PhantomSlate] at (-3.2,-0.33)
         {Flat schema and explicit actor labels simplify session-aware train/test splits.};
-      \node[body,font=\tiny\itshape,text=PhantomSlate!85] at (-3.2,-1.36)
+      \node[body,font=\tiny\itshape,text=PhantomSlate!85] at (-3.2,-1.01)
         {Kafka provenance is retained for reproducibility and downstream analysis.};
     \end{tikzpicture}
 
@@ -241,11 +243,11 @@
     \centering
     \begin{tikzpicture}[font=\scriptsize\sffamily,
       stat/.style={draw=PhantomInk,rounded corners=5pt,minimum width=4.95cm,minimum height=1.33cm,align=center}]
-      \node[stat,fill=PhantomInk,text=white] at (0,1.95)
-        {\Large\bfseries 13 H / 16 A\\[-0.1em]\footnotesize labeled trajectories in thesis cohort};
-      \node[stat,fill=PhantomCyan!14,text=PhantomSlate] at (0,0.25)
+      \node<1->[stat,fill=PhantomInk,text=white] at (0,1.95)
+        {\Large\bfseries 29 Interviews\\[-0.1em]\footnotesize labeled trajectories in observed samples};
+      \node<2->[stat,fill=PhantomCyan!14,text=PhantomSlate] at (0,0.25)
         {\Large\bfseries 45\% / 55\%\\[-0.1em]\footnotesize human/agent trajectory split};
-      \node[stat,fill=PhantomIndigo!12,text=PhantomSlate] at (0,-1.45)
+      \node<3->[stat,fill=PhantomIndigo!12,text=PhantomSlate] at (0,-1.45)
         {\Large\bfseries 2 streams\\[-0.1em]\footnotesize interaction + price-log records};
     \end{tikzpicture}
   \end{columns}
@@ -253,7 +255,7 @@
   \stagebar{2}
 \end{frame}
 
-\begin{frame}{Experimental design controls goals, not navigation paths}
+\begin{frame}{Experimental design controls goals, not instructions}
   \begin{columns}[T,onlytextwidth]
     \column{0.58\textwidth}
     \centering
@@ -335,26 +337,30 @@
 \begin{frame}{Two divergence scores become one continuous control signal}
   \centering
   \[
-    f(\tau') = P(A\mid\tau') = \sigma\!\left(\frac{\Delta_H-\Delta_A}{T}\right)
+    \only<1>{\Delta_H = D_{KL}(\hat T'\mid\mid\bar T_H),\quad \Delta_A = D_{KL}(\hat T'\mid\mid\bar T_A)}%
+    \only<2>{g(\tau') = \Delta_H-\Delta_A}%
+    \only<3->{f(\tau') = P(A\mid\tau') = \sigma\!\left(\frac{g(\tau')}{T}\right)}
   \]
 
   \vspace{0.4em}
   \begin{tikzpicture}[font=\scriptsize\sffamily]
-    \draw[very thick,PhantomSlate] (-4,0) -- (4,0);
-    \draw[thick,PhantomSlate] (0,-0.16) -- (0,0.16);
-    \node[anchor=north] at (-4,0) {human-like};
-    \node[anchor=north] at (4,0) {agent-like};
-    \node[anchor=north] at (0,0) {$\Delta_H-\Delta_A=0$};
-    \fill[PhantomCyan!75!black] (-2.2,0) circle (2.2pt);
-    \fill[PhantomIndigo!75!black] (2.2,0) circle (2.2pt);
-    \node[anchor=south,text=PhantomCyan!75!black] at (-2.2,0) {low $f(\tau')$};
-    \node[anchor=south,text=PhantomIndigo!75!black] at (2.2,0) {high $f(\tau')$};
+    \draw<2->[very thick,PhantomSlate] (-4,0) -- (4,0);
+    \draw<2->[thick,PhantomSlate] (0,-0.16) -- (0,0.16);
+    \node<2->[anchor=north] at (-4,0) {human-like};
+    \node<2->[anchor=north] at (4,0) {agent-like};
+    \node<3->[anchor=north] at (0,0) {$g(\tau')=0$};
+    \fill<4->[PhantomCyan!75!black] (-2.2,0) circle (2.2pt);
+    \node<4->[anchor=south,text=PhantomCyan!75!black] at (-2.2,0) {low $f(\tau')$};
+    \fill<5->[PhantomIndigo!75!black] (2.2,0) circle (2.2pt);
+    \node<5->[anchor=south,text=PhantomIndigo!75!black] at (2.2,0) {high $f(\tau')$};
   \end{tikzpicture}
 
   \vspace{0.25em}
-  \begin{itemize}[<+->]
-    \item Continuous scoring is used to steer contamination-aware pricing.
-    \item The design target is guidance, not a hard user-level ban decision.
+  \begin{itemize}
+    \item<3-> The signed gap $g(\tau')$ is positive when a session is closer to agent behavior.
+    \item<4-> Temperature $T$ calibrates how sharply the score moves away from uncertainty.
+    \item<6-> Continuous scoring is used to steer contamination-aware pricing.
+    \item<7-> The design target is guidance, not a hard user-level ban decision.
   \end{itemize}
   \stagebar{3}
 \end{frame}
@@ -391,10 +397,21 @@
 
 \begin{frame}{Reward composition penalizes leakage while guarding user experience}
   \[
-    r_t =
-    {\color{PhantomInk}\underline{R(p_t,\hat Q_t)}}
-    - {\color{PhantomCyan!95!black}\underline{\lambda\,f(\tau'_t)\,c_{\text{info}}}}
-    - {\color{PhantomIndigo!95!black}\underline{\eta_{\text{ux}}\,UX(\tau'_t,p_t)}}
+    \only<1>{%
+      r_t =
+      {\color{PhantomInk}\underline{R(p_t,\hat Q_t)}}%
+    }%
+    \only<2>{%
+      r_t =
+      {\color{PhantomInk}\underline{R(p_t,\hat Q_t)}}
+      - {\color{PhantomCyan!95!black}\underline{\lambda\,f(\tau'_t)\,c_{\text{info}}}}%
+    }%
+    \only<3->{%
+      r_t =
+      {\color{PhantomInk}\underline{R(p_t,\hat Q_t)}}
+      - {\color{PhantomCyan!95!black}\underline{\lambda\,f(\tau'_t)\,c_{\text{info}}}}
+      - {\color{PhantomIndigo!95!black}\underline{\eta_{\text{ux}}\,UX(\tau'_t,p_t)}}%
+    }%
   \]
 
   \vspace{0.45em}
@@ -415,38 +432,42 @@
     \end{tikzpicture}
     \column{0.32\textwidth}
     \centering
-    \begin{tikzpicture}[font=\scriptsize\sffamily]
-      \node[
-        draw=PhantomInk,
-        rounded corners=4pt,
-        fill=PhantomCyan!16,
-        minimum width=0.98\linewidth,
-        text width=0.88\linewidth,
-        minimum height=1.28cm,
-        align=center,
-        text=PhantomCyan!95!black
-      ] {\textbf{Leakage term}\\[-0.08em]scales with agent-likelihood score};
-    \end{tikzpicture}
+    \uncover<2->{%
+      \begin{tikzpicture}[font=\scriptsize\sffamily]
+        \node[
+          draw=PhantomInk,
+          rounded corners=4pt,
+          fill=PhantomCyan!16,
+          minimum width=0.98\linewidth,
+          text width=0.88\linewidth,
+          minimum height=1.28cm,
+          align=center,
+          text=PhantomCyan!95!black
+        ] {\textbf{Leakage term}\\[-0.08em]scales with agent-likelihood score};
+      \end{tikzpicture}%
+    }
     \column{0.32\textwidth}
     \centering
-    \begin{tikzpicture}[font=\scriptsize\sffamily]
-      \node[
-        draw=PhantomInk,
-        rounded corners=4pt,
-        fill=PhantomIndigo!16,
-        minimum width=0.98\linewidth,
-        text width=0.88\linewidth,
-        minimum height=1.28cm,
-        align=center,
-        text=PhantomIndigo!95!black
-      ] {\textbf{UX term}\\[-0.08em]discourages unstable pricing behavior};
-    \end{tikzpicture}
+    \uncover<3->{%
+      \begin{tikzpicture}[font=\scriptsize\sffamily]
+        \node[
+          draw=PhantomInk,
+          rounded corners=4pt,
+          fill=PhantomIndigo!16,
+          minimum width=0.98\linewidth,
+          text width=0.88\linewidth,
+          minimum height=1.28cm,
+          align=center,
+          text=PhantomIndigo!95!black
+        ] {\textbf{UX term}\\[-0.08em]discourages unstable pricing behavior};
+      \end{tikzpicture}%
+    }
   \end{columns}
 
   \vspace{0.25em}
-  \begin{itemize}[<+->]
-    \item Baseline experiments use a query-tax leakage surrogate for tractability.
-    \item Supra-competitive anchor penalties are tracked as an additional safety rail.
+  \begin{itemize}
+    \item<2-> Baseline experiments use a query-tax leakage surrogate for tractability.
+    \item<3-> Supra-competitive anchor penalties are tracked as an additional safety rail.
   \end{itemize}
   \stagebar{4}
 \end{frame}
@@ -532,6 +553,7 @@
   \begin{itemize}[<+->]\setlength{\itemsep}{0.7em}
     \item \textbf{Financially:} untreated reconnaissance behaves like an information leak and can compress sustainable margins.
     \item \textbf{Operationally:} behavior-only session scoring can be wired into pricing without relying on device fingerprinting.
+    \item \textbf{Market exposure:} channels where dynamic pricing has been a secondary layer (aggregators, comparison funnels, promo traffic) are likely to be disrupted first.
     \item \textbf{Strategically:} robust pricing should be calibrated by regime; there is no single penalty that wins everywhere.
     \item \textbf{Before deployment:} larger human baselines, governance review, and legal safeguards are mandatory.
   \end{itemize}
