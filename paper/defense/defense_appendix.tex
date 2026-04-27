@@ -30,9 +30,9 @@
   \scriptsize
   \begin{align*}
     \tau_s &= (e_{s,1},\ldots,e_{s,L_s}) && \text{session} \\
-    \hat{q}_{t,i} &= \sum_{s\in S_t}\sum_k \omega(a_{s,k})\,\mathbf{1}[i_{s,k}=i] && \text{proxy} \\
+    \hat{q}_{t,i} &= \sum_{s\in S_t}\sum_k \omega(a_{s,k})\,\mathbf{1}[i_{s,k}=i] && \text{proxy }(\humanagentpair) \\
     Q(p) &= (1-\alpha)\,\mathbb{E}_{\theta\sim D_H}[d(p;\theta)] \\
-         &\quad + \alpha\,\mathbb{E}_{\theta\sim D_A}[d(p;\theta)] + \epsilon_t && \text{mixture} \\
+         &\quad + \alpha\,\mathbb{E}_{\theta\sim D_A}[d(p;\theta)] + \epsilon_t && \text{mixture of }\humanagentmix \\
     \mathrm{COI}(\pi) &= \mathbb{E}[P]-\underline{p} && \text{COI}
   \end{align*}
 \end{frame}
@@ -63,7 +63,7 @@
     \hat{q}_{t,i}=\sum_{s\in S_t}\sum_{k=1}^{L_s} \omega(a_{s,k})\,\mathbf{1}[i_{s,k}=i]
   \]
   \begin{alertblock}{Key distinction}
-    \(\hat{q}\) is an operational sensor from logs; true demand \(d(p;\theta)\) stays latent. Pricing reacts to \(\hat{q}\), so agent-shaped behavior poisons the signal.
+    \(\hat{q}\) is an operational sensor from logs (\humanagentpair); true demand \(d(p;\theta)\) stays latent. Pricing reacts to \(\hat{q}\), so agent-shaped behavior can poison the signal.
   \end{alertblock}
 \end{frame}
 
@@ -286,21 +286,63 @@
   \end{alertblock}
 \end{frame}
 
-\begin{frame}{Appendix: Stackelberg timing (words)}
-  \begin{itemize}
-    \item Leader: platform sets price vector given current state and policy.
-    \item Follower: demand proxy updates from simulated trajectories drawn from \(\mathcal{G}(\alpha)\) and kernels \((\hat{T}_H,\hat{T}_A)\).
-    \item \textbf{Limbo} buffer stores alternating moves for a clean game history; relaxing strict alternation is listed future work.
-  \end{itemize}
+\begin{frame}{Appendix: why a Stackelberg game is a useful abstraction}
+  \footnotesize
+  \begin{columns}[T,onlytextwidth]
+    \column{0.52\textwidth}
+    \begin{itemize}
+      \item \textbf{Leader move}: the platform commits a quote via policy \(p_t=\pi(x_t)\).
+      \item \textbf{Follower move}: session behavior then reacts (click, continue, abandon, purchase).
+      \item This ordering matches real serving APIs: price is emitted before response is observed.
+      \item Repeating this local sequence gives a tractable leader-follower control model.
+    \end{itemize}
+
+    \column{0.44\textwidth}
+    \centering
+    \begin{tikzpicture}[
+      font=\scriptsize\sffamily,
+      box/.style={draw=PhantomInk,rounded corners=4pt,minimum width=3.45cm,minimum height=0.9cm,align=center},
+      arr/.style={-{Stealth[length=2.0mm]},thick,PhantomSlate}
+    ]
+      \node[box,fill=PhantomCyan!14] (l) at (0,1.2) {Leader: pricing policy};
+      \node[box,fill=white] (f) at (0,-0.05) {Follower: session response};
+      \node[box,fill=PhantomIndigo!10] (u) at (0,-1.3) {State update \& next round};
+      \draw[arr] (l) -- node[right,font=\tiny] {quote} (f);
+      \draw[arr] (f) -- node[right,font=\tiny] {events} (u);
+      \draw[arr] (u.west) to[bend left=35] node[left,font=\tiny] {context} (l.west);
+    \end{tikzpicture}
+  \end{columns}
+  \begin{alertblock}{Boundary}
+    We do \textbf{not} claim a full market equilibrium. We claim a useful timing model for explainable policy updates under contamination.
+  \end{alertblock}
 \end{frame}
 
-\begin{frame}{Appendix: three layers of evidence}
+\begin{frame}{Appendix: why Theorem 1 helps (without over-claiming)}
   \footnotesize
-  \begin{description}
-    \item[Theorem 1] Formal COI erosion under independence and fixed-offer assumptions.
-    \item[Simulator] Dynamic, adaptive pricing and contamination sweeps (different status).
-    \item[Implementation] Local-$\alpha$ robust training; spirit of DRO without claiming a full numerical Wasserstein solver.
-  \end{description}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+    \begin{block}{What the theorem gives us}
+      \begin{itemize}
+        \item A directional mechanism: independent recon pressure compresses COI.
+        \item A sanity check for reward design: leakage penalties should grow with recon likelihood.
+        \item A clean explanatory anchor for stakeholders and governance review.
+      \end{itemize}
+    \end{block}
+
+    \column{0.48\textwidth}
+    \begin{alertblock}{What the theorem does not claim}
+      \begin{itemize}
+        \item It is not a finite-sample forecast for every market.
+        \item It does not cover collusion or all adaptive adversaries.
+        \item It does not replace simulator evidence or offline policy validation.
+      \end{itemize}
+    \end{alertblock}
+  \end{columns}
+
+  \vspace{0.2em}
+  \begin{block}{Three evidence layers used in this thesis}
+    \textbf{Theorem 1} (mechanism direction) \(\rightarrow\) \textbf{simulator} (finite-regime quantification) \(\rightarrow\) \textbf{implementation} (local robust policy training).
+  \end{block}
 \end{frame}
 
 \begin{frame}{Appendix: composite strip (five plots, small multiples)}

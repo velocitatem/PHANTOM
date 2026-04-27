@@ -2,12 +2,15 @@
 % Build: cd paper/defense && pdflatex defense.tex && pdflatex defense.tex
 \documentclass[aspectratio=169,11pt]{beamer}
 
+% Narrative and visual refinements for final defense delivery.
+
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{microtype}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
+\usepackage{xspace}
 \usepackage{booktabs}
 \usepackage{appendixnumberbeamer}
 \usepackage{hyperref}
@@ -29,6 +32,7 @@
 \definecolor{PhantomSlate}{HTML}{24364C}
 \definecolor{PhantomCyan}{HTML}{C97A3D}
 \definecolor{PhantomIndigo}{HTML}{2F8F8A}
+\definecolor{PhantomPeach}{HTML}{EEC39C}
 
 \setbeamercolor{normal text}{fg=PhantomSlate,bg=PhantomPaper}
 \setbeamercolor{alerted text}{fg=PhantomCyan!95!black}
@@ -77,6 +81,32 @@
     ] {\Large\bfseries #1\\[-0.2em]{\scriptsize #2}};
   \end{tikzpicture}%
 }
+
+\newcommand{\humaniconraw}{%
+  \begin{tikzpicture}[x=0.9ex,y=0.9ex]
+    \fill[PhantomIndigo] (0,1.55) circle (0.42);
+    \draw[PhantomInk,line width=0.20pt,fill=PhantomSlate!95!black] (0,0.0) ellipse (0.72 and 0.56);
+  \end{tikzpicture}%
+}
+
+\newcommand{\roboticonraw}{%
+  \begin{tikzpicture}[x=0.9ex,y=0.9ex]
+    \draw[PhantomInk,line width=0.20pt,rounded corners=0.35ex,fill=PhantomPeach] (-0.95,-0.78) rectangle (0.95,0.72);
+    \draw[PhantomInk,line width=0.20pt,fill=white] (-0.42,0.08) circle (0.21);
+    \draw[PhantomInk,line width=0.20pt,fill=white] (0.42,0.08) circle (0.21);
+    \fill[PhantomInk] (-0.42,0.08) circle (0.07);
+    \fill[PhantomInk] (0.42,0.08) circle (0.07);
+    \draw[PhantomInk,line width=0.20pt] (-0.30,-0.30) -- (0.30,-0.30);
+    \draw[PhantomInk,line width=0.20pt] (0,0.72) -- (0,1.03);
+    \fill[PhantomIndigo] (0,1.15) circle (0.10);
+  \end{tikzpicture}%
+}
+
+\newcommand{\humanicon}{\raisebox{-0.45ex}{\humaniconraw}\xspace}
+\newcommand{\roboticon}{\raisebox{-0.45ex}{\roboticonraw}\xspace}
+\newcommand{\usersagentslabel}{Users \humanicon + agents \roboticon}
+\newcommand{\humanagentpair}{\humanicon, \roboticon}
+\newcommand{\humanagentmix}{\humanicon/\roboticon}
 
 \begin{document}
 
@@ -129,6 +159,71 @@
   \stagebar{1}
 \end{frame}
 
+\begin{frame}{Motivation: one everyday pricing story}
+  \footnotesize
+  \begin{columns}[T,onlytextwidth]
+    \column{0.53\textwidth}
+    \begin{block}{Imagine you sell weekend hotel rooms online}
+      A customer asks an assistant to scout many quotes first, then buys in a clean session at the best discovered price.
+    \end{block}
+    \begin{alertblock}{Why this matters to everyday people}
+      If this behavior is untreated, honest shoppers can face noisier prices and a weaker shopping experience because pricing reacts to manipulated intent signals.
+    \end{alertblock}
+
+    \column{0.44\textwidth}
+    \centering
+    \begin{tikzpicture}[
+      font=\scriptsize\sffamily,
+      card/.style={draw=PhantomInk,rounded corners=5pt,minimum width=3.8cm,minimum height=1.0cm,align=center},
+      flow/.style={-{Stealth[length=2.2mm]},thick,PhantomSlate}
+    ]
+      \node[card,fill=PhantomCyan!15] (seller) at (0,1.55) {Seller posts rooms};
+      \node[card,fill=white] (recon) at (0,0.2) {Recon by agent \roboticon};
+      \node[card,fill=PhantomIndigo!12] (buy) at (0,-1.15) {Purchase by user \humanicon};
+      \draw[flow] (seller) -- (recon);
+      \draw[flow] (recon) -- (buy);
+      \node[font=\tiny\itshape,text=PhantomSlate] at (0,-1.95) {query and purchase split across sessions};
+    \end{tikzpicture}
+  \end{columns}
+
+  \vspace{-0.15em}
+  {\scriptsize\textbf{Takeaway:} protect legitimate shoppers \humanicon while detecting orchestrated recon \roboticon before pricing leakage compounds.}
+  \stagebar{1}
+\end{frame}
+
+\begin{frame}{Policy first: one rule maps context into price actions}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.55\textwidth}
+    \begin{block}{Policy definition}
+      \[
+        p_t = \pi(x_t)
+      \]
+      where context \(x_t\) includes product state, time, and behavior signals from the session.
+    \end{block}
+    \begin{itemize}[<+->]
+      \item Behavior proxy \(\hat q\) is tracked for both user-like and agent-like sessions \((\humanagentpair)\).
+      \item The score \(f(\tau')\) is a soft estimate that a trajectory is agent-mediated \roboticon.
+      \item We see reward only for the chosen price action, which motivates a contextual-bandit view first.
+    \end{itemize}
+
+    \column{0.43\textwidth}
+    \centering
+    \begin{tikzpicture}[
+      font=\scriptsize\sffamily,
+      box/.style={draw=PhantomInk,rounded corners=4pt,minimum width=3.35cm,minimum height=0.85cm,align=center},
+      flow/.style={-{Stealth[length=2.0mm]},thick,PhantomSlate}
+    ]
+      \node[box,fill=white] (ctx) at (0,1.35) {Context \(x_t\)};
+      \node[box,fill=PhantomIndigo!12] (pol) at (0,0.15) {Policy \(\pi\)};
+      \node[box,fill=PhantomCyan!15] (act) at (0,-1.05) {Price action \(p_t\)};
+      \draw[flow] (ctx) -- (pol);
+      \draw[flow] (pol) -- (act);
+      \node[font=\tiny\itshape,text=PhantomSlate] at (0,-1.75) {later extended from contextual bandits to DR-RL};
+    \end{tikzpicture}
+  \end{columns}
+  \stagebar{1}
+\end{frame}
+
 \begin{frame}{Agentic recon creates direct financial pressure on pricing power}
   \centering
   \begin{tikzpicture}[
@@ -138,44 +233,101 @@
   ]
     \path[use as bounding box] (-6.1,-1.25) rectangle (6.1,2.25);
     \node<1->[flow,fill=PhantomCyan!18] (recon) at (-3.1,1.1)
-      {\textbf{Recon session}\\samples multiple quotes};
+      {\textbf{Recon session \roboticon}\\samples multiple quotes};
     \node<2->[flow,fill=PhantomIndigo!16] (buy) at (3.1,1.1)
-      {\textbf{Clean execution session}\\buys using the best found quote};
+      {\textbf{Clean execution session \humanicon}\\buys using the best found quote};
     \draw<2->[-{Stealth[length=3mm]},ultra thick,PhantomSlate] (recon.east) -- (buy.west);
     \node<2->[font=\scriptsize\bfseries,text=PhantomSlate] at (0,1.98)
       {query and purchase are decoupled};
     \draw<3->[densely dashed,thick,PhantomCyan!90!black]
       (recon.south east) .. controls +(1.15,-0.95) and +(-1.15,-0.95) .. (buy.south west);
     \node<3->[note] at (0,-0.65)
-      {The platform sees behavior proxy $\hat q$, while true demand response $d(p\mid\theta)$ stays latent.};
+      {The platform sees behavior proxy $\hat q$ (\humanagentpair), while true demand response $d(p\mid\theta)$ stays latent.};
   \end{tikzpicture}
 
-  \vspace{0.25em}
-  \begin{tikzpicture}[font=\scriptsize\sffamily,
-    card/.style={draw=PhantomInk,rounded corners=4pt,minimum width=3.85cm,text width=3.55cm,minimum height=1.4cm,align=center}]
-    \path[use as bounding box] (-6.05,-0.95) rectangle (6.05,0.95);
-    \node<4->[card,fill=PhantomInk,text=white] at (-4.05,0)
-      {\large$\mathrm{COI}(\pi)=\mathbb{E}[P]-\underline p$\\[-0.05em]\footnotesize pricing power KPI};
-    \node<5->[card,fill=PhantomCyan!16,text=PhantomSlate] at (0,0)
-      {\Large\bfseries$-9{,}014$\\[-0.05em]\footnotesize revenue units\\per +0.1 contamination};
-    \node<6->[card,fill=PhantomIndigo!12,text=PhantomSlate] at (4.05,0)
-      {\large$\lim_{N\to\infty}\mathrm{COI}=0$\\[-0.05em]\footnotesize theorem as intuition guide};
-  \end{tikzpicture}
+  \vspace{0.05em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.31\textwidth}
+    \uncover<4->{%
+      \centering
+      \begin{tikzpicture}[font=\scriptsize\sffamily]
+        \node[draw=PhantomInk,rounded corners=4pt,fill=PhantomInk,text=white,minimum width=0.97\linewidth,text width=0.84\linewidth,minimum height=1.2cm,align=center]
+          {\large$\mathrm{COI}(\pi)=\mathbb{E}[P]-\underline p$\\[-0.05em]\footnotesize pricing power KPI};
+      \end{tikzpicture}%
+    }
 
-  \vspace{0.15em}
-  \uncover<6->{\scriptsize\textit{The theorem is used to guide intuition: independent reconnaissance pressure can drive realizable prices toward the floor.}}\\[0.2em]
-  \uncover<7->{\footnotesize\textbf{Implication:} most production dynamic pricing stacks are not yet ready for AI-agent traffic; when quote discovery and purchase split, session-based pricing overestimates willingness to pay.}
+    \column{0.31\textwidth}
+    \uncover<5->{%
+      \centering
+      \begin{tikzpicture}[font=\scriptsize\sffamily]
+        \node[draw=PhantomInk,rounded corners=4pt,fill=PhantomIndigo!12,text=PhantomSlate,minimum width=0.97\linewidth,text width=0.84\linewidth,minimum height=1.2cm,align=center]
+          {\large$\lim_{N\to\infty}\mathrm{COI}=0$\\[-0.05em]\footnotesize theorem as intuition guide};
+      \end{tikzpicture}%
+    }
+
+    \column{0.34\textwidth}
+    \uncover<6->{%
+      \centering
+      \begin{tikzpicture}[x=0.67cm,y=0.85cm,font=\scriptsize\sffamily]
+        \draw[->,thick,PhantomSlate] (0,0) -- (4.2,0) node[right] {queries $N$};
+        \draw[->,thick,PhantomSlate] (0,0) -- (0,2.05) node[above] {COI};
+        \draw[very thick,PhantomCyan!95!black] (0.25,1.8) .. controls (1.2,1.35) and (2.25,0.62) .. (4.0,0.16);
+        \draw[dashed,PhantomInk!65] (0,0.16) -- (4.0,0.16);
+        \node[anchor=west,font=\tiny,text=PhantomSlate] at (2.35,0.28) {price-floor proximity};
+      \end{tikzpicture}%
+    }
+  \end{columns}
+
+  \vspace{-0.1em}
+  \uncover<6->{\scriptsize\textit{The theorem gives direction, not prophecy: more independent recon pressure pushes realizable prices toward the floor.}}\\[0.1em]
+  \uncover<7->{\scriptsize\textbf{Implication:} when quote discovery and purchase split, session-based pricing can overestimate willingness to pay.}
   \stagebar{1}
 \end{frame}
 
 \begin{frame}{The thesis answers one chain: mechanism \(\to\) signal \(\to\) control}
-  \begin{enumerate}[<+->]\setlength{\itemsep}{0.45em}
-    \item Can agent and human sessions be reliably distinguished from behavioral interaction signals alone?
-    \item How do agents affect prices and revenue that can be generated?
-    \item Can we make new policies that maintain margin in agent contaminated systems?
-  \end{enumerate}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.32\textwidth}
+    \centering
+    \begin{tikzpicture}[font=\scriptsize\sffamily]
+      \draw[rounded corners=4pt,draw=PhantomInk,fill=white] (-1.55,-1.1) rectangle (1.55,1.2);
+      \fill[PhantomCyan!85!black] (-0.75,0.35) circle (0.14);
+      \fill[PhantomCyan!85!black] (-0.45,0.70) circle (0.14);
+      \fill[PhantomCyan!85!black] (-0.15,0.45) circle (0.14);
+      \fill[PhantomIndigo!85!black] (0.35,-0.20) circle (0.14);
+      \fill[PhantomIndigo!85!black] (0.65,-0.45) circle (0.14);
+      \fill[PhantomIndigo!85!black] (0.95,-0.15) circle (0.14);
+      \draw[dashed,PhantomInk!60] (0.12,-0.92) -- (0.12,1.0);
+      \node[text=PhantomSlate,font=\tiny] at (0,-0.93) {behavior separability};
+    \end{tikzpicture}
+    {\footnotesize\textbf{SQ1}}\\[-0.15em]
+    {\scriptsize Can we distinguish \humanicon and \roboticon sessions from interactions alone?}
 
-  \vspace{0.35em}
+    \column{0.32\textwidth}
+    \centering
+    \begin{tikzpicture}[font=\scriptsize\sffamily]
+      \draw[rounded corners=4pt,draw=PhantomInk,fill=white] (-1.55,-1.1) rectangle (1.55,1.2);
+      \draw[->,thick,PhantomSlate] (-1.2,-0.75) -- (1.2,-0.75);
+      \draw[->,thick,PhantomSlate] (-1.2,-0.75) -- (-1.2,0.85);
+      \draw[very thick,PhantomCyan!95!black] (-1.0,0.62) .. controls (-0.4,0.2) and (0.3,-0.18) .. (1.0,-0.58);
+      \node[text=PhantomSlate,font=\tiny] at (0,-0.95) {COI / revenue pressure};
+    \end{tikzpicture}
+    {\footnotesize\textbf{SQ2}}\\[-0.15em]
+    {\scriptsize How strong is price and revenue erosion under agentic contamination?}
+
+    \column{0.32\textwidth}
+    \centering
+    \begin{tikzpicture}[font=\scriptsize\sffamily]
+      \draw[rounded corners=4pt,draw=PhantomInk,fill=white] (-1.55,-1.1) rectangle (1.55,1.2);
+      \draw[thick,fill=PhantomIndigo!20,draw=PhantomInk] (0,0.82) -- (0.98,0.32) -- (0.98,-0.44) -- (0,-0.90) -- (-0.98,-0.44) -- (-0.98,0.32) -- cycle;
+      \draw[thick,PhantomInk] (0,-0.46) -- (0,0.38);
+      \draw[thick,PhantomInk] (0,-0.46) -- (0.42,-0.08);
+      \node[text=PhantomSlate,font=\tiny] at (0,-0.95) {robust policy control};
+    \end{tikzpicture}
+    {\footnotesize\textbf{SQ3}}\\[-0.15em]
+    {\scriptsize Can policy design recover margin while keeping UX stable?}
+  \end{columns}
+
+  \vspace{0.2em}
   \stagebar{1}
 \end{frame}
 
@@ -188,12 +340,12 @@
     box/.style={draw=PhantomInk,rounded corners=3pt,minimum width=2.5cm,minimum height=0.9cm,align=center},
     arr/.style={-{Stealth[length=2.2mm]},thick,PhantomSlate}
   ]
-    \node[box,fill=PhantomCyan!14] (actors) at (0,1.45) {Humans + Agents};
-    \node[box,fill=white] (web) at (2.9,1.45) {Next.js\\storefront};
-    \node[box,fill=white] (provider) at (5.8,1.45) {Pricing\\provider};
-    \node[box,fill=white] (redis) at (8.7,1.45) {Redis\\serve layer};
-    \node[box,fill=PhantomIndigo!10,minimum width=3.1cm] (kafka) at (4.35,-0.15) {Kafka topics\\behavior + price logs};
-    \node[box,fill=PhantomCyan!10,minimum width=2.8cm] (airflow) at (8.0,-0.15) {Airflow + worker\\batch updates};
+    \node[box,fill=PhantomCyan!14] (actors) at (0,1.45) {\usersagentslabel};
+    \node[box,fill=white] (web) at (2.9,1.45) {Web\\storefront};
+    \node[box,fill=white] (provider) at (5.8,1.45) {Pricing\\service};
+    \node[box,fill=white] (redis) at (8.7,1.45) {Serve\\cache};
+    \node[box,fill=PhantomIndigo!10,minimum width=3.1cm] (kafka) at (4.35,-0.15) {Event stream\\behavior + quote logs};
+    \node[box,fill=PhantomCyan!10,minimum width=2.8cm] (airflow) at (8.0,-0.15) {Offline trainer\\batch updates};
 
     \draw[arr] (actors) -- (web);
     \draw[arr] (web) -- (provider);
@@ -357,7 +509,7 @@
 
   \vspace{0.25em}
   \begin{itemize}
-    \item<3-> The signed gap $g(\tau')$ is positive when a session is closer to agent behavior.
+    \item<3-> The signed gap $g(\tau')$ is positive when a session is closer to agent behavior \roboticon (vs. human reference \humanicon).
     \item<4-> Temperature $T$ calibrates how sharply the score moves away from uncertainty.
     \item<6-> Continuous scoring is used to steer contamination-aware pricing.
     \item<7-> The design target is guidance, not a hard user-level ban decision.
@@ -466,7 +618,7 @@
 
   \vspace{0.25em}
   \begin{itemize}
-    \item<2-> Baseline experiments use a query-tax leakage surrogate for tractability.
+    \item<2-> Baseline experiments use a query-tax leakage surrogate where higher $f(\tau')$ \roboticon increases leakage penalty.
     \item<3-> Supra-competitive anchor penalties are tracked as an additional safety rail.
   \end{itemize}
   \stagebar{4}
