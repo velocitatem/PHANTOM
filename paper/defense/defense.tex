@@ -29,31 +29,32 @@
 % Palette
 \definecolor{PhantomPaper}{HTML}{F6F1E9}
 \definecolor{PhantomInk}{HTML}{0F1B2D}
-\definecolor{PhantomSlate}{HTML}{24364C}
+\definecolor{PhantomSlate}{HTML}{6F89A3}
 \definecolor{PhantomCyan}{HTML}{C97A3D}
 \definecolor{PhantomIndigo}{HTML}{2F8F8A}
 \definecolor{PhantomPeach}{HTML}{EEC39C}
 
-\setbeamercolor{normal text}{fg=PhantomSlate,bg=PhantomPaper}
-\setbeamercolor{alerted text}{fg=PhantomCyan!95!black}
-\setbeamercolor{example text}{fg=PhantomIndigo!95!black}
-\setbeamercolor{palette primary}{fg=white,bg=PhantomInk}
+\setbeamercolor{normal text}{fg=PhantomPaper,bg=PhantomInk}
+\setbeamercolor{background canvas}{bg=PhantomInk}
+\setbeamercolor{alerted text}{fg=PhantomCyan!35!white}
+\setbeamercolor{example text}{fg=PhantomIndigo!35!white}
+\setbeamercolor{palette primary}{fg=PhantomPaper,bg=PhantomInk!95!black}
 \setbeamercolor{frametitle}{parent=palette primary}
-\setbeamercolor{progress bar}{fg=PhantomCyan,bg=PhantomInk!28!white}
+\setbeamercolor{progress bar}{fg=PhantomCyan,bg=PhantomPaper!20!PhantomInk}
 \setbeamercolor{title separator}{use=progress bar,parent=progress bar}
-\setbeamercolor{structure}{fg=PhantomIndigo!90!black}
-\setbeamercolor{block title}{fg=white,bg=PhantomIndigo!85!black}
-\setbeamercolor{block body}{fg=PhantomSlate,bg=PhantomIndigo!8!white}
-\setbeamercolor{alertblock title}{fg=white,bg=PhantomCyan!92!black}
-\setbeamercolor{alertblock body}{fg=PhantomSlate,bg=PhantomCyan!10!white}
-\setbeamercolor{exampleblock title}{fg=white,bg=PhantomIndigo!70!black}
-\setbeamercolor{exampleblock body}{fg=PhantomSlate,bg=PhantomIndigo!8!white}
+\setbeamercolor{structure}{fg=PhantomCyan!20!white}
+\setbeamercolor{block title}{fg=PhantomPaper,bg=PhantomIndigo!65!black}
+\setbeamercolor{block body}{fg=PhantomPaper,bg=PhantomInk!72!PhantomIndigo}
+\setbeamercolor{alertblock title}{fg=PhantomPaper,bg=PhantomCyan!82!black}
+\setbeamercolor{alertblock body}{fg=PhantomPaper,bg=PhantomInk!72!PhantomCyan}
+\setbeamercolor{exampleblock title}{fg=PhantomPaper,bg=PhantomIndigo!58!black}
+\setbeamercolor{exampleblock body}{fg=PhantomPaper,bg=PhantomInk!72!PhantomIndigo}
 
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{itemize item}{\small\raise0.3ex\hbox{$\bullet$}}
 \setbeamertemplate{itemize subitem}{\tiny\raise0.2ex\hbox{$\circ$}}
 
-\hypersetup{colorlinks=true,urlcolor=PhantomIndigo!90!black,linkcolor=PhantomSlate}
+\hypersetup{colorlinks=true,urlcolor=PhantomCyan!40!white,linkcolor=PhantomPaper}
 
 \title{PHANTOM}
 \subtitle{Pricing Heuristics Against Non-human Transaction Orchestration Mechanisms}
@@ -107,6 +108,8 @@
 \newcommand{\usersagentslabel}{Users \humanicon + agents \roboticon}
 \newcommand{\humanagentpair}{\humanicon, \roboticon}
 \newcommand{\humanagentmix}{\humanicon/\roboticon}
+
+\tikzset{every node/.append style={text=PhantomSlate}}
 
 \begin{document}
 
