@@ -30,9 +30,9 @@
   \scriptsize
   \begin{align*}
     \tau_s &= (e_{s,1},\ldots,e_{s,L_s}) && \text{session} \\
-    \hat{q}_{t,i} &= \sum_{s\in S_t}\sum_k \omega(a_{s,k})\,\mathbf{1}[i_{s,k}=i] && \text{proxy }(\humanagentpair) \\
+    \hat{q}_{t,i} &= \sum_{s\in S_t}\sum_k \omega(a_{s,k})\,\mathbf{1}[i_{s,k}=i] && \text{proxy }(\humanicon, \roboticon) \\
     Q(p) &= (1-\alpha)\,\mathbb{E}_{\theta\sim D_H}[d(p;\theta)] \\
-         &\quad + \alpha\,\mathbb{E}_{\theta\sim D_A}[d(p;\theta)] + \epsilon_t && \text{mixture of }\humanagentmix \\
+         &\quad + \alpha\,\mathbb{E}_{\theta\sim D_A}[d(p;\theta)] + \epsilon_t && \text{mixture of }\humanicon/\roboticon \\
     \mathrm{COI}(\pi) &= \mathbb{E}[P]-\underline{p} && \text{COI}
   \end{align*}
 \end{frame}
@@ -63,7 +63,7 @@
     \hat{q}_{t,i}=\sum_{s\in S_t}\sum_{k=1}^{L_s} \omega(a_{s,k})\,\mathbf{1}[i_{s,k}=i]
   \]
   \begin{alertblock}{Key distinction}
-    \(\hat{q}\) is an operational sensor from logs (\humanagentpair); true demand \(d(p;\theta)\) stays latent. Pricing reacts to \(\hat{q}\), so agent-shaped behavior can poison the signal.
+    \(\hat{q}\) is an operational sensor from logs (\humanicon, \roboticon); true demand \(d(p;\theta)\) stays latent. Pricing reacts to \(\hat{q}\), so agent-shaped behavior can poison the signal.
   \end{alertblock}
 \end{frame}
 

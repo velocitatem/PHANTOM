@@ -1,8 +1,56 @@
 % Final thesis defense (PHANTOM)
 % Build: cd paper/defense && pdflatex defense.tex && pdflatex defense.tex
-\documentclass[aspectratio=169,11pt]{beamer}
+%
+% =========================================================================
+% NOTATION GUIDE (every variable used in this deck is defined once here)
+% =========================================================================
+%
+% PRICING & POLICY
+%   p_t              price action at time t                [EUR per booking]
+%   p_floor          minimum viable price (marginal cost)  [EUR per booking]
+%   E[P]             expected price under policy pi        [EUR per booking]
+%   pi(x_t)          policy mapping context to price
+%   x_t              context vector (product, time, behavior signals)
+%   R(p, q)          revenue per session, equals p * q     [EUR per session]
+%
+% COST OF INFORMATION
+%   COI(pi) = E[P] - p_floor                               [EUR per transaction]
+%   This is the average premium the platform extracts above marginal cost,
+%   i.e. the financial value of "knowing the customer's interest".
+%
+% BEHAVIOR & SESSIONS
+%   tau              full session trajectory of (action, item, time) tuples
+%   tau'             partial trajectory observed at scoring time
+%   T_hat(s'|s)      empirical session transition kernel (a square table:
+%                    rows are current actions, columns are next actions,
+%                    each row sums to one)
+%   T_H_bar          human prototype kernel (reference for human cohort)
+%   T_A_bar          agent prototype kernel (reference for agent cohort)
+%
+% DETECTION SIGNAL
+%   Delta_H = KL(T_hat' || T_H_bar)   distance to human prototype
+%   Delta_A = KL(T_hat' || T_A_bar)   distance to agent prototype
+%   g(tau') = Delta_H - Delta_A       signed gap, zero is the boundary
+%   f(tau') = sigmoid(g/T) in [0,1]   agent-likelihood score
+%   T                temperature for the sigmoid (unitless)
+%   threshold        decision boundary at f = 0.5 (g = 0)
+%
+% DEMAND & CONTAMINATION
+%   d(p|theta)       individual demand response, theta is type
+%   alpha            contamination ratio, fraction of agent-mediated traffic
+%   Q(p|alpha)       aggregate demand under contamination alpha
+%
+% ROBUST CONTROL
+%   P_hat_N          empirical demand distribution from N samples
+%   U_eps(P_hat_N)   Wasserstein ambiguity ball of radius eps
+%   lambda           weight on COI-leakage penalty in the reward
+%   eta_ux           weight on UX penalty in the reward
+%   c_info           per-query info cost surrogate           [EUR per query]
+%   UX(tau, p)       user-experience penalty in [0,1]
+%
+% =========================================================================
 
-% Narrative and visual refinements for final defense delivery.
+\documentclass[aspectratio=169,11pt]{beamer}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -15,7 +63,7 @@
 \usepackage{appendixnumberbeamer}
 \usepackage{hyperref}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,calc,positioning,fit,shapes.geometric,shapes.misc}
+\usetikzlibrary{arrows.meta,calc,positioning,fit,shapes.geometric,shapes.misc,decorations.pathreplacing}
 
 \graphicspath{{../src/chapters/figures/results/generated/final/plots/}{../src/chapters/}}
 
@@ -26,49 +74,48 @@
 \usefonttheme{professionalfonts}
 \setbeamertemplate{frame numbering}[fraction]
 
-% Palette
+% Dark palette: deep ink canvas, cream paper text, orange + teal accents
 \definecolor{PhantomPaper}{HTML}{F6F1E9}
 \definecolor{PhantomInk}{HTML}{0F1B2D}
-\definecolor{PhantomSlate}{HTML}{6F89A3}
-\definecolor{PhantomCyan}{HTML}{C97A3D}
-\definecolor{PhantomIndigo}{HTML}{2F8F8A}
+\definecolor{PhantomSlate}{HTML}{B5C2D2}
+\definecolor{PhantomCyan}{HTML}{E08A4C}
+\definecolor{PhantomIndigo}{HTML}{4FB8B2}
 \definecolor{PhantomPeach}{HTML}{EEC39C}
+\definecolor{PhantomMute}{HTML}{4A5566}
 
 \setbeamercolor{normal text}{fg=PhantomPaper,bg=PhantomInk}
 \setbeamercolor{background canvas}{bg=PhantomInk}
-\setbeamercolor{alerted text}{fg=PhantomCyan!35!white}
-\setbeamercolor{example text}{fg=PhantomIndigo!35!white}
-\setbeamercolor{palette primary}{fg=PhantomPaper,bg=PhantomInk!95!black}
-\setbeamercolor{frametitle}{parent=palette primary}
-\setbeamercolor{progress bar}{fg=PhantomCyan,bg=PhantomPaper!20!PhantomInk}
-\setbeamercolor{title separator}{use=progress bar,parent=progress bar}
-\setbeamercolor{structure}{fg=PhantomCyan!20!white}
-\setbeamercolor{block title}{fg=PhantomPaper,bg=PhantomIndigo!65!black}
-\setbeamercolor{block body}{fg=PhantomPaper,bg=PhantomInk!72!PhantomIndigo}
-\setbeamercolor{alertblock title}{fg=PhantomPaper,bg=PhantomCyan!82!black}
-\setbeamercolor{alertblock body}{fg=PhantomPaper,bg=PhantomInk!72!PhantomCyan}
-\setbeamercolor{exampleblock title}{fg=PhantomPaper,bg=PhantomIndigo!58!black}
-\setbeamercolor{exampleblock body}{fg=PhantomPaper,bg=PhantomInk!72!PhantomIndigo}
+\setbeamercolor{alerted text}{fg=PhantomCyan}
+\setbeamercolor{example text}{fg=PhantomIndigo}
+\setbeamercolor{palette primary}{fg=PhantomPaper,bg=PhantomInk}
+\setbeamercolor{frametitle}{fg=PhantomPaper,bg=PhantomInk}
+\setbeamercolor{progress bar}{fg=PhantomCyan,bg=PhantomMute!50}
+\setbeamercolor{title separator}{fg=PhantomCyan,bg=PhantomMute!50}
+\setbeamercolor{structure}{fg=PhantomCyan}
+\setbeamercolor{block title}{fg=PhantomPaper,bg=PhantomMute!70!PhantomInk}
+\setbeamercolor{block body}{fg=PhantomPaper,bg=PhantomMute!35!PhantomInk}
+\setbeamercolor{alertblock title}{fg=PhantomInk,bg=PhantomCyan}
+\setbeamercolor{alertblock body}{fg=PhantomPaper,bg=PhantomCyan!25!PhantomInk}
+\setbeamercolor{exampleblock title}{fg=PhantomInk,bg=PhantomIndigo}
+\setbeamercolor{exampleblock body}{fg=PhantomPaper,bg=PhantomIndigo!25!PhantomInk}
 
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{itemize item}{\small\raise0.3ex\hbox{$\bullet$}}
 \setbeamertemplate{itemize subitem}{\tiny\raise0.2ex\hbox{$\circ$}}
 
-\hypersetup{colorlinks=true,urlcolor=PhantomCyan!40!white,linkcolor=PhantomPaper}
+\hypersetup{colorlinks=true,urlcolor=PhantomCyan,linkcolor=PhantomInk}
 
 \title{PHANTOM}
 \subtitle{Pricing Heuristics Against Non-human Transaction Orchestration Mechanisms}
-\author{Daniel Rösel}
-\institute{IE University, Madrid \\ Supervisor: Alberto Martín Izquierdo}
+\author{Daniel R\"osel}
+\institute{IE University, Madrid \\ Supervisor: Alberto Mart\'in Izquierdo}
 \date{\today}
 
-\titlegraphic{%
-  \begin{tikzpicture}
-    \shade[left color=PhantomCyan,right color=PhantomIndigo] (0,0) rectangle (0.55\paperwidth,0.06);
-  \end{tikzpicture}%
+% Variable explanation block: \vardef{symbol}{description}
+\newcommand{\vardef}[2]{%
+  \par\noindent\makebox[1.55cm][l]{\textbf{\color{PhantomCyan}#1}}%
+  \parbox[t]{\dimexpr\linewidth-1.65cm}{\small #2}\par\smallskip%
 }
-
-\newcommand{\stagebar}[1]{}
 
 \newcommand{\metriccard}[2]{%
   \begin{tikzpicture}
@@ -83,69 +130,71 @@
   \end{tikzpicture}%
 }
 
-\newcommand{\humaniconraw}{%
-  \begin{tikzpicture}[x=0.9ex,y=0.9ex]
-    \fill[PhantomIndigo] (0,1.55) circle (0.42);
-    \draw[PhantomInk,line width=0.20pt,fill=PhantomSlate!95!black] (0,0.0) ellipse (0.72 and 0.56);
-  \end{tikzpicture}%
+% Compact inline icons (text-based, no nested tikzpictures).
+% Dynamic color: uses current text color so icons stay visible inside
+% blocks (dark text) and on the dark canvas (light text).
+\newcommand{\humanicon}{\textbf{\textsf{H}}\xspace}
+\newcommand{\roboticon}{\textcolor{PhantomCyan}{\textbf{\textsf{A}}}\xspace}
+\newcommand{\platformicon}{\textcolor{PhantomIndigo}{\textbf{\textsf{P}}}\xspace}
+
+% Big diagram icons (drawn directly inside an outer tikzpicture, no nesting)
+\newcommand{\bighumanicon}[1]{%
+  \fill[PhantomInk] (#1) ++(0,0.45) circle (0.18);
+  \draw[PhantomInk,line width=0.6pt,fill=PhantomSlate!30] (#1) ellipse (0.32 and 0.22);
+}
+\newcommand{\bigroboticon}[1]{%
+  \draw[PhantomInk,line width=0.6pt,rounded corners=2pt,fill=PhantomCyan!30] ($(#1)+(-0.42,-0.30)$) rectangle ($(#1)+(0.42,0.34)$);
+  \fill[PhantomPaper] ($(#1)+(-0.18,0.05)$) circle (0.09);
+  \fill[PhantomPaper] ($(#1)+(0.18,0.05)$) circle (0.09);
+  \fill[PhantomInk] ($(#1)+(-0.18,0.05)$) circle (0.035);
+  \fill[PhantomInk] ($(#1)+(0.18,0.05)$) circle (0.035);
+  \draw[PhantomInk,line width=0.6pt] ($(#1)+(0,0.34)$) -- ($(#1)+(0,0.50)$);
+  \fill[PhantomCyan] ($(#1)+(0,0.55)$) circle (0.05);
+}
+\newcommand{\bigplatformicon}[1]{%
+  \draw[PhantomInk,line width=0.6pt,rounded corners=2pt,fill=PhantomIndigo!25] ($(#1)+(-0.32,-0.32)$) rectangle ($(#1)+(0.32,0.32)$);
+  \node[font=\small\bfseries,text=PhantomInk] at (#1) {P};
 }
 
-\newcommand{\roboticonraw}{%
-  \begin{tikzpicture}[x=0.9ex,y=0.9ex]
-    \draw[PhantomInk,line width=0.20pt,rounded corners=0.35ex,fill=PhantomPeach] (-0.95,-0.78) rectangle (0.95,0.72);
-    \draw[PhantomInk,line width=0.20pt,fill=white] (-0.42,0.08) circle (0.21);
-    \draw[PhantomInk,line width=0.20pt,fill=white] (0.42,0.08) circle (0.21);
-    \fill[PhantomInk] (-0.42,0.08) circle (0.07);
-    \fill[PhantomInk] (0.42,0.08) circle (0.07);
-    \draw[PhantomInk,line width=0.20pt] (-0.30,-0.30) -- (0.30,-0.30);
-    \draw[PhantomInk,line width=0.20pt] (0,0.72) -- (0,1.03);
-    \fill[PhantomIndigo] (0,1.15) circle (0.10);
-  \end{tikzpicture}%
-}
-
-\newcommand{\humanicon}{\raisebox{-0.45ex}{\humaniconraw}\xspace}
-\newcommand{\roboticon}{\raisebox{-0.45ex}{\roboticonraw}\xspace}
-\newcommand{\usersagentslabel}{Users \humanicon + agents \roboticon}
-\newcommand{\humanagentpair}{\humanicon, \roboticon}
-\newcommand{\humanagentmix}{\humanicon/\roboticon}
-
-\tikzset{every node/.append style={text=PhantomSlate}}
+\tikzset{every node/.append style={text=PhantomInk}}
 
 \begin{document}
 
-{
-\setbeamercolor{background canvas}{bg=PhantomInk}
+% =========================================================================
+% TITLE
+% =========================================================================
 \begin{frame}[plain]
   \vfill
   \centering
-  {\color{white}\Huge\bfseries PHANTOM\par}
+  {\color{PhantomPaper}\Huge\bfseries PHANTOM\par}
   \vspace{0.6em}
   {\color{PhantomCyan}\rule{0.45\paperwidth}{0.06cm}\par}
   \vspace{0.8em}
-  {\large\color{white!90!black}Pricing heuristics against non-human transaction orchestration\par}
+  {\large\color{PhantomPaper}Pricing heuristics against non-human transaction orchestration\par}
   \vfill
-  {\color{white!75!black}\normalsize Daniel Rösel\par}
-  {\color{white!65!black}\small IE University \textbullet\ Supervisor: Alberto Martín Izquierdo\par}
+  {\color{PhantomPaper}\normalsize Daniel R\"osel\par}
+  {\color{PhantomSlate}\small IE University \textbullet\ Supervisor: Alberto Mart\'in Izquierdo\par}
   \vspace{1.2em}
-  {\footnotesize\color{PhantomCyan!80!white}\href{https://velocitatem.github.io/PHANTOM/}{\texttt{velocitatem.github.io/PHANTOM}}}
+  {\footnotesize\color{PhantomCyan}\href{https://velocitatem.github.io/PHANTOM/}{\texttt{velocitatem.github.io/PHANTOM}}}
   \vfill
 \end{frame}
-}
 
-\begin{frame}{Roadmap: one argument in six stages (15 min)}
+% =========================================================================
+% ROADMAP (no minutes)
+% =========================================================================
+\begin{frame}{Roadmap: one argument in six stages}
   \centering
   \begin{tikzpicture}[
     font=\scriptsize\sffamily,
-    stage/.style={draw=PhantomInk,rounded corners=3pt,fill=PhantomCyan!10,minimum width=1.95cm,minimum height=1.05cm,align=center},
+    stage/.style={draw=PhantomInk,rounded corners=3pt,fill=PhantomCyan!10,minimum width=2.05cm,minimum height=0.95cm,align=center},
     flow/.style={-{Stealth[length=2.0mm,width=1.8mm]},line width=1pt,PhantomSlate}
   ]
-    \node[stage,fill=PhantomCyan!14] (intro) {Intro\\2m};
-    \node[stage,right=0.30cm of intro] (platform) {Platform\\4m};
-    \node[stage,right=0.30cm of platform] (signal) {Signal\\4m};
-    \node[stage,right=0.30cm of signal] (drrl) {DR-RL\\4m};
-    \node[stage,right=0.30cm of drrl] (results) {Results\\1m};
+    \node[stage] (intro) {Two POVs};
+    \node[stage,right=0.30cm of intro] (platform) {Platform};
+    \node[stage,right=0.30cm of platform] (signal) {Signal};
+    \node[stage,right=0.30cm of signal] (drrl) {DR-RL};
+    \node[stage,right=0.30cm of drrl] (results) {Results};
     \node[stage,right=0.30cm of results] (close) {Close};
-
     \draw[flow,shorten <=2pt,shorten >=2pt] (intro.east) -- (platform.west);
     \draw[flow,shorten <=2pt,shorten >=2pt] (platform.east) -- (signal.west);
     \draw[flow,shorten <=2pt,shorten >=2pt] (signal.east) -- (drrl.west);
@@ -153,154 +202,279 @@
     \draw[flow,shorten <=2pt,shorten >=2pt] (results.east) -- (close.west);
   \end{tikzpicture}
 
-  \vspace{0.75em}
+  \vspace{0.9em}
   \begin{block}{Main research question}
-    How can dynamic pricing preserve margin integrity when transactions are increasingly mediated by non-human agents?
+    How can dynamic pricing preserve margin integrity when transactions are
+    increasingly mediated by non-human agents?
   \end{block}
   \vspace{0.35em}
-  {\footnotesize Dynamic pricing has often been treated as a secondary optimization layer; agent-mediated shopping turns it into a primary margin-risk surface.}
-  \stagebar{1}
+  {\footnotesize Dynamic pricing has often been treated as a secondary
+  optimization layer; agent-mediated shopping turns it into a primary
+  margin-risk surface.}
 \end{frame}
 
-\begin{frame}{Motivation: one everyday pricing story}
-  \footnotesize
+% =========================================================================
+% TWO POVs - INTRO
+% =========================================================================
+\begin{frame}{This work cycles through two points of view}
+  \centering
+  \begin{tikzpicture}[
+    font=\small\sffamily,
+    box/.style={draw=PhantomInk,rounded corners=6pt,minimum width=5.2cm,minimum height=3.4cm,align=center}
+  ]
+    \node[box,fill=PhantomCyan!12] (consumer) at (-3.4,0) {};
+    \node[box,fill=PhantomIndigo!12] (platform) at (3.4,0) {};
+    \bighumanicon{-3.4,0.95}
+    \bigplatformicon{3.4,0.95}
+    \node[font=\small,align=center,text=PhantomInk] at (-3.4,-0.45)
+      {\textbf{Consumer POV}\\[0.4em]
+       \footnotesize\textit{``how much does this item cost?''}\\[0.2em]
+       \footnotesize the question being asked};
+    \node[font=\small,align=center,text=PhantomInk] at (3.4,-0.45)
+      {\textbf{Platform POV}\\[0.4em]
+       \footnotesize\textit{``what does this session reveal?''}\\[0.2em]
+       \footnotesize the demand being inferred};
+    \draw[<->,thick,PhantomSlate] (consumer.east) -- node[above,font=\scriptsize,text=PhantomPaper]{price quote} node[below,font=\scriptsize,text=PhantomPaper]{behavior trail} (platform.west);
+  \end{tikzpicture}
+
+  \vspace{0.6em}
+  \begin{block}{Why two views}
+    The same transaction looks very different from each side. We will switch
+    between them to show where agent-mediation breaks the loop.
+  \end{block}
+\end{frame}
+
+% =========================================================================
+% POV 1 - DIRECT
+% =========================================================================
+\begin{frame}{POV 1: the consumer asks the platform directly}
+  \centering
+  \begin{tikzpicture}[
+    font=\small\sffamily,
+    actor/.style={draw=PhantomInk,rounded corners=5pt,minimum width=2.6cm,minimum height=1.4cm,align=center,fill=PhantomPaper},
+    msg/.style={draw=PhantomInk!40,rounded corners=2pt,fill=PhantomCyan!8,inner sep=4pt,font=\scriptsize}
+  ]
+    \node[actor,fill=PhantomCyan!14] (h) at (-4.5,0) {\\[0.6em]consumer};
+    \node[actor,fill=PhantomIndigo!14] (p) at (4.5,0) {\\[0.6em]platform};
+    \bighumanicon{-4.5,0.25}
+    \bigplatformicon{4.5,0.25}
+
+    \draw[-{Stealth[length=2.5mm]},thick,PhantomPaper] ([yshift=0.45cm]h.east) -- ([yshift=0.45cm]p.west)
+      node[midway,above,msg]{``how much does item $i$ cost?''};
+    \draw[-{Stealth[length=2.5mm]},thick,PhantomPaper] ([yshift=-0.45cm]p.west) -- ([yshift=-0.45cm]h.east)
+      node[midway,below,msg]{``it costs $p_t$''};
+  \end{tikzpicture}
+
+  \vspace{0.7em}
   \begin{columns}[T,onlytextwidth]
-    \column{0.53\textwidth}
-    \begin{block}{Imagine you sell weekend hotel rooms online}
-      A customer asks an assistant to scout many quotes first, then buys in a clean session at the best discovered price.
+    \column{0.5\textwidth}
+    \footnotesize
+    \textbf{What you see:} a website opens, you read a price, you decide.\\[0.3em]
+    \textbf{What the platform sees:} clicks, hovers, dwell time --- a clean
+    behavioral fingerprint of one human session.
+    \column{0.45\textwidth}
+    \begin{block}{Variables}
+      \vardef{$i$}{the item being shopped (e.g. a hotel night)}
+      \vardef{$p_t$}{posted price at time $t$, in EUR per booking}
     \end{block}
-    \begin{alertblock}{Why this matters to everyday people}
-      If this behavior is untreated, honest shoppers can face noisier prices and a weaker shopping experience because pricing reacts to manipulated intent signals.
-    \end{alertblock}
-
-    \column{0.44\textwidth}
-    \centering
-    \begin{tikzpicture}[
-      font=\scriptsize\sffamily,
-      card/.style={draw=PhantomInk,rounded corners=5pt,minimum width=3.8cm,minimum height=1.0cm,align=center},
-      flow/.style={-{Stealth[length=2.2mm]},thick,PhantomSlate}
-    ]
-      \node[card,fill=PhantomCyan!15] (seller) at (0,1.55) {Seller posts rooms};
-      \node[card,fill=white] (recon) at (0,0.2) {Recon by agent \roboticon};
-      \node[card,fill=PhantomIndigo!12] (buy) at (0,-1.15) {Purchase by user \humanicon};
-      \draw[flow] (seller) -- (recon);
-      \draw[flow] (recon) -- (buy);
-      \node[font=\tiny\itshape,text=PhantomSlate] at (0,-1.95) {query and purchase split across sessions};
-    \end{tikzpicture}
   \end{columns}
-
-  \vspace{-0.15em}
-  {\scriptsize\textbf{Takeaway:} protect legitimate shoppers \humanicon while detecting orchestrated recon \roboticon before pricing leakage compounds.}
-  \stagebar{1}
 \end{frame}
 
-\begin{frame}{Policy first: one rule maps context into price actions}
+% =========================================================================
+% POV 2 - VIA AGENT
+% =========================================================================
+\begin{frame}{POV 2: the consumer asks an AI agent}
+  \centering
+  \begin{tikzpicture}[
+    font=\small\sffamily,
+    actor/.style={draw=PhantomInk,rounded corners=5pt,minimum width=2.3cm,minimum height=1.3cm,align=center,fill=PhantomPaper},
+    msg/.style={font=\tiny,text=PhantomSlate}
+  ]
+    \node[actor,fill=PhantomCyan!14] (h) at (-5.6,0) {};
+    \node[actor,fill=PhantomCyan!14] (a) at (0,0) {};
+    \node[actor,fill=PhantomIndigo!14] (p) at (5.6,0) {};
+    \bighumanicon{-5.6,0}
+    \bigroboticon{0,0}
+    \bigplatformicon{5.6,0}
+
+    \draw[-{Stealth[length=2.5mm]},thick,PhantomPaper] ([yshift=0.35cm]h.east) -- ([yshift=0.35cm]a.west)
+      node[midway,above,msg]{``find prices for $i$''};
+    \draw[-{Stealth[length=2.5mm]},thick,PhantomPaper] ([yshift=0.35cm]a.east) -- ([yshift=0.35cm]p.west)
+      node[midway,above,msg]{repeated queries};
+    \draw[-{Stealth[length=2.5mm]},thick,PhantomCyan] ([yshift=-0.35cm]p.west) -- ([yshift=-0.35cm]a.east)
+      node[midway,below,msg,text=PhantomCyan]{many quotes};
+    \draw[-{Stealth[length=2.5mm]},thick,PhantomCyan] ([yshift=-0.35cm]a.west) -- ([yshift=-0.35cm]h.east)
+      node[midway,below,msg,text=PhantomCyan]{best price found};
+  \end{tikzpicture}
+
+  \vspace{0.5em}
   \begin{columns}[T,onlytextwidth]
     \column{0.55\textwidth}
-    \begin{block}{Policy definition}
+    \footnotesize
+    \textbf{Same intent, different visible behavior.} The platform sees a
+    machine-paced session that looks nothing like the human who actually
+    wants to buy.
+    \column{0.40\textwidth}
+    \begin{alertblock}{Information asymmetry flips}
+      The agent samples many quotes before committing; the platform only
+      sees the recon, not the buyer.
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% =========================================================================
+% DEMAND FLOW - WHAT THE PLATFORM ACTUALLY OBSERVES
+% =========================================================================
+\begin{frame}{Two flows, one demand signal --- and only one is reliable}
+  \centering
+  \begin{tikzpicture}[font=\scriptsize\sffamily,
+    flow/.style={-{Stealth[length=2.2mm]},thick,PhantomSlate},
+    panel/.style={draw=PhantomInk,rounded corners=4pt,minimum width=5.5cm,minimum height=3.0cm,align=center,fill=PhantomPaper}]
+
+    \node[panel,fill=PhantomCyan!8] (left) at (-3.4,0) {};
+    \node[anchor=north,font=\footnotesize\bfseries] at (left.north) {\vphantom{p}direct human session};
+    \coordinate (h1) at (-5.0,0.0);
+    \bighumanicon{h1}
+    \node[draw=PhantomInk,rounded corners=2pt,minimum width=1.4cm,minimum height=0.55cm,fill=PhantomPaper,font=\tiny] (pt1) at (-2.0,0.6) {one buyer};
+    \node[draw=PhantomInk,rounded corners=2pt,minimum width=1.4cm,minimum height=0.55cm,fill=PhantomCyan!20,font=\tiny] (q1) at (-2.0,-0.6) {true demand};
+    \draw[flow] ($(h1)+(0.3,0)$) -- (pt1.west);
+    \draw[flow] ($(h1)+(0.3,0)$) -- (q1.west);
+
+    \node[panel,fill=PhantomIndigo!8] (right) at (3.4,0) {};
+    \node[anchor=north,font=\footnotesize\bfseries] at (right.north) {\vphantom{p}agent-mediated session};
+    \coordinate (h2) at (1.4,0.0);
+    \coordinate (a2) at (3.4,0.0);
+    \bighumanicon{h2}
+    \bigroboticon{a2}
+    \node[draw=PhantomInk,rounded corners=2pt,minimum width=1.4cm,minimum height=0.55cm,fill=PhantomPaper,font=\tiny] (pt2) at (5.4,0.6) {many quotes};
+    \node[draw=PhantomInk,rounded corners=2pt,minimum width=1.4cm,minimum height=0.55cm,fill=PhantomMute!30,font=\tiny] (q2) at (5.4,-0.6) {buyer hidden};
+    \draw[flow] ($(h2)+(0.3,0)$) -- ($(a2)+(-0.42,0)$);
+    \draw[flow] ($(a2)+(0.42,0)$) -- (pt2.west);
+    \draw[flow] ($(a2)+(0.42,0)$) -- (q2.west);
+  \end{tikzpicture}
+
+  \vspace{0.5em}
+  {\footnotesize\textbf{Takeaway.} On the right, the platform sees recon, not
+  intent. Pricing trained on the visible signal will misread real demand.}
+\end{frame}
+
+% =========================================================================
+% POLICY DEFINITION (variables explained)
+% =========================================================================
+\begin{frame}{Policy first: one rule maps context into a price}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.50\textwidth}
+    \begin{block}{Definition}
       \[
         p_t = \pi(x_t)
       \]
-      where context \(x_t\) includes product state, time, and behavior signals from the session.
     \end{block}
-    \begin{itemize}[<+->]
-      \item Behavior proxy \(\hat q\) is tracked for both user-like and agent-like sessions \((\humanagentpair)\).
-      \item The score \(f(\tau')\) is a soft estimate that a trajectory is agent-mediated \roboticon.
-      \item We see reward only for the chosen price action, which motivates a contextual-bandit view first.
-    \end{itemize}
+    \vardef{$p_t$}{price quoted at time $t$ \;[EUR per booking]}
+    \vardef{$\pi$}{the pricing policy --- a function the platform learns}
+    \vardef{$x_t$}{context: product, time-of-day, and behavior summary of the session}
 
-    \column{0.43\textwidth}
+    \column{0.45\textwidth}
     \centering
     \begin{tikzpicture}[
       font=\scriptsize\sffamily,
       box/.style={draw=PhantomInk,rounded corners=4pt,minimum width=3.35cm,minimum height=0.85cm,align=center},
       flow/.style={-{Stealth[length=2.0mm]},thick,PhantomSlate}
     ]
-      \node[box,fill=white] (ctx) at (0,1.35) {Context \(x_t\)};
-      \node[box,fill=PhantomIndigo!12] (pol) at (0,0.15) {Policy \(\pi\)};
-      \node[box,fill=PhantomCyan!15] (act) at (0,-1.05) {Price action \(p_t\)};
+      \node[box,fill=PhantomPaper] (ctx) at (0,1.35) {context $x_t$};
+      \node[box,fill=PhantomIndigo!12] (pol) at (0,0.15) {policy $\pi$};
+      \node[box,fill=PhantomCyan!15] (act) at (0,-1.05) {price $p_t$};
       \draw[flow] (ctx) -- (pol);
       \draw[flow] (pol) -- (act);
-      \node[font=\tiny\itshape,text=PhantomSlate] at (0,-1.75) {later extended from contextual bandits to DR-RL};
+      \node[font=\tiny\itshape,text=PhantomSlate] at (0,-1.75) {bandits first; later extended to DR-RL};
     \end{tikzpicture}
   \end{columns}
-  \stagebar{1}
 \end{frame}
 
-\begin{frame}{Agentic recon creates direct financial pressure on pricing power}
-  \centering
-  \begin{tikzpicture}[
-    font=\small\sffamily,
-    flow/.style={draw=PhantomInk,rounded corners=6pt,minimum width=5.3cm,minimum height=1.25cm,align=center},
-    note/.style={draw=PhantomInk!55,rounded corners=4pt,minimum width=11.2cm,minimum height=0.95cm,align=center,fill=white,font=\scriptsize}
-  ]
-    \path[use as bounding box] (-6.1,-1.25) rectangle (6.1,2.25);
-    \node<1->[flow,fill=PhantomCyan!18] (recon) at (-3.1,1.1)
-      {\textbf{Recon session \roboticon}\\samples multiple quotes};
-    \node<2->[flow,fill=PhantomIndigo!16] (buy) at (3.1,1.1)
-      {\textbf{Clean execution session \humanicon}\\buys using the best found quote};
-    \draw<2->[-{Stealth[length=3mm]},ultra thick,PhantomSlate] (recon.east) -- (buy.west);
-    \node<2->[font=\scriptsize\bfseries,text=PhantomSlate] at (0,1.98)
-      {query and purchase are decoupled};
-    \draw<3->[densely dashed,thick,PhantomCyan!90!black]
-      (recon.south east) .. controls +(1.15,-0.95) and +(-1.15,-0.95) .. (buy.south west);
-    \node<3->[note] at (0,-0.65)
-      {The platform sees behavior proxy $\hat q$ (\humanagentpair), while true demand response $d(p\mid\theta)$ stays latent.};
-  \end{tikzpicture}
-
-  \vspace{0.05em}
+% =========================================================================
+% COI METRIC (matches reference image style)
+% =========================================================================
+\begin{frame}{Cost of Information (COI) --- what the platform earns from \alert{knowing you}}
   \begin{columns}[T,onlytextwidth]
-    \column{0.31\textwidth}
-    \uncover<4->{%
+    \column{0.50\textwidth}
+    \begin{block}{Definition}
+      \vspace{0.2em}
       \centering
-      \begin{tikzpicture}[font=\scriptsize\sffamily]
-        \node[draw=PhantomInk,rounded corners=4pt,fill=PhantomInk,text=white,minimum width=0.97\linewidth,text width=0.84\linewidth,minimum height=1.2cm,align=center]
-          {\large$\mathrm{COI}(\pi)=\mathbb{E}[P]-\underline p$\\[-0.05em]\footnotesize pricing power KPI};
-      \end{tikzpicture}%
-    }
+      \[
+        \mathrm{COI}(\pi) = \mathbb{E}[P] - p_{\mathrm{floor}}
+      \]
+    \end{block}
+    \vardef{$\mathbb{E}[P]$}{expected price the policy actually charges \;[EUR per booking]}
+    \vardef{$p_{\mathrm{floor}}$}{minimum viable price (marginal cost / break-even floor)}
+    \vardef{COI}{average premium the platform extracts above marginal cost \;[EUR per transaction]}
 
-    \column{0.31\textwidth}
-    \uncover<5->{%
-      \centering
-      \begin{tikzpicture}[font=\scriptsize\sffamily]
-        \node[draw=PhantomInk,rounded corners=4pt,fill=PhantomIndigo!12,text=PhantomSlate,minimum width=0.97\linewidth,text width=0.84\linewidth,minimum height=1.2cm,align=center]
-          {\large$\lim_{N\to\infty}\mathrm{COI}=0$\\[-0.05em]\footnotesize theorem as intuition guide};
-      \end{tikzpicture}%
-    }
-
-    \column{0.34\textwidth}
-    \uncover<6->{%
-      \centering
-      \begin{tikzpicture}[x=0.67cm,y=0.85cm,font=\scriptsize\sffamily]
-        \draw[->,thick,PhantomSlate] (0,0) -- (4.2,0) node[right] {queries $N$};
-        \draw[->,thick,PhantomSlate] (0,0) -- (0,2.05) node[above] {COI};
-        \draw[very thick,PhantomCyan!95!black] (0.25,1.8) .. controls (1.2,1.35) and (2.25,0.62) .. (4.0,0.16);
-        \draw[dashed,PhantomInk!65] (0,0.16) -- (4.0,0.16);
-        \node[anchor=west,font=\tiny,text=PhantomSlate] at (2.35,0.28) {price-floor proximity};
-      \end{tikzpicture}%
-    }
+    \column{0.48\textwidth}
+    \centering
+    \begin{tikzpicture}[font=\scriptsize\sffamily,x=0.95cm,y=0.85cm]
+      \draw[->,thick,PhantomPaper] (-0.2,0) -- (5.6,0) node[right,text=PhantomPaper]{price $p$};
+      \draw[->,thick,PhantomPaper] (0,-0.1) -- (0,3.0) node[above,text=PhantomPaper]{density};
+      \draw[very thick,PhantomPaper,domain=0.2:5.2,smooth,samples=80]
+        plot (\x, {2.5*exp(-((\x-2.6)^2)/1.0)});
+      \draw[dashed,PhantomSlate] (1.2,0) -- (1.2,2.0) node[above,font=\tiny,text=PhantomPaper]{$p_{\mathrm{floor}}$};
+      \draw[dashed,PhantomCyan,thick] (2.6,0) -- (2.6,2.5) node[above,font=\tiny,text=PhantomCyan]{$\mathbb{E}[P]$};
+      \draw[decorate,decoration={brace,amplitude=4pt},PhantomCyan,thick] (1.2,2.7) -- (2.6,2.7) node[midway,above,font=\scriptsize,text=PhantomCyan]{COI};
+    \end{tikzpicture}
   \end{columns}
 
-  \vspace{-0.1em}
-  \uncover<6->{\scriptsize\textit{The theorem gives direction, not prophecy: more independent recon pressure pushes realizable prices toward the floor.}}\\[0.1em]
-  \uncover<7->{\scriptsize\textbf{Implication:} when quote discovery and purchase split, session-based pricing can overestimate willingness to pay.}
-  \stagebar{1}
+  \vspace{0.3em}
+  {\footnotesize\textit{The ``cost'' is from the consumer's POV: it is what they pay because the platform can read their interest. Revenue at risk equals COI $\times$ volume.}}
 \end{frame}
 
-\begin{frame}{The thesis answers one chain: mechanism \(\to\) signal \(\to\) control}
+% =========================================================================
+% WHY AGENTS ERODE COI - SIMPLIFIED ORDER STATISTIC
+% =========================================================================
+\begin{frame}{Why agents erode COI: the realizable price drops to the minimum}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.46\textwidth}
+    \footnotesize
+    A single buyer pays the price they were quoted.\\[0.4em]
+    An agent samples $N$ independent quotes and the buyer pays
+    \(\;p^{(1)} = \min(p_1,\dots,p_N)\).\\[0.4em]
+    \textbf{Result:} as $N \to \infty$, $\mathrm{COI} \to 0$. More recon
+    pushes realizable prices toward the floor.
+
+    \vspace{0.5em}
+    \begin{alertblock}{One-line claim}
+      Untreated agentic recon behaves like an information leak that
+      compresses sustainable margins.
+    \end{alertblock}
+
+    \column{0.50\textwidth}
+    \centering
+    \begin{tikzpicture}[font=\scriptsize\sffamily,x=0.65cm,y=0.85cm]
+      \draw[->,thick,PhantomPaper] (0,0) -- (6.5,0) node[right,text=PhantomPaper]{queries $N$};
+      \draw[->,thick,PhantomPaper] (0,0) -- (0,2.6) node[above,text=PhantomPaper]{COI [EUR]};
+      \draw[very thick,PhantomCyan,domain=0.2:6.0,smooth,samples=60]
+        plot (\x, {2.2*exp(-0.55*\x)+0.12});
+      \draw[dashed,PhantomSlate] (0,0.12) -- (6.0,0.12);
+      \node[anchor=west,font=\tiny,text=PhantomSlate] at (3.4,0.32) {price-floor proximity};
+      \node[anchor=west,font=\tiny,text=PhantomPaper] at (0.4,2.2) {single human};
+      \node[anchor=west,font=\tiny,text=PhantomCyan] at (3.4,1.0) {agent-amplified};
+    \end{tikzpicture}
+  \end{columns}
+\end{frame}
+
+% =========================================================================
+% RESEARCH QUESTIONS - SQ1 SQ2 SQ3
+% =========================================================================
+\begin{frame}{The thesis answers one chain: \alert{mechanism \(\to\) signal \(\to\) control}}
   \begin{columns}[T,onlytextwidth]
     \column{0.32\textwidth}
     \centering
     \begin{tikzpicture}[font=\scriptsize\sffamily]
-      \draw[rounded corners=4pt,draw=PhantomInk,fill=white] (-1.55,-1.1) rectangle (1.55,1.2);
-      \fill[PhantomCyan!85!black] (-0.75,0.35) circle (0.14);
-      \fill[PhantomCyan!85!black] (-0.45,0.70) circle (0.14);
-      \fill[PhantomCyan!85!black] (-0.15,0.45) circle (0.14);
-      \fill[PhantomIndigo!85!black] (0.35,-0.20) circle (0.14);
-      \fill[PhantomIndigo!85!black] (0.65,-0.45) circle (0.14);
-      \fill[PhantomIndigo!85!black] (0.95,-0.15) circle (0.14);
+      \draw[rounded corners=4pt,draw=PhantomInk,fill=PhantomPaper] (-1.55,-1.1) rectangle (1.55,1.2);
+      \fill[PhantomCyan] (-0.75,0.35) circle (0.14);
+      \fill[PhantomCyan] (-0.45,0.70) circle (0.14);
+      \fill[PhantomCyan] (-0.15,0.45) circle (0.14);
+      \fill[PhantomIndigo] (0.35,-0.20) circle (0.14);
+      \fill[PhantomIndigo] (0.65,-0.45) circle (0.14);
+      \fill[PhantomIndigo] (0.95,-0.15) circle (0.14);
       \draw[dashed,PhantomInk!60] (0.12,-0.92) -- (0.12,1.0);
-      \node[text=PhantomSlate,font=\tiny] at (0,-0.93) {behavior separability};
+      \node[text=PhantomMute,font=\tiny] at (0,-0.97) {behavior separability};
     \end{tikzpicture}
     {\footnotesize\textbf{SQ1}}\\[-0.15em]
     {\scriptsize Can we distinguish \humanicon and \roboticon sessions from interactions alone?}
@@ -308,11 +482,13 @@
     \column{0.32\textwidth}
     \centering
     \begin{tikzpicture}[font=\scriptsize\sffamily]
-      \draw[rounded corners=4pt,draw=PhantomInk,fill=white] (-1.55,-1.1) rectangle (1.55,1.2);
-      \draw[->,thick,PhantomSlate] (-1.2,-0.75) -- (1.2,-0.75);
-      \draw[->,thick,PhantomSlate] (-1.2,-0.75) -- (-1.2,0.85);
-      \draw[very thick,PhantomCyan!95!black] (-1.0,0.62) .. controls (-0.4,0.2) and (0.3,-0.18) .. (1.0,-0.58);
-      \node[text=PhantomSlate,font=\tiny] at (0,-0.95) {COI / revenue pressure};
+      \draw[rounded corners=4pt,draw=PhantomInk,fill=PhantomPaper] (-1.55,-1.1) rectangle (1.55,1.2);
+      \draw[->,thick,PhantomMute] (-1.15,-0.75) -- (1.2,-0.75) node[right,font=\tiny,text=PhantomMute,xshift=-3pt,yshift=4pt]{$\alpha$};
+      \draw[->,thick,PhantomMute] (-1.15,-0.75) -- (-1.15,0.85) node[above,font=\tiny,text=PhantomMute,yshift=-4pt,xshift=8pt]{COI};
+      \draw[very thick,PhantomCyan,domain=-1.0:1.05,smooth,samples=40] plot (\x, {0.65*exp(-1.2*(\x+1.0))-0.05});
+      \draw[dashed,PhantomMute] (-1.15,-0.55) -- (1.05,-0.55);
+      \node[text=PhantomMute,font=\tiny,xshift=2pt] at (-0.4,-0.45) {floor};
+      \node[text=PhantomMute,font=\tiny] at (0,-0.97) {COI erodes as $\alpha\uparrow$};
     \end{tikzpicture}
     {\footnotesize\textbf{SQ2}}\\[-0.15em]
     {\scriptsize How strong is price and revenue erosion under agentic contamination?}
@@ -320,35 +496,39 @@
     \column{0.32\textwidth}
     \centering
     \begin{tikzpicture}[font=\scriptsize\sffamily]
-      \draw[rounded corners=4pt,draw=PhantomInk,fill=white] (-1.55,-1.1) rectangle (1.55,1.2);
-      \draw[thick,fill=PhantomIndigo!20,draw=PhantomInk] (0,0.82) -- (0.98,0.32) -- (0.98,-0.44) -- (0,-0.90) -- (-0.98,-0.44) -- (-0.98,0.32) -- cycle;
-      \draw[thick,PhantomInk] (0,-0.46) -- (0,0.38);
-      \draw[thick,PhantomInk] (0,-0.46) -- (0.42,-0.08);
-      \node[text=PhantomSlate,font=\tiny] at (0,-0.95) {robust policy control};
+      \draw[rounded corners=4pt,draw=PhantomInk,fill=PhantomPaper] (-1.55,-1.1) rectangle (1.55,1.2);
+      \draw[->,thick,PhantomMute] (-1.15,-0.75) -- (1.2,-0.75) node[right,font=\tiny,text=PhantomMute,xshift=-3pt,yshift=4pt]{UX};
+      \draw[->,thick,PhantomMute] (-1.15,-0.75) -- (-1.15,0.85) node[above,font=\tiny,text=PhantomMute,yshift=-4pt,xshift=10pt]{margin};
+      \fill[PhantomSlate] (-0.55,-0.40) circle (2.6pt);
+      \node[text=PhantomMute,font=\tiny] at (-0.55,-0.13) {baseline};
+      \fill[PhantomCyan] (0.55,0.45) circle (2.8pt);
+      \node[text=PhantomCyan,font=\tiny] at (0.55,0.72) {robust};
+      \draw[->,thick,PhantomCyan,dashed] (-0.40,-0.30) -- (0.40,0.35);
+      \node[text=PhantomMute,font=\tiny] at (0,-0.97) {robust dominates baseline};
     \end{tikzpicture}
     {\footnotesize\textbf{SQ3}}\\[-0.15em]
     {\scriptsize Can policy design recover margin while keeping UX stable?}
   \end{columns}
-
-  \vspace{0.2em}
-  \stagebar{1}
 \end{frame}
 
 \section{Platform Development}
 
-\begin{frame}{Stage 1: We built a dual-loop platform to observe behavior and price exposure together}
+% =========================================================================
+% PLATFORM (Stage 1)
+% =========================================================================
+\begin{frame}{Stage 1: a dual-loop platform pairs every quote with its behavior}
   \centering
   \begin{tikzpicture}[
     font=\scriptsize\sffamily,
-    box/.style={draw=PhantomInk,rounded corners=3pt,minimum width=2.5cm,minimum height=0.9cm,align=center},
+    box/.style={draw=PhantomInk,rounded corners=3pt,minimum width=2.5cm,minimum height=0.9cm,align=center,fill=PhantomPaper},
     arr/.style={-{Stealth[length=2.2mm]},thick,PhantomSlate}
   ]
-    \node[box,fill=PhantomCyan!14] (actors) at (0,1.45) {\usersagentslabel};
-    \node[box,fill=white] (web) at (2.9,1.45) {Web\\storefront};
-    \node[box,fill=white] (provider) at (5.8,1.45) {Pricing\\service};
-    \node[box,fill=white] (redis) at (8.7,1.45) {Serve\\cache};
-    \node[box,fill=PhantomIndigo!10,minimum width=3.1cm] (kafka) at (4.35,-0.15) {Event stream\\behavior + quote logs};
-    \node[box,fill=PhantomCyan!10,minimum width=2.8cm] (airflow) at (8.0,-0.15) {Offline trainer\\batch updates};
+    \node[box,fill=PhantomCyan!14] (actors) at (0,1.45) {users \humanicon\\agents \roboticon};
+    \node[box] (web) at (2.9,1.45) {web\\storefront};
+    \node[box] (provider) at (5.8,1.45) {pricing\\service};
+    \node[box] (redis) at (8.7,1.45) {serve\\cache};
+    \node[box,fill=PhantomIndigo!12,minimum width=3.1cm] (kafka) at (4.35,-0.15) {event stream\\behavior + quote logs};
+    \node[box,fill=PhantomCyan!10,minimum width=2.8cm] (airflow) at (8.0,-0.15) {offline trainer\\batch updates};
 
     \draw[arr] (actors) -- (web);
     \draw[arr] (web) -- (provider);
@@ -363,280 +543,281 @@
     \node[font=\tiny\itshape,text=PhantomSlate] at (8.1,-1.0) {Lambda: offline learning + refresh};
   \end{tikzpicture}
 
-  \vspace{0.35em}
-  \begin{itemize}[<+->]
+  \vspace{0.4em}
+  \begin{itemize}
     \item Every quote has a matching behavioral context in the log stream.
     \item The same architecture supports reproducible stress tests before any live deployment.
   \end{itemize}
-  \stagebar{2}
 \end{frame}
 
-\begin{frame}{Dataset card: compact, labeled, and experiment-ready}
+% =========================================================================
+% DATASET CARD
+% =========================================================================
+\begin{frame}{Dataset card: compact, labeled, experiment-ready}
   \begin{columns}[T,onlytextwidth]
     \column{0.60\textwidth}
     \centering
     \begin{tikzpicture}[
       font=\scriptsize\sffamily,
-      chip/.style={draw=PhantomInk!40,rounded corners=2pt,inner sep=2.7pt},
-      body/.style={anchor=west,text width=6.0cm,align=left,font=\scriptsize}
+      chip/.style={draw=PhantomInk!40,rounded corners=2pt,inner sep=2.7pt,fill=PhantomPaper}
     ]
-      \node[draw=PhantomInk,rounded corners=5pt,fill=white,minimum width=6.85cm,minimum height=4.45cm] at (0,0) {};
+      \node[draw=PhantomInk,rounded corners=5pt,fill=PhantomPaper,minimum width=6.85cm,minimum height=4.45cm] at (0,0) {};
       \node[anchor=west,font=\footnotesize\bfseries,text=PhantomInk] at (-3.2,1.72) {WhoClickedIt dataset card};
-      \node[anchor=west,draw=PhantomInk!35,rounded corners=2pt,fill=PhantomCyan!10,inner xsep=4pt,inner ysep=3pt,text width=6.15cm,align=left,font=\tiny\ttfamily,text=PhantomSlate] at (-3.2,1.22)
+      \node[anchor=west,draw=PhantomInk!35,rounded corners=2pt,fill=PhantomCyan!10,inner xsep=4pt,inner ysep=3pt,text width=6.15cm,align=left,font=\tiny\ttfamily,text=PhantomInk] at (-3.2,1.22)
         {huggingface.co/datasets/velocitatem/whoclickedit};
-
-      \node[anchor=west,chip,fill=PhantomIndigo!12] (humanrows) at (-3.2,0.52) {\textbf{Human rows} 798};
-      \node[anchor=west,chip,fill=PhantomIndigo!12] at ([xshift=0.16cm]humanrows.east) {\textbf{Agent rows} 3076};
-
-      \node[body,text=PhantomSlate] at (-3.2,-0.33)
+      \node[anchor=west,chip,fill=PhantomIndigo!12] (humanrows) at (-3.2,0.52) {\textbf{human rows} 798};
+      \node[anchor=west,chip,fill=PhantomIndigo!12] at ([xshift=0.16cm]humanrows.east) {\textbf{agent rows} 3076};
+      \node[anchor=west,text width=6.0cm,align=left,font=\scriptsize,text=PhantomInk] at (-3.2,-0.33)
         {Flat schema and explicit actor labels simplify session-aware train/test splits.};
-      \node[body,font=\tiny\itshape,text=PhantomSlate!85] at (-3.2,-1.01)
-        {Kafka provenance is retained for reproducibility and downstream analysis.};
+      \node[anchor=west,font=\tiny\itshape,text=PhantomSlate] at (-3.2,-1.01)
+        {Kafka provenance is retained for reproducibility.};
     \end{tikzpicture}
 
     \column{0.38\textwidth}
     \centering
     \begin{tikzpicture}[font=\scriptsize\sffamily,
       stat/.style={draw=PhantomInk,rounded corners=5pt,minimum width=4.95cm,minimum height=1.33cm,align=center}]
-      \node<1->[stat,fill=PhantomInk,text=white] at (0,1.95)
-        {\Large\bfseries 29 Interviews\\[-0.1em]\footnotesize labeled trajectories in observed samples};
-      \node<2->[stat,fill=PhantomCyan!14,text=PhantomSlate] at (0,0.25)
-        {\Large\bfseries 45\% / 55\%\\[-0.1em]\footnotesize human/agent trajectory split};
-      \node<3->[stat,fill=PhantomIndigo!12,text=PhantomSlate] at (0,-1.45)
-        {\Large\bfseries 2 streams\\[-0.1em]\footnotesize interaction + price-log records};
+      \node[stat,fill=PhantomCyan!12] at (0,1.95)
+        {\Large\bfseries 29 interviews\\[-0.1em]\footnotesize labeled trajectories};
+      \node[stat,fill=PhantomCyan!18] at (0,0.25)
+        {\Large\bfseries 45\% / 55\%\\[-0.1em]\footnotesize human / agent split};
+      \node[stat,fill=PhantomIndigo!12] at (0,-1.45)
+        {\Large\bfseries 2 streams\\[-0.1em]\footnotesize interaction + price logs};
     \end{tikzpicture}
   \end{columns}
-
-  \stagebar{2}
 \end{frame}
 
+% =========================================================================
+% EXPERIMENTAL DESIGN
+% =========================================================================
 \begin{frame}{Experimental design controls goals, not instructions}
   \begin{columns}[T,onlytextwidth]
     \column{0.58\textwidth}
     \centering
     \begin{tikzpicture}[
       font=\scriptsize\sffamily,
-      box/.style={draw=PhantomInk,rounded corners=3pt,minimum width=3.65cm,minimum height=0.95cm,align=center},
+      box/.style={draw=PhantomInk,rounded corners=3pt,minimum width=3.65cm,minimum height=0.95cm,align=center,fill=PhantomPaper},
       arr/.style={-{Stealth[length=2.2mm]},thick,PhantomSlate}
     ]
       \node[box,fill=PhantomCyan!14] (tasks) at (0,1.8) {JTBD task pool\\hotel + airline modes};
-      \node[box,fill=white] (assign) at (0,0.55) {Random assignment\\mode + task + actor id};
-      \node[box,fill=PhantomIndigo!12] (run) at (0,-0.7) {Execution\\human or browser-use agent};
-      \node[box,fill=white] (logs) at (0,-1.95) {Session logs\\$e=(a,i,t,\mu,\delta)$ + quotes};
+      \node[box] (assign) at (0,0.55) {random assignment\\mode + task + actor id};
+      \node[box,fill=PhantomIndigo!12] (run) at (0,-0.7) {execution\\human or browser-use agent};
+      \node[box] (logs) at (0,-1.95) {session logs\\events + quotes};
       \draw[arr] (tasks) -- (assign);
       \draw[arr] (assign) -- (run);
       \draw[arr] (run) -- (logs);
     \end{tikzpicture}
 
     \column{0.40\textwidth}
-    \begin{itemize}[<+->]\setlength{\itemsep}{0.55em}
+    \begin{itemize}\setlength{\itemsep}{0.55em}
       \item Agents run with \textbf{browser-use} and a model-swappable LLM router (default \texttt{gpt-5-mini}).
       \item Tasks are defined by outcomes, not scripted clicks, to preserve behavioral variety.
       \item Current release is stronger on hotel flows than airline flows.
     \end{itemize}
   \end{columns}
-  \stagebar{2}
 \end{frame}
 
 \section{Distinguishability Construction}
 
-\begin{frame}{Stage 2: A behavior kernel is a compact signature of navigation dynamics}
+% =========================================================================
+% KERNEL EXPLAINER (NEW dedicated slide)
+% =========================================================================
+\begin{frame}{Stage 2: what is a \alert{kernel}?}
+  \begin{block}{Plain definition}
+    A \textbf{kernel} is a small square table $T$ where $T[a,b]$ is the
+    probability that action $b$ follows action $a$ inside one session. Every
+    row sums to one.
+  \end{block}
+
+  \vspace{0.3em}
   \begin{columns}[T,onlytextwidth]
-    \column{0.48\textwidth}
-    \begin{block}{Definition}
-      \[
-        \hat P(s'\mid s)=\frac{N(s,s')}{\sum_k N(s,k)}
-      \]
-    \end{block}
-    \begin{itemize}[<+->]
-      \item Build one kernel per session, then prototypes for human and agent cohorts.
-      \item Compare each incoming session to both prototypes with KL divergence.
-    \end{itemize}
+    \column{0.45\textwidth}
+    \centering
+    \begin{tikzpicture}[font=\scriptsize\sffamily]
+      \node[draw=PhantomInk,rounded corners=3pt,fill=PhantomCyan!12,minimum width=2.6cm,minimum height=0.7cm] (a) at (-1.6,0.7) {view item};
+      \node[draw=PhantomInk,rounded corners=3pt,fill=PhantomPaper,minimum width=2.6cm,minimum height=0.7cm] (b) at (1.6,0.7) {hover};
+      \node[draw=PhantomInk,rounded corners=3pt,fill=PhantomIndigo!12,minimum width=2.6cm,minimum height=0.7cm] (c) at (0,-0.9) {add to cart};
+      \draw[-{Stealth[length=2mm]},thick,PhantomSlate] (a) -- node[above,font=\tiny]{0.64} (b);
+      \draw[-{Stealth[length=2mm]},thick,PhantomSlate] (b) -- node[right,font=\tiny]{0.31} (c);
+      \draw[-{Stealth[length=2mm]},thick,PhantomSlate] (a) -- node[left,font=\tiny]{0.36} (c);
+    \end{tikzpicture}\\[0.3em]
+    {\tiny example session graph}
 
     \column{0.50\textwidth}
     \centering
-    \begin{tikzpicture}[font=\scriptsize\sffamily]
-      \node[draw=PhantomInk,rounded corners=3pt,fill=PhantomCyan!12,minimum width=3.9cm,minimum height=0.85cm] (a) at (0,1.4) {page\_view};
-      \node[draw=PhantomInk,rounded corners=3pt,fill=white,minimum width=3.9cm,minimum height=0.85cm] (b) at (0,0.25) {view\_item\_page};
-      \node[draw=PhantomInk,rounded corners=3pt,fill=PhantomIndigo!12,minimum width=3.9cm,minimum height=0.85cm] (c) at (0,-0.9) {add\_item\_to\_cart};
-      \draw[-{Stealth[length=2.2mm]},thick,PhantomSlate] (a) -- node[right,font=\tiny]{0.64} (b);
-      \draw[-{Stealth[length=2.2mm]},thick,PhantomSlate] (b) -- node[right,font=\tiny]{0.31} (c);
-      \draw[-{Stealth[length=2.2mm]},thick,PhantomSlate!70] (b.east) .. controls +(1.1,0.5) and +(1.1,-0.5) .. node[right,font=\tiny]{0.52} (b.east);
-      \node[font=\tiny\itshape,text=PhantomSlate] at (0,-1.7) {Kernel rows encode ``what usually comes next.''};
-    \end{tikzpicture}
+    \begin{tabular}{@{}l|ccc@{}}
+      \toprule
+      from \textbackslash{} to & view & hover & cart \\
+      \midrule
+      view  & 0.00 & 0.64 & 0.36 \\
+      hover & 0.69 & 0.00 & 0.31 \\
+      cart  & 0.00 & 0.00 & 1.00 \\
+      \bottomrule
+    \end{tabular}\\[0.4em]
+    {\footnotesize\textit{This is the kernel $T$. Each row is a probability distribution.}}
   \end{columns}
-  \stagebar{3}
+
+  \vspace{0.3em}
+  \vardef{$T[a,b]$}{probability that the next action is $b$ given the current action is $a$}
 \end{frame}
 
-\begin{frame}{Human and agent kernels are separable in the controlled cohort}
+% =========================================================================
+% HUMAN VS AGENT KERNELS - VISUAL COMPARISON
+% =========================================================================
+\begin{frame}{Humans and agents click in \alert{different patterns}}
   \begin{columns}[T,onlytextwidth]
     \column{0.48\textwidth}
     \centering
-    \textbf{Human transition structure}\par\vspace{0.2em}
-    \includegraphics[width=\linewidth,height=0.46\textheight,keepaspectratio]{mdp_human.pdf}
+    \textbf{Human kernel $\bar T_H$}\par
+    {\scriptsize view $\to$ hover $\to$ cart, with detours}\par\vspace{0.2em}
+    \includegraphics[width=\linewidth,height=0.40\textheight,keepaspectratio]{mdp_human.pdf}
     \column{0.48\textwidth}
     \centering
-    \textbf{Agent transition structure}\par\vspace{0.2em}
-    \includegraphics[width=\linewidth,height=0.46\textheight,keepaspectratio]{mdp_agent.pdf}
+    \textbf{Agent kernel $\bar T_A$}\par
+    {\scriptsize view $\to$ view $\to$ view, almost no cart}\par\vspace{0.2em}
+    \includegraphics[width=\linewidth,height=0.40\textheight,keepaspectratio]{mdp_agent.pdf}
   \end{columns}
-
-  \vspace{0.15em}
-  \begin{columns}[T,onlytextwidth]
-    \column{0.32\textwidth}\centering\metriccard{-3.35}{mean gap (human)}
-    \column{0.32\textwidth}\centering\metriccard{+1.65}{mean gap (agent)}
-    \column{0.32\textwidth}\centering\metriccard{$p<0.001$}{Mann-Whitney rank test}
-  \end{columns}
-  \stagebar{3}
-\end{frame}
-
-\begin{frame}{Two divergence scores become one continuous control signal}
-  \centering
-  \[
-    \only<1>{\Delta_H = D_{KL}(\hat T'\mid\mid\bar T_H),\quad \Delta_A = D_{KL}(\hat T'\mid\mid\bar T_A)}%
-    \only<2>{g(\tau') = \Delta_H-\Delta_A}%
-    \only<3->{f(\tau') = P(A\mid\tau') = \sigma\!\left(\frac{g(\tau')}{T}\right)}
-  \]
 
   \vspace{0.4em}
-  \begin{tikzpicture}[font=\scriptsize\sffamily]
-    \draw<2->[very thick,PhantomSlate] (-4,0) -- (4,0);
-    \draw<2->[thick,PhantomSlate] (0,-0.16) -- (0,0.16);
-    \node<2->[anchor=north] at (-4,0) {human-like};
-    \node<2->[anchor=north] at (4,0) {agent-like};
-    \node<3->[anchor=north] at (0,0) {$g(\tau')=0$};
-    \fill<4->[PhantomCyan!75!black] (-2.2,0) circle (2.2pt);
-    \node<4->[anchor=south,text=PhantomCyan!75!black] at (-2.2,0) {low $f(\tau')$};
-    \fill<5->[PhantomIndigo!75!black] (2.2,0) circle (2.2pt);
-    \node<5->[anchor=south,text=PhantomIndigo!75!black] at (2.2,0) {high $f(\tau')$};
-  \end{tikzpicture}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.32\textwidth}\centering\metriccard{$-3.35$}{mean gap (human)}
+    \column{0.32\textwidth}\centering\metriccard{$+1.65$}{mean gap (agent)}
+    \column{0.32\textwidth}\centering\metriccard{$p<0.001$}{Mann-Whitney rank}
+  \end{columns}
+  \vspace{0.2em}
+  {\footnotesize\textit{Two cohorts, two clearly separable click structures --- this is the foundation of the detection signal.}}
+\end{frame}
 
-  \vspace{0.25em}
-  \begin{itemize}
-    \item<3-> The signed gap $g(\tau')$ is positive when a session is closer to agent behavior \roboticon (vs. human reference \humanicon).
-    \item<4-> Temperature $T$ calibrates how sharply the score moves away from uncertainty.
-    \item<6-> Continuous scoring is used to steer contamination-aware pricing.
-    \item<7-> The design target is guidance, not a hard user-level ban decision.
-  \end{itemize}
-  \stagebar{3}
+% =========================================================================
+% SIGMOID SCORE - SIMPLIFIED
+% =========================================================================
+\begin{frame}{From two divergences to one \alert{sigmoid score}}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.46\textwidth}
+    \begin{block}{Step 1 --- distance to each prototype}
+      \(\Delta_H = \mathrm{KL}(\hat T' \,\|\, \bar T_H)\)\\[0.2em]
+      \(\Delta_A = \mathrm{KL}(\hat T' \,\|\, \bar T_A)\)
+    \end{block}
+    \begin{block}{Step 2 --- signed gap}
+      \(g(\tau') = \Delta_H - \Delta_A\)
+    \end{block}
+    \begin{alertblock}{Step 3 --- \textbf{sigmoid} squash}
+      \(f(\tau') = \sigma\!\left(\dfrac{g(\tau')}{T}\right) \in [0,1]\)
+    \end{alertblock}
+    \vardef{$\sigma$}{the standard logistic sigmoid}
+    \vardef{$T$}{temperature, controls how sharply the score moves away from $0.5$}
+    \vardef{threshold}{$f = 0.5$ corresponds to $g = 0$ (neither side)}
+
+    \column{0.50\textwidth}
+    \centering
+    \begin{tikzpicture}[font=\scriptsize\sffamily,x=0.7cm,y=2.0cm]
+      \draw[->,thick,PhantomPaper] (-4.2,0) -- (4.4,0) node[right,text=PhantomPaper]{$g(\tau')$};
+      \draw[->,thick,PhantomPaper] (0,-0.05) -- (0,1.15) node[above,text=PhantomPaper]{$f(\tau')$};
+      \draw[dashed,PhantomMute] (-4.0,1.0) -- (4.0,1.0);
+      \draw[dashed,PhantomCyan,thick] (-4.0,0.5) -- (4.0,0.5) node[right,font=\tiny,text=PhantomCyan]{threshold $0.5$};
+      \draw[very thick,PhantomCyan,domain=-4.0:4.0,smooth,samples=120]
+        plot (\x, {1/(1+exp(-1.4*\x))});
+      \node[anchor=north,font=\tiny,text=PhantomPaper] at (-3.0,-0.04) {human-like \humanicon};
+      \node[anchor=north,font=\tiny,text=PhantomPaper] at (3.0,-0.04) {agent-like \roboticon};
+      \fill[PhantomCyan] (0,0.5) circle (1.6pt);
+      \node[anchor=west,font=\tiny,text=PhantomPaper] at (0.1,0.55) {$g=0$};
+    \end{tikzpicture}\\[0.2em]
+    {\tiny\color{PhantomSlate} logistic curve --- saturates at $0$ and $1$, threshold at $0.5$}
+  \end{columns}
 \end{frame}
 
 \section{Distributionally Robust RL}
 
-\begin{frame}{Stage 3: DR-RL trains against plausible contamination shifts, not one fixed world}
-  \small
+% =========================================================================
+% DR-RL CORE IDEA - SIMPLIFIED
+% =========================================================================
+\begin{frame}{Stage 3: DR-RL trains against \alert{many plausible worlds}}
   \begin{columns}[T,onlytextwidth]
-    \column{0.48\textwidth}
-    \begin{block}{Ideal robust object}
-      \[
-        \mathcal U_\epsilon(\hat P_N)=\{Q: W_p(Q,\hat P_N)\le\epsilon\}
-      \]
-      \centering
-      robust against distribution shift around the empirical demand law
-    \end{block}
-
     \column{0.50\textwidth}
-    \begin{block}{Engine approximation used in experiments}
-      \[
-        \mathcal A_{\epsilon_\alpha}(\alpha_0)=\{\alpha:|\alpha-\alpha_0|\le\epsilon_\alpha\}
-      \]
-      \centering
-      small grid over $\alpha$ \;\textrightarrow\; inner worst-case candidate
+    \footnotesize
+    Standard RL trains against one demand model and overfits to it.
+    \textbf{DR-RL} optimises the worst case across a small ball of
+    plausible demand laws, so the policy still works when contamination
+    shifts.
+
+    \vspace{0.6em}
+    \begin{block}{Robust objective}
+      \(\displaystyle \pi^\star = \arg\max_\pi \min_{Q \in U_\epsilon} \mathbb{E}_Q[\,r\,]\)
     \end{block}
-  \end{columns}
-  \vspace{0.2em}
-  \begin{alertblock}{Practical boundary}
-    In code we solve a local robust loop around $\alpha_0$, not the full continuous Wasserstein adversary.
-  \end{alertblock}
-  \stagebar{4}
-\end{frame}
+    \vardef{$Q$}{a candidate demand distribution inside the ball}
+    \vardef{$U_\epsilon$}{Wasserstein ball of radius $\epsilon$ around the empirical $\hat P_N$}
+    \vardef{$r$}{per-step reward (defined next slide)}
 
-\begin{frame}{Reward composition penalizes leakage while guarding user experience}
-  \[
-    \only<1>{%
-      r_t =
-      {\color{PhantomInk}\underline{R(p_t,\hat Q_t)}}%
-    }%
-    \only<2>{%
-      r_t =
-      {\color{PhantomInk}\underline{R(p_t,\hat Q_t)}}
-      - {\color{PhantomCyan!95!black}\underline{\lambda\,f(\tau'_t)\,c_{\text{info}}}}%
-    }%
-    \only<3->{%
-      r_t =
-      {\color{PhantomInk}\underline{R(p_t,\hat Q_t)}}
-      - {\color{PhantomCyan!95!black}\underline{\lambda\,f(\tau'_t)\,c_{\text{info}}}}
-      - {\color{PhantomIndigo!95!black}\underline{\eta_{\text{ux}}\,UX(\tau'_t,p_t)}}%
-    }%
-  \]
-
-  \vspace{0.45em}
-  \begin{columns}[T,onlytextwidth]
-    \column{0.32\textwidth}
+    \column{0.46\textwidth}
     \centering
     \begin{tikzpicture}[font=\scriptsize\sffamily]
-      \node[
-        draw=PhantomInk,
-        rounded corners=4pt,
-        fill=PhantomInk!12,
-        minimum width=0.98\linewidth,
-        text width=0.88\linewidth,
-        minimum height=1.28cm,
-        align=center,
-        text=PhantomInk
-      ] {\textbf{Revenue term}\\[-0.08em]keeps market objective explicit};
+      \draw[thick,PhantomPaper,fill=PhantomCyan!25!PhantomInk] (0,0) circle (2.0);
+      \draw[dashed,PhantomCyan,thick] (0,0) circle (1.4);
+      \fill[PhantomPaper] (0,0) circle (2.5pt) node[below,font=\tiny,text=PhantomPaper]{$\hat P_N$};
+      \fill[PhantomCyan] (0.9,0.5) circle (2pt);
+      \fill[PhantomCyan] (-0.7,0.7) circle (2pt);
+      \fill[PhantomCyan] (-1.0,-0.4) circle (2pt);
+      \fill[PhantomCyan] (0.6,-0.9) circle (2pt);
+      \node[font=\tiny,text=PhantomCyan] at (0,1.7) {plausible $Q$};
+      \node[font=\tiny,text=PhantomPaper] at (0,-2.3) {ambiguity ball $U_\epsilon$};
     \end{tikzpicture}
-    \column{0.32\textwidth}
-    \centering
-    \uncover<2->{%
-      \begin{tikzpicture}[font=\scriptsize\sffamily]
-        \node[
-          draw=PhantomInk,
-          rounded corners=4pt,
-          fill=PhantomCyan!16,
-          minimum width=0.98\linewidth,
-          text width=0.88\linewidth,
-          minimum height=1.28cm,
-          align=center,
-          text=PhantomCyan!95!black
-        ] {\textbf{Leakage term}\\[-0.08em]scales with agent-likelihood score};
-      \end{tikzpicture}%
-    }
-    \column{0.32\textwidth}
-    \centering
-    \uncover<3->{%
-      \begin{tikzpicture}[font=\scriptsize\sffamily]
-        \node[
-          draw=PhantomInk,
-          rounded corners=4pt,
-          fill=PhantomIndigo!16,
-          minimum width=0.98\linewidth,
-          text width=0.88\linewidth,
-          minimum height=1.28cm,
-          align=center,
-          text=PhantomIndigo!95!black
-        ] {\textbf{UX term}\\[-0.08em]discourages unstable pricing behavior};
-      \end{tikzpicture}%
-    }
   \end{columns}
 
-  \vspace{0.25em}
-  \begin{itemize}
-    \item<2-> Baseline experiments use a query-tax leakage surrogate where higher $f(\tau')$ \roboticon increases leakage penalty.
-    \item<3-> Supra-competitive anchor penalties are tracked as an additional safety rail.
-  \end{itemize}
-  \stagebar{4}
+  \vspace{0.3em}
+  {\footnotesize\textit{Implementation note: in code we solve a local robust loop on the contamination parameter $\alpha$, not the full continuous Wasserstein adversary.}}
 \end{frame}
 
-\begin{frame}{Computationally, wide sweeps are feasible only with aggressive optimization}
+% =========================================================================
+% REWARD - THREE TERMS, EACH EXPLAINED
+% =========================================================================
+\begin{frame}{Reward: revenue, minus leakage, minus UX cost}
+  \[
+    r_t \;=\; \underbrace{R(p_t,\hat Q_t)}_{\text{revenue}}
+          \;-\; \underbrace{\lambda \, f(\tau'_t)\, c_{\text{info}}}_{\text{leakage penalty}}
+          \;-\; \underbrace{\eta_{\text{ux}}\, \mathrm{UX}(\tau'_t,p_t)}_{\text{UX penalty}}
+  \]
+
+  \vspace{0.6em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.32\textwidth}
+    \begin{block}{Revenue}
+      \(R(p_t,\hat Q_t) = p_t \cdot \hat Q_t\)\\[0.2em]
+      {\footnotesize units: EUR per session}
+    \end{block}
+    \column{0.32\textwidth}
+    \begin{alertblock}{Leakage}
+      scales with $f(\tau'_t)$ \roboticon\\
+      $\lambda$: weight\\
+      $c_{\text{info}}$: per-query cost
+    \end{alertblock}
+    \column{0.32\textwidth}
+    \begin{exampleblock}{UX}
+      $\mathrm{UX}\in[0,1]$\\
+      $\eta_{\text{ux}}$: weight\\
+      penalises unstable pricing
+    \end{exampleblock}
+  \end{columns}
+
+  \vspace{0.4em}
+  {\footnotesize \textbf{Reading the formula:}
+  if a session looks agent-like ($f \uparrow$), the leakage penalty grows
+  and the policy backs off; for clean human sessions only the revenue and
+  UX terms are active.}
+\end{frame}
+
+% =========================================================================
+% COMPUTE
+% =========================================================================
+\begin{frame}{Wide sweeps are feasible only with \alert{aggressive optimization}}
   \begin{columns}[T,onlytextwidth]
     \column{0.47\textwidth}
     \centering
-    {\Large\(4\times4\times3\times2\times2=\mathbf{192}\)}\\[0.25em]
+    {\Large\(4\times4\times3\times2\times2=\mathbf{192}\) configs}\\[0.25em]
     {\scriptsize algorithms $\times$ contamination $\times$ robustness $\times$ COI penalty $\times$ action grid}
 
     \vspace{0.5em}
     \metriccard{160 PFLOPS}{peak aggregate TPU budget}\\[0.45em]
-    \metriccard{\textasciitilde180 days}{net compute logged in full study}
+    \metriccard{$\sim$180 days}{net compute logged}
 
     \column{0.51\textwidth}
     \begin{block}{Hot-path rewrite impact}
@@ -652,69 +833,86 @@
     \end{block}
     \vspace{0.1em}
     {\footnotesize
-    \begin{itemize}[<+->]
-      \item pandas lookup bottlenecks replaced with array/JAX-style loops.
-      \item Throughput gains (8.5$\times$, 19$\times$) made broad sweeps practical.
+    \begin{itemize}
+      \item pandas lookups replaced with array/JAX-style loops.
+      \item $8.5\times$ and $19\times$ throughput gains made wide sweeps practical.
     \end{itemize}}
   \end{columns}
-  \stagebar{4}
 \end{frame}
 
 \section{Results}
 
-\begin{frame}{Results: contamination hurts revenue; defended policies recover COI}
+% =========================================================================
+% RESULTS - BIGGER FONTS, EXPLICIT CONCLUSION
+% =========================================================================
+\begin{frame}{Defended policies recover COI as contamination rises}
   \begin{columns}[T,onlytextwidth]
     \column{0.62\textwidth}
     \centering
-    \includegraphics[width=\linewidth,height=0.60\textheight,keepaspectratio]{final_focus_coi_by_alpha.pdf}
+    \includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{final_focus_coi_by_alpha.pdf}\\[0.2em]
+    {\footnotesize x: contamination $\alpha$ (fraction of agent traffic) \;|\; y: COI [EUR per transaction]}
 
-    \column{0.30\textwidth}
-    \metriccard{-90{,}140}{baseline contamination slope}\\[0.3em]
-    \metriccard{\textasciitilde3\%}{short-run revenue cost of defense}\\[0.3em]
-    \metriccard{Regime-dependent}{COI gains strongest at harder settings}
+    \column{0.34\textwidth}
+    \metriccard{$-90{,}140$}{baseline COI slope (EUR per unit $\alpha$)}\\[0.35em]
+    \metriccard{$\sim 3\%$}{short-run revenue cost of defense}\\[0.35em]
+    \metriccard{regime-dependent}{COI gains strongest at higher $\alpha$}
+
+    \vspace{0.5em}
+    \begin{alertblock}{Conclusion}
+      \footnotesize Without defense, COI collapses with $\alpha$.
+      Robust policies hold a measurable margin floor at the cost of
+      a small, bounded revenue trade.
+    \end{alertblock}
   \end{columns}
-  \stagebar{5}
 \end{frame}
 
 \section{Conclusions}
 
-\begin{frame}{Yes, with boundaries: we can defend margin integrity under agentic orchestration}
+% =========================================================================
+% CONCLUSION
+% =========================================================================
+\begin{frame}{Yes, with boundaries: margin integrity \alert{is defensible} under agentic orchestration}
   \begin{columns}[T,onlytextwidth]
     \column{0.32\textwidth}
-    \begin{block}{SQ1\;Distinguishability}
+    \begin{block}{SQ1\;\;distinguishability}
       \centering
       kernels are separable\\$p<0.001$
     \end{block}
     \column{0.32\textwidth}
-    \begin{block}{SQ2\;Theoretical impact}
+    \begin{block}{SQ2\;\;theoretical impact}
       \centering
       COI erosion mechanism\\proved in baseline limit
     \end{block}
     \column{0.32\textwidth}
-    \begin{block}{SQ3\;Mitigation}
+    \begin{block}{SQ3\;\;mitigation}
       \centering
-      robust control shifts\\COI/revenue/UX trade-off
+      robust control shifts\\COI / revenue / UX trade-off
     \end{block}
   \end{columns}
 
-  \vspace{0.35em}
+  \vspace{0.5em}
   \begin{alertblock}{Boundary conditions}
-    Evidence is from a controlled platform and a small labeled cohort; this is mechanism validation, not full production external validity.
+    Evidence is from a controlled platform and a small labeled cohort.
+    This is mechanism validation, not full production external validity.
   \end{alertblock}
-  \stagebar{6}
 \end{frame}
 
+% =========================================================================
+% IMPLICATIONS
+% =========================================================================
 \begin{frame}{What this implies for real pricing systems}
-  \begin{itemize}[<+->]\setlength{\itemsep}{0.7em}
+  \begin{itemize}\setlength{\itemsep}{0.7em}
     \item \textbf{Financially:} untreated reconnaissance behaves like an information leak and can compress sustainable margins.
-    \item \textbf{Operationally:} behavior-only session scoring can be wired into pricing without relying on device fingerprinting.
-    \item \textbf{Market exposure:} channels where dynamic pricing has been a secondary layer (aggregators, comparison funnels, promo traffic) are likely to be disrupted first.
+    \item \textbf{Operationally:} behavior-only session scoring can be wired into pricing without device fingerprinting.
+    \item \textbf{Market exposure:} channels where dynamic pricing is a secondary layer (aggregators, comparison funnels, promo traffic) are disrupted first.
     \item \textbf{Strategically:} robust pricing should be calibrated by regime; there is no single penalty that wins everywhere.
     \item \textbf{Before deployment:} larger human baselines, governance review, and legal safeguards are mandatory.
   \end{itemize}
-  \stagebar{6}
 \end{frame}
 
+% =========================================================================
+% THANK YOU
+% =========================================================================
 \begin{frame}[plain]
   \centering
   \vfill
@@ -724,7 +922,7 @@
   {\large Questions and discussion}
 
   \vfill
-  {\footnotesize\color{PhantomSlate!80}Appendix follows: COI theorem derivation, reward composition, and sample-size notes.}
+  {\footnotesize\color{PhantomSlate}Appendix follows: COI theorem derivation, reward composition, and sample-size notes.}
   \vfill
 \end{frame}
 
