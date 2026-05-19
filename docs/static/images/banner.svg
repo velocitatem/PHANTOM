@@ -56,7 +56,7 @@
     <g transform="translate(60, 580)">
         <text x="0" y="30" font-size="24" font-weight="bold" fill="#444">Why COI Erodes with Agent Saturation</text>
         <text x="0" y="75" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">p<tspan font-size="14" dy="5">(1)</tspan><tspan dy="-5"> = min(p</tspan><tspan font-size="14" dy="5">1</tspan><tspan dy="-5">, ..., p</tspan><tspan font-size="14" dy="5">N</tspan><tspan dy="-5">)</tspan></text>
-        <text x="0" y="115" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">P(p<tspan font-size="14" dy="5">(1)</tspan><tspan dy="-5"> > t) = [1 - F(t)]</tspan><tspan font-size="14" dy="-10">N</tspan></text>
+        <text x="0" y="115" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">P(p<tspan font-size="14" dy="5">(1)</tspan><tspan dy="-5"> &gt; t) = [1 - F(t)]</tspan><tspan font-size="14" dy="-10">N</tspan></text>
 
         <!-- Erosion Graph -->
         <rect x="120" y="150" width="280" height="230" fill="#FFFFFF" filter="url(#shadow)" rx="8"/>
@@ -129,9 +129,9 @@
         <text x="250" y="440" font-size="18" fill="#777" text-anchor="middle">Kernel shape is the compact behavioral signature used downstream.</text>
     </g>
 
-    <!-- Bottom: Separability Distributions -->
+    <!-- Bottom: Distinguishability Distributions -->
     <g transform="translate(700, 600)">
-        <text x="0" y="30" font-size="24" font-weight="bold" fill="#444">Separability into a Control Signal</text>
+        <text x="0" y="30" font-size="24" font-weight="bold" fill="#444">Distinguishability into a Control Signal</text>
         <text x="0" y="75" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">Δ<tspan font-size="16" dy="5">H</tspan><tspan dy="-5"> = D</tspan><tspan font-size="16" dy="5">KL</tspan><tspan dy="-5">(T&#770;' || T&#772;</tspan><tspan font-size="16" dy="5">H</tspan><tspan dy="-5">)</tspan></text>
         <text x="0" y="115" font-family="Georgia, serif" font-style="italic" font-size="22" fill="#8C7A6B">Δ<tspan font-size="16" dy="5">A</tspan><tspan dy="-5"> = D</tspan><tspan font-size="16" dy="5">KL</tspan><tspan dy="-5">(T&#770;' || T&#772;</tspan><tspan font-size="16" dy="5">A</tspan><tspan dy="-5">)</tspan></text>
         <text x="0" y="155" font-family="Georgia, serif" font-style="italic" font-size="24" fill="#8C7A6B">g = Δ<tspan font-size="16" dy="5">H</tspan><tspan dy="-5"> - Δ</tspan><tspan font-size="16" dy="5">A</tspan></text>

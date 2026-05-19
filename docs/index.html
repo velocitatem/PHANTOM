@@ -66,6 +66,11 @@
   <link rel="stylesheet" href="static/css/bulma.min.css">
   <link rel="stylesheet" href="static/css/index.css">
 
+  <!-- Defense-style monospace tagline font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <!-- Non-critical CSS - Load asynchronously -->
   <link rel="preload" href="static/css/bulma-carousel.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="static/css/bulma-slider.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -242,6 +247,7 @@
         <div class="columns is-centered">
           <div class="column has-text-centered">
             <h1 class="title is-1 publication-title">Pricing Heuristics Against Non-human Transaction Orchestration Mechanisms</h1>
+            <p class="defense-tagline">Revenue management in the age of <span class="mark">AI agents</span>.</p>
             <div class="is-size-5 publication-authors author-names">
               <span class="author-block">
                 <a href="https://alves.world" target="_blank">Daniel Rösel</a></span>
@@ -314,6 +320,7 @@
               </a>
             </span>
             </div>
+            <p class="tpu-credit">Powered by <span class="accent">Google</span> TPU Research Cloud.</p>
           </div>
         </div>
       </div>
@@ -355,6 +362,52 @@
 </section>
 <!-- End paper abstract -->
 
+
+<!-- Defense-styled: new interaction environment (actor triptych) -->
+<section class="section defense-block">
+  <div class="container is-max-desktop">
+    <h2 class="defense-heading">New interaction environment of <span class="mark">future commerce</span>.</h2>
+    <div class="actor-grid">
+      <div class="actor-card">
+        <div class="actor-art">
+          <img src="static/images/human.svg" alt="Isometric illustration of a human user as a cube character" loading="lazy" />
+        </div>
+        <h3>Users</h3>
+        <p>Have new needs and <strong>means of research</strong> &amp; acquisition.</p>
+      </div>
+      <div class="actor-card">
+        <div class="actor-art">
+          <img src="static/images/agent.svg" alt="Isometric illustration of an LLM agent depicted as a cube robot" loading="lazy" />
+        </div>
+        <h3>Agents</h3>
+        <p>Use browsers (C/BUA) to look human and create <strong>clean sessions</strong>.</p>
+      </div>
+      <div class="actor-card">
+        <div class="actor-art">
+          <div class="actor-icon" aria-hidden="true"><i class="fas fa-store"></i></div>
+        </div>
+        <h3>Platforms</h3>
+        <p>Run <strong>standard pricing</strong> algorithms and experience revenue loss.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- End actor triptych -->
+
+
+<!-- Defense-styled: COI vulnerability -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="defense-heading">When agents can repeatedly query prices, realizable <span class="underline">markup disappears</span>.</h2>
+    <div class="coi-equation">
+      <div class="formula">COI = <em>E</em>[P] &minus; <u>p</u></div>
+      <p class="caption">Cost of Information &mdash; the expected premium dynamic pricing earns over the reservation price &mdash; collapses to zero as the number of independent querying agents grows.</p>
+    </div>
+  </div>
+</section>
+<!-- End COI vulnerability -->
+
+
 <section class="section">
   <div class="container is-max-desktop">
     <div class="content has-text-justified">
@@ -386,6 +439,38 @@
     </div>
   </div>
 </section>
+
+
+<!-- Defense-styled: three takeaways and forward-deploy line -->
+<section class="section defense-block">
+  <div class="container is-max-desktop">
+    <h2 class="defense-heading">Agents <span class="mark">distort marketplace signals</span>. PHANTOM uses behavioral distinguishability and DR&ndash;RL to <span class="mark">preserve pricing power</span>.</h2>
+    <ol class="takeaways">
+      <li>
+        <span class="num">01</span>
+        <span>We can <strong>distinguish humans from agents</strong> at the transition-kernel level.<span class="stat">Mann&ndash;Whitney U = 2.0, p = 0.0006 across 29 labeled sessions.</span></span>
+      </li>
+      <li>
+        <span class="num">02</span>
+        <span>Revenue <strong>declines monotonically</strong> in agent-contaminated systems.<span class="stat">Each 1.0 step of contamination &alpha; removes ~90,140 in cohort revenue (p &lt; 10<sup>-77</sup>).</span></span>
+      </li>
+      <li>
+        <span class="num">03</span>
+        <span>Distributionally robust RL <strong>preserves margin</strong> under worst-case contamination.<span class="stat">Defended policy holds positive COI gap over baseline across &alpha; &isin; [0, 1].</span></span>
+      </li>
+    </ol>
+    <p class="deploy-line">Our solution can be forward-deployed to any e-commerce platform to <strong>preserve their COI</strong>.</p>
+    <div class="hf-callout">
+      <div class="hf-emoji" aria-hidden="true">&#129303;</div>
+      <div>
+        <h4>WhoClickedIt &mdash; published on Hugging Face.</h4>
+        <p>~4k rows of labeled human and agent interaction data across hotel and airline tasks. Open dataset used for training the behavioral kernels.</p>
+        <a href="https://huggingface.co/datasets/velocitatem/whoclickedit" target="_blank" rel="noopener">huggingface.co/datasets/velocitatem/whoclickedit</a>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- End takeaways -->
 
 
 <!-- Image carousel -->
@@ -428,35 +513,7 @@
 
 
 
-<!-- Video carousel -->
-<section class="hero is-small">
-  <div class="hero-body">
-    <div class="container">
-      <h2 class="title is-3">Defense Scenes</h2>
-      <div id="videos-carousel" class="carousel results-carousel">
-        <div class="item item-video1">
-          <video poster="" id="video1" controls muted loop height="100%" preload="metadata">
-            <source src="static/videos/COIFirstPrinciplesScene.mp4" type="video/mp4">
-          </video>
-          <h2 class="subtitle has-text-centered">COI from first principles.</h2>
-        </div>
-        <div class="item item-video2">
-          <video poster="" id="video2" controls muted loop height="100%" preload="metadata">
-            <source src="static/videos/BehaviorKernelConstructionScene.mp4" type="video/mp4">
-          </video>
-          <h2 class="subtitle has-text-centered">Behavioral kernel construction: learning how humans and agents differ.</h2>
-        </div>
-        <div class="item item-video3">
-          <video poster="" id="video3" controls muted loop height="100%" preload="metadata">
-            <source src="static/videos/RobustControlScene.mp4" type="video/mp4">
-          </video>
-          <h2 class="subtitle has-text-centered">Distributionally robust control loop.</h2>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- End video carousel -->
+<!-- Defense Scenes video carousel removed -->
 
 
 
