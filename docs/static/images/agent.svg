@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#143547" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="innerShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#15334c" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+
+    <linearGradient id="cubeTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e2f1f7" />
+    </linearGradient>
+
+    <linearGradient id="cubeLeft" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#5caec4" />
+      <stop offset="100%" stop-color="#337899" />
+    </linearGradient>
+
+    <linearGradient id="cubeRight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9ce6d7" />
+      <stop offset="100%" stop-color="#5fbfa9" />
+    </linearGradient>
+
+    <linearGradient id="headTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#eef6fa" />
+    </linearGradient>
+
+    <linearGradient id="headLeft" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#d9eaf0" />
+    </linearGradient>
+
+    <linearGradient id="headRight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e3eff5" />
+    </linearGradient>
+
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c2340" />
+      <stop offset="100%" stop-color="#16355c" />
+    </linearGradient>
+
+    <linearGradient id="recessGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#bcdde8" />
+      <stop offset="100%" stop-color="#edf6f9" />
+    </linearGradient>
+
+    <style>
+      .stroke-main { stroke: #1a446c; stroke-width: 7px; stroke-linecap: round; stroke-linejoin: round; }
+      .stroke-medium { stroke: #1a446c; stroke-width: 5.5px; stroke-linecap: round; stroke-linejoin: round; }
+      .stroke-thin { stroke: #1a446c; stroke-width: 4px; stroke-linecap: round; stroke-linejoin: round; }
+      .circuit-line { fill: none; stroke: #ffffff; stroke-width: 4px; stroke-linecap: round; stroke-linejoin: round; stroke-opacity: 0.9; }
+      .circuit-node { fill: #ffffff; stroke: #1a446c; stroke-width: 3.5px; }
+      .glow-eye { fill: #6bf2ff; filter: drop-shadow(0px 0px 3px rgba(107,242,255,0.8)); }
+    </style>
+  </defs>
+
+  <ellipse cx="400" cy="700" rx="220" ry="75" fill="url(#bgShadow)" />
+
+  <polygon points="220,415 400,519 400,710 220,606" fill="url(#cubeLeft)" />
+  <polygon points="400,519 580,415 580,606 400,710" fill="url(#cubeRight)" />
+  
+  <polygon points="220,415 400,519 400,450 220,346" fill="#ffffff" fill-opacity="0.35" />
+  <polygon points="400,519 580,415 580,346 400,450" fill="#ffffff" fill-opacity="0.15" />
+  
+  <polygon points="220,346 400,242 580,346 400,450" fill="url(#cubeTop)" />
+
+  <polygon points="220,346 400,242 580,346 580,606 400,710 220,606" fill="none" class="stroke-main" />
+  <line x1="400" y1="450" x2="400" y2="710" class="stroke-main" />
+  <line x1="220" y1="415" x2="400" y2="519" class="stroke-main" />
+  <line x1="400" y1="519" x2="580" y2="415" class="stroke-main" />
+
+  <path d="M 260,510 L 315,542 L 315,615" class="circuit-line" />
+  <circle cx="260" cy="510" r="6" class="circuit-node" />
+  
+  <path d="M 285,575 L 340,607 L 340,670" class="circuit-line" />
+  <circle cx="285" cy="575" r="6" class="circuit-node" />
+
+  <path d="M 365,550 L 365,685" class="circuit-line" />
+  <circle cx="365" cy="550" r="6" class="circuit-node" />
+
+  <path d="M 540,510 L 460,556 L 460,640" class="circuit-line" />
+  <circle cx="540" cy="510" r="6" class="circuit-node" />
+
+  <path d="M 520,570 L 485,590 L 485,665" class="circuit-line" />
+  <circle cx="520" cy="570" r="6" class="circuit-node" />
+
+
+  <polygon points="275,346 400,274 525,346 400,418" fill="url(#recessGrad)" class="stroke-thin" />
+  <ellipse cx="400" cy="346" rx="65" ry="28" fill="url(#innerShadow)" />
+
+
+  <polygon points="340,335 400,300 460,335 400,370" fill="#142d42" fill-opacity="0.25" />
+
+  <polygon points="310,250 400,302 400,397 310,345" fill="url(#headLeft)" />
+  <polygon points="400,302 490,250 490,345 400,397" fill="url(#headRight)" />
+  <polygon points="310,250 400,198 490,250 400,302" fill="url(#headTop)" />
+
+  <polygon points="310,250 400,198 490,250 490,345 400,397 310,345" fill="none" class="stroke-medium" />
+  <line x1="400" y1="302" x2="400" y2="397" class="stroke-medium" />
+
+  <polygon points="325,268 385,303 385,370 325,335" fill="url(#screenGrad)" class="stroke-thin" />
+
+  <line x1="343" y1="306" x2="343" y2="322" stroke="#6bf2ff" stroke-width="7.5" stroke-linecap="round" class="glow-eye" />
+  <line x1="367" y1="320" x2="367" y2="336" stroke="#6bf2ff" stroke-width="7.5" stroke-linecap="round" class="glow-eye" />
+
+
+  <ellipse cx="400" cy="230" rx="12" ry="6" fill="#325b7f" />
+  
+  <path d="M 320,165 C 320,142 480,142 480,165" fill="none" stroke="#63cbd1" stroke-width="6" stroke-linecap="round" stroke-opacity="0.8" />
+  
+  <line x1="400" y1="230" x2="400" y2="135" class="stroke-medium" />
+  
+  <path d="M 480,165 C 480,188 320,188 320,165" fill="none" stroke="#63cbd1" stroke-width="6" stroke-linecap="round" />
+
+  <circle cx="400" cy="135" r="10" fill="#5cbfa9" class="stroke-medium" />
+
+</svg>

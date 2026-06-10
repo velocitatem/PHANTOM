@@ -45,8 +45,8 @@
   <meta name="citation_pdf_url" content="https://pub-d5b94a3c29fd40c6b3881946e463fdb7.r2.dev/thesis-latest.pdf">
 
   <!-- Additional SEO -->
-  <meta name="theme-color" content="#303030">
-  <meta name="msapplication-TileColor" content="#303030">
+  <meta name="theme-color" content="#1f2a38">
+  <meta name="msapplication-TileColor" content="#1f2a38">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
@@ -65,6 +65,7 @@
   <!-- Critical CSS - Load synchronously -->
   <link rel="stylesheet" href="static/css/bulma.min.css">
   <link rel="stylesheet" href="static/css/index.css">
+  <link rel="stylesheet" href="static/css/defense-theme.css">
 
   <!-- Defense-style monospace tagline font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -241,94 +242,87 @@
   </div>
 
   <main id="main-content">
-  <section class="hero">
+  <section class="hero defense-cover" id="top">
     <div class="hero-body">
       <div class="container is-max-desktop">
-        <div class="columns is-centered">
-          <div class="column has-text-centered">
-            <h1 class="title is-1 publication-title">Pricing Heuristics Against Non-human Transaction Orchestration Mechanisms</h1>
-            <p class="defense-tagline">Revenue management in the age of <span class="mark">AI agents</span>.</p>
-            <div class="is-size-5 publication-authors author-names">
-              <span class="author-block">
-                <a href="https://alves.world" target="_blank">Daniel Rösel</a></span>
-                  </div>
+        <div class="defense-hero-grid">
+          <div class="defense-copy">
+            <p class="defense-kicker">IE University Bachelor's Thesis · 2025</p>
+            <h1 class="title publication-title defense-title">PHANTOM</h1>
+            <p class="defense-subtitle">Revenue management in the age of <span class="mark">AI agents</span>.</p>
 
-                  <div class="is-size-5 publication-authors author-meta">
-                    <span class="author-block">IE University<br>Bachelor's Thesis 2025</span>
-                    <span class="eql-cntrb">Advisor: Alberto Martín Izquierdo</span>
-                  </div>
-
-                  <div class="column has-text-centered">
-                    <div class="publication-links">
-                      <span class="link-block">
-                        <a href="https://blog.alves.world/series/phantom" target="_blank"
-                        class="external-link button is-normal is-rounded is-dark">
-                        <span class="icon">
-                          <i class="fas fa-blog"></i>
-                        </span>
-                        <span>Blog Series</span>
-                      </a>
-                    </span>
-
-                    <span class="link-block">
-                        <a href="https://pub-d5b94a3c29fd40c6b3881946e463fdb7.r2.dev/thesis-latest.pdf" target="_blank"
-                        class="external-link button is-normal is-rounded is-dark">
-                        <span class="icon">
-                          <i class="fas fa-file-pdf"></i>
-                        </span>
-                        <span>Paper</span>
-                      </a>
-                    </span>
-
-                    <span class="link-block">
-                      <a href="https://huggingface.co/datasets/velocitatem/whoclickedit" target="_blank"
-                      class="external-link button is-normal is-rounded is-dark">
-                      <span class="icon">
-                        <i class="fas fa-database"></i>
-                      </span>
-                      <span>Dataset</span>
-                    </a>
-                  </span>
-
-                  <span class="link-block">
-                    <a href="https://github.com/velocitatem/PHANTOM" target="_blank"
-                    class="external-link button is-normal is-rounded is-dark">
-                    <span class="icon">
-                      <i class="fab fa-github"></i>
-                    </span>
-                    <span>Code</span>
-                  </a>
-                </span>
-
-                <span class="link-block">
-                  <a href="https://phantom-hotel.vercel.app" target="_blank"
-                  class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                    <i class="fas fa-globe"></i>
-                  </span>
-                  <span>Hotel Demo</span>
-                </a>
-              </span>
-
-              <span class="link-block">
-                <a href="https://phantom-airline.vercel.app" target="_blank"
-                class="external-link button is-normal is-rounded is-dark">
-                <span class="icon">
-                  <i class="fas fa-plane"></i>
-                </span>
-                <span>Airline Demo</span>
-              </a>
-            </span>
+            <div class="defense-chip-row" aria-label="Core thesis dimensions">
+              <span class="defense-chip">Private Valuation</span>
+              <span class="defense-chip">True Demand</span>
+              <span class="defense-chip">Constraints</span>
             </div>
+
+            <div class="defense-meta-card" aria-label="Project authorship">
+              <span>Written by Daniel Rösel</span>
+              <span class="dot" aria-hidden="true"></span>
+              <span>Advised by Alberto Martín Izquierdo</span>
+            </div>
+
+            <div class="defense-links publication-links" aria-label="Project links">
+              <a href="https://pub-d5b94a3c29fd40c6b3881946e463fdb7.r2.dev/thesis-latest.pdf" target="_blank" class="external-link button is-normal is-rounded is-dark">
+                <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                <span>Thesis</span>
+              </a>
+              <a href="https://github.com/velocitatem/PHANTOM" target="_blank" class="external-link button is-normal is-rounded is-dark">
+                <span class="icon"><i class="fab fa-github"></i></span>
+                <span>Code</span>
+              </a>
+              <a href="https://huggingface.co/datasets/velocitatem/whoclickedit" target="_blank" class="external-link button is-normal is-rounded is-dark">
+                <span class="icon"><i class="fas fa-database"></i></span>
+                <span>Dataset</span>
+              </a>
+              <a href="documentation/" class="external-link button is-normal is-rounded is-light-outline">
+                <span class="icon"><i class="fas fa-book"></i></span>
+                <span>Docs</span>
+              </a>
+            </div>
+
             <p class="tpu-credit">Powered by <span class="accent">Google</span> TPU Research Cloud.</p>
+          </div>
+
+          <div class="defense-visual" aria-hidden="true">
+            <div class="defense-orbit-card">
+              <div class="defense-art-stack">
+                <img class="agent-art" src="static/images/agent.svg" alt="" loading="eager">
+                <span class="mini-token"><i class="fas fa-dollar-sign"></i></span>
+                <span class="mini-token"><i class="fas fa-wave-square"></i></span>
+                <span class="mini-token"><i class="fas fa-shield-alt"></i></span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-</section>
+  </section>
 
+  <section class="defense-overview-strip" aria-label="PHANTOM defense overview">
+    <div class="container is-max-desktop">
+      <div class="defense-overview-grid">
+        <article class="defense-overview-card">
+          <span class="num">01</span>
+          <h3>The vulnerability</h3>
+          <p>Repeated agent price queries collapse the Cost of Information that dynamic pricing depends on.</p>
+        </article>
+        <article class="defense-overview-card">
+          <span class="num">02</span>
+          <h3>The signal</h3>
+          <p>Human and agent sessions separate through transition-kernel behavior, not brittle bot flags.</p>
+        </article>
+        <article class="defense-overview-card">
+          <span class="num">03</span>
+          <h3>The defense</h3>
+          <p>Distributionally robust RL preserves pricing power under contaminated demand.</p>
+        </article>
+      </div>
+    </div>
+  </section>
 
-<section class="hero teaser">
+<section class="hero teaser defense-teaser">
   <div class="container is-max-desktop">
     <div class="hero-body">
       <div class="publication-banner">
@@ -344,7 +338,7 @@
   <div class="container is-max-desktop">
     <div class="columns is-centered has-text-centered">
       <div class="column is-four-fifths">
-        <h2 class="title is-3">Abstract</h2>
+        <h2 class="title is-3">The thesis, compressed.</h2>
         <div class="content has-text-justified">
           <p>
             Dynamic pricing extracts margin by exploiting the gap between what a platform knows and what a buyer knows. A user who browses a hotel across several sessions signals intent; the platform raises the price accordingly. That information asymmetry — the <em>Cost of Information</em> — is the economic engine behind session-based pricing in travel, hospitality, and e-commerce.
@@ -408,34 +402,25 @@
 <!-- End COI vulnerability -->
 
 
-<section class="section">
+<section class="section defense-method-section">
   <div class="container is-max-desktop">
-    <div class="content has-text-justified">
-      <h2 class="title is-3 has-text-centered">How it works</h2>
-      <p>
-        The methodology runs in three stages: observe, distinguish, defend.
-      </p>
-
-      <h3 class="title is-4">Stage 1 — Observe</h3>
-      <p>
-        Both human participants and LLM agents are assigned goal-driven tasks on a live instrumented storefront (hotel or airline mode). Every interaction is logged as a timestamped event tuple <code>(action, item, timestamp)</code>. Actions are partitioned into four semantic categories — cart, dwell, navigation, filter — with decreasing signal weights (4.0, 2.0, 1.0, 0.5) calibrated by the KL divergence between human and agent transition rows. Price quotes are streamed to a separate Kafka topic, enabling joint analysis of behavior and pricing exposure. The platform runs a surge-discount heuristic during collection to expose participants to state-dependent prices.
-      </p>
-
-      <h3 class="title is-4">Stage 2 — Distinguish</h3>
-      <p>
-        From the labeled session trajectories, we estimate class-specific Markov transition kernels <em>T̂<sub>H</sub></em> and <em>T̂<sub>A</sub></em> by maximum likelihood. For any new partial trajectory τ', we compute KL divergence to each prototype:
-      </p>
-      <p style="text-align:center; font-style:italic; margin: 1rem 0;">
-        Δ<sub>H</sub> = D<sub>KL</sub>(T̂' ∥ T̄<sub>H</sub>), &nbsp; Δ<sub>A</sub> = D<sub>KL</sub>(T̂' ∥ T̄<sub>A</sub>)
-      </p>
-      <p>
-        The gap score <em>g</em>(τ') = Δ<sub>H</sub> − Δ<sub>A</sub> maps to a weak agent probability via a temperature-controlled logistic function: <em>f</em>(τ') = σ((Δ<sub>H</sub> − Δ<sub>A</sub>) / T). This is a continuous signal, not a binary bot flag. The Mann–Whitney test on gap scores between the 13-human and 16-agent cohorts yields U = 2.0, p = 0.0006 — the behavioral distributions are well separated.
-      </p>
-
-      <h3 class="title is-4">Stage 3 — Defend</h3>
-      <p>
-        A contamination generator G(α) mixes real human trajectories with synthetic agent trajectories drawn from <em>T̂<sub>A</sub></em> to produce training distributions at any contamination level α ∈ [0, 1]. The pricing policy is trained as a Stackelberg leader against a Wasserstein ambiguity set around the generator's empirical distribution, minimizing worst-case regret over plausible demand shifts. The per-step reward penalizes COI leakage — weighted by <em>f</em>(τ') — while a UX index bounds harm to legitimate users. Sweeps ran across 384 TPU chips (v4, v5e, v6e Trillium) covering six contamination levels and multiple algorithm variants (PPO, A2C, DQN, Q-table).
-      </p>
+    <h2 class="defense-heading">We study behavior, convert it into a control signal, and train a pricing policy that survives contamination.</h2>
+    <div class="defense-method-grid">
+      <article class="defense-step">
+        <span class="step-num">01</span>
+        <h3>Observe</h3>
+        <p>Human participants and LLM agents complete goal-driven hotel and airline tasks. The storefront records behavior events and price quotes as timestamped trajectories.</p>
+      </article>
+      <article class="defense-step">
+        <span class="step-num">02</span>
+        <h3>Distinguish</h3>
+        <p>Session paths become transition kernels. KL distance to human and agent prototypes yields a continuous agent-probability signal.</p>
+      </article>
+      <article class="defense-step">
+        <span class="step-num">03</span>
+        <h3>Defend</h3>
+        <p>A contamination generator mixes human and synthetic agent trajectories. A distributionally robust RL policy optimizes price under worst-case demand shifts.</p>
+      </article>
     </div>
   </div>
 </section>
@@ -524,7 +509,7 @@
 <section class="hero is-small is-light">
   <div class="hero-body">
       <div class="container">
-      <h2 class="title">Full Thesis</h2>
+      <h2 class="title is-3">Full thesis.</h2>
 
       <iframe title="PHANTOM thesis PDF" src="https://pub-d5b94a3c29fd40c6b3881946e463fdb7.r2.dev/thesis-latest.pdf" width="100%" height="550">
           </iframe>

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <defs>
+    <radialGradient id="dropShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#143547" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+
+    <radialGradient id="sphereShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1c4561" stop-opacity="0.4" />
+      <stop offset="60%" stop-color="#2a5c7c" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+
+    <linearGradient id="cubeTop" x1="25%" y1="0%" x2="75%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e1eff7" />
+    </linearGradient>
+
+    <linearGradient id="cubeLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5faec4" />
+      <stop offset="100%" stop-color="#367fa3" />
+    </linearGradient>
+
+    <linearGradient id="cubeRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9ce6d7" />
+      <stop offset="100%" stop-color="#67c7b3" />
+    </linearGradient>
+
+    <linearGradient id="rimLeft" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#cbdfe8" />
+    </linearGradient>
+
+    <linearGradient id="rimRight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#d5e6ed" />
+    </linearGradient>
+
+    <linearGradient id="sphereGrad" x1="30%" y1="10%" x2="70%" y2="90%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="15%" stop-color="#fffdf3" />
+      <stop offset="65%" stop-color="#fbf2d5" />
+      <stop offset="100%" stop-color="#eadebe" />
+    </linearGradient>
+    
+    <style>
+      .outline {
+        stroke: #1e517b;
+        stroke-width: 8px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .inner-line {
+        stroke: #1e517b;
+        stroke-width: 6px;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+
+  <ellipse cx="430" cy="710" rx="180" ry="60" transform="rotate(-15, 430, 710)" fill="url(#dropShadow)" />
+
+  <polygon points="310,470 500,570 500,750 310,650" fill="url(#cubeLeft)" />
+  
+  <polygon points="500,570 690,470 690,650 500,750" fill="url(#cubeRight)" />
+
+  <polygon points="310,400 500,500 500,570 310,470" fill="url(#rimLeft)" />
+  
+  <polygon points="500,500 690,400 690,470 500,570" fill="url(#rimRight)" />
+  
+  <polygon points="310,400 500,300 690,400 500,500" fill="url(#cubeTop)" />
+
+  <ellipse cx="500" cy="370" rx="75" ry="35" fill="url(#sphereShadow)" />
+
+  <polygon points="310,400 500,300 690,400 690,650 500,750 310,650" fill="none" class="outline" />
+  
+  <line x1="310" y1="470" x2="500" y2="570" class="inner-line" />
+  <line x1="500" y1="570" x2="690" y2="470" class="inner-line" />
+  <line x1="500" y1="500" x2="500" y2="750" class="inner-line" />
+  <line x1="310" y1="400" x2="500" y2="500" class="inner-line" />
+  <line x1="500" y1="500" x2="690" y2="400" class="inner-line" />
+
+  <g id="sphere">
+    <circle cx="500" cy="266" r="90" fill="url(#sphereGrad)" class="outline" />
+  </g>
+</svg>
