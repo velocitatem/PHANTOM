@@ -120,8 +120,8 @@ case "$cmd" in
     python3 - <<'PY'
 from pathlib import Path
 
-skip = {"node_modules", ".venv", "venv"}
-exts = {".ts", ".py"}
+skip = {"node_modules", ".venv", "venv", ".venv-ray"}
+exts = {".ts", ".py", ".ipynb"}
 total = 0
 for path in Path(".").rglob("*"):
     if not path.is_file() or path.suffix not in exts or any(part in skip for part in path.parts):

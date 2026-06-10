@@ -1,0 +1,14 @@
+# One scene name per line; order matches `python src/render.py --group final-full`.
+# Used by scripts/ffmpeg_concat_defense.sh after rendering.
+DefenseOpening
+CardMarketAnalogyScene
+COIFirstPrinciplesScene
+COIOrderStatisticProofScene
+BehaviorKernelConstructionScene
+SeparabilitySignalScene
+ContaminationGeneratorScene
+RewardAndLeakageScene
+StackelbergAmbiguityScene
+RobustControlScene
+SystemLoopScene
+ObjectiveAndResultsScene

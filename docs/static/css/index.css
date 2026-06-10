@@ -31,6 +31,15 @@
   --paper-ink-strong: #303030;
   --paper-ink-soft: #6b6b6b;
   --paper-accent: #2f2f2f;
+  --defense-bg: #f4f7f9;
+  --defense-surface: #ffffff;
+  --defense-teal: #5fb3a8;
+  --defense-teal-soft: #b9e2dc;
+  --defense-teal-bg: #c8ebe5;
+  --defense-blue: #2d6f9f;
+  --defense-ink: #1d2630;
+  --defense-ink-soft: #5a6470;
+  --mono-stack: "IBM Plex Mono", "JetBrains Mono", "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
   --radius: 10px;
   --radius-lg: 14px;
 }

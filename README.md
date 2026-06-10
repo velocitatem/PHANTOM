@@ -1,8 +1,8 @@
-<p align="center">
-  <img width="180" src="https://github.com/user-attachments/assets/d148b00d-e9f9-4280-89cc-0cc866e17251" alt="PHANTOM logo" />
-</p>
+<!-- <p align="center"> -->
+<!--   <img width="180" src="https://github.com/user-attachments/assets/d148b00d-e9f9-4280-89cc-0cc866e17251" alt="PHANTOM logo" /> -->
+<!-- </p> -->
 
-# PHANTOM
+![](./banner.png)
 
 Agent-aware dynamic pricing research platform for studying how automated transaction orchestration changes pricing power, and for testing defenses that recover margin while protecting legitimate user experience.
 

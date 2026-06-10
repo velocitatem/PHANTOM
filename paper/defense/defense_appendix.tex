@@ -1,0 +1,364 @@
+% Included by defense.tex after the main deck (extensive appendix).
+
+\section{Appendix}
+
+\begin{frame}{Appendix roadmap}
+  \footnotesize
+  \begin{columns}[T,onlytextwidth]
+    \column{0.31\textwidth}
+    \begin{block}{A.\ Objects}
+      Notation, COI, proxies
+    \end{block}
+    \column{0.31\textwidth}
+    \begin{block}{B.\ Mechanism}
+      Order stats, kernels, KL
+    \end{block}
+    \column{0.31\textwidth}
+    \begin{block}{C.\ Control}
+      Simulator, robust loop, factorial grid
+    \end{block}
+  \end{columns}
+  \vfill
+  \begin{alertblock}{Figures}
+    Full charts, MDPs, extra revenue view
+  \end{alertblock}
+\end{frame}
+
+% ----- A. Notation & definitions -----
+
+\begin{frame}{Appendix: core notation (quick reference, I)}
+  \scriptsize
+  \begin{align*}
+    \tau_s &= (e_{s,1},\ldots,e_{s,L_s}) && \text{session} \\
+    \hat{q}_{t,i} &= \sum_{s\in S_t}\sum_k \omega(a_{s,k})\,\mathbf{1}[i_{s,k}=i] && \text{proxy }(\humanicon, \roboticon) \\
+    Q(p) &= (1-\alpha)\,\mathbb{E}_{\theta\sim D_H}[d(p;\theta)] \\
+         &\quad + \alpha\,\mathbb{E}_{\theta\sim D_A}[d(p;\theta)] + \epsilon_t && \text{mixture of }\humanicon/\roboticon \\
+    \mathrm{COI}(\pi) &= \mathbb{E}[P]-\underline{p} && \text{COI}
+  \end{align*}
+\end{frame}
+
+\begin{frame}{Appendix: core notation (quick reference, II)}
+  \footnotesize
+  \begin{itemize}
+    \item \(\underline{p}\): minimum viable price anchor (thesis simplification).
+    \item \(\alpha\): contamination with agent traffic in the mixture.
+    \item \(\omega(a)\): hand-engineered action weights for the proxy (baseline).
+  \end{itemize}
+  \begin{alertblock}{Reading guide}
+    Objects on the left are \textbf{observable}; \(d(\cdot)\) and many \(\theta\) remain hidden.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Appendix: COI as a reporting functional}
+  \[
+    \mathrm{COI}(\pi) = \mathbb{E}_{P\sim F_\pi}[P] - \underline{p}
+  \]
+  \begin{block}{Interpretation}
+    Premium above the floor induced by policy \(\pi\); used as a KPI and as the object Theorem 1 attacks under query saturation.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Appendix: demand proxy vs.\ latent demand}
+  \[
+    \hat{q}_{t,i}=\sum_{s\in S_t}\sum_{k=1}^{L_s} \omega(a_{s,k})\,\mathbf{1}[i_{s,k}=i]
+  \]
+  \begin{alertblock}{Key distinction}
+    \(\hat{q}\) is an operational sensor from logs (\humanicon, \roboticon); true demand \(d(p;\theta)\) stays latent. Pricing reacts to \(\hat{q}\), so agent-shaped behavior can poison the signal.
+  \end{alertblock}
+\end{frame}
+
+% ----- B. Mechanism -----
+
+\begin{frame}{Appendix: independent draws and order statistics (intuition)}
+  \begin{columns}[T]
+    \column{0.55\textwidth}
+    \begin{itemize}
+      \item Independent price draws \(\{P_i\}_{i=1}^N\) from fixed offer law.
+      \item Purchase-side minimum behaves like \(P_{(1)}\): mass shifts left as \(N\) grows.
+      \item Expected premium vs.\ \(\underline{p}\) compresses: COI pressure.
+    \end{itemize}
+    \column{0.42\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=0.85]
+      \draw[->,thick] (0,0)--(3.2,0) node[right] {\small queries \(N\)};
+      \draw[->,thick] (0,0)--(0,2.2) node[above] {\small COI};
+      \draw[PhantomCyan,very thick] (0.2,2) .. controls (1.5,1.2) and (2.2,0.5) .. (3,0.15);
+      \node[below right] at (2.4,0.6) {\footnotesize saturation};
+    \end{tikzpicture}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Appendix: Theorem 1 scope (what is and is not claimed)}
+  \small
+  \begin{block}{Inside the baseline proof}
+    Non-collusive sessions, independent draws, fixed offer distribution across queries.
+  \end{block}
+  \begin{alertblock}{Outside (handled elsewhere)}
+    Collusion, pooled recon, sequential repricing that breaks iid structure: evidence moves to the simulator.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Appendix: empirical transition kernel (MLE)}
+  \[
+    \hat{P}(s'\mid s)=\frac{N(s,s')}{\sum_k N(s,k)}
+  \]
+  \begin{block}{Use}
+    Human and agent centroids \(\bar{T}_H,\bar{T}_A\) for divergence-to-prototype scores.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Appendix: KL to prototypes (shared support)}
+  \[
+    \Delta_H = D_{\mathrm{KL}}(\hat{T}'\,\|\,\bar{T}_H),\qquad
+    \Delta_A = D_{\mathrm{KL}}(\hat{T}'\,\|\,\bar{T}_A)
+  \]
+  \begin{exampleblock}{Asymmetric choice}
+    KL measures deviation from the \textbf{human} reference; symmetric JS/Wasserstein on behavior was not the design target.
+  \end{exampleblock}
+\end{frame}
+
+\begin{frame}{Appendix: softmax to sigmoid (algebra)}
+  \small
+  Let \(z_A=-\Delta_A/T\), \(z_H=-\Delta_H/T\). Then
+  \begin{align*}
+    P(A\mid\tau) &= \frac{e^{z_A}}{e^{z_A}+e^{z_H}}
+    = \frac{1}{1+e^{z_H-z_A}}
+    = \sigma\bigl(z_A-z_H\bigr) \\
+    &= \sigma\!\left(\frac{\Delta_H-\Delta_A}{T}\right).
+  \end{align*}
+  \begin{block}{Takeaway}
+    Two-class softmax over \((z_A,z_H)\) is exactly one sigmoid on the gap \((\Delta_H-\Delta_A)\).
+  \end{block}
+\end{frame}
+
+\begin{frame}{Appendix: contamination generator \(\mathcal{G}(\alpha)\)}
+  \[
+    \mathcal{G}(\alpha):\ \text{inject synthetic agent trajectories until mixture reaches target }\alpha
+  \]
+  \begin{alertblock}{Role in the lab}
+    Supplies controlled stress tests for the pricing learner; not a claim of production-faithful agents.
+  \end{alertblock}
+\end{frame}
+
+% ----- C. Robust control -----
+
+\begin{frame}{Appendix: Wasserstein ambiguity (ideal object)}
+  \[
+    \mathcal{U}_\epsilon(\hat{P}_N)=\left\{ Q:\ W_p(Q,\hat{P}_N)\le \epsilon \right\}
+  \]
+  \begin{block}{What the code implements instead}
+    A \textbf{local} grid over \(\alpha\) near \(\alpha_0\) with radius \(\epsilon_\alpha\): tractable inner worst case, not a full ball solver.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Appendix: per-step reward sketch}
+  \small
+  \[
+    r = R(p,d) - \lambda\,\mathrm{COI}_{\mathrm{leak}}(p,\tau') - \eta\,\mathrm{UX}(\tau',p) - \text{(supra-competitive excess)}
+  \]
+  \begin{itemize}
+    \item Query-tax style \(\mathrm{COI}_{\mathrm{leak}}\): minimal nonzero surrogate to expose the control channel.
+    \item UX and anchor penalties prevent trivial solutions (flat but exploitative prices).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Appendix: factorial design (192 cells)}
+  \footnotesize
+  \centering
+  \begin{tabular}{@{}llr@{}}
+    \toprule
+    Axis & Levels & Count \\
+    \midrule
+    RL algorithm & PPO, A2C, DQN, Q-table & 4 \\
+    Contamination \(\alpha\) & 4 representative values in \([0.1,0.6]\) & 4 \\
+    Robustness radius \(\epsilon_\alpha\) & 3 & 3 \\
+    COI penalty \(\lambda_{\mathrm{coi}}\) & 2 & 2 \\
+    Action granularity & 2 & 2 \\
+    \midrule
+    \textbf{Total} & & \(4\times4\times3\times2\times2=\mathbf{192}\) \\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+\begin{frame}{Appendix: engineering note (pandas \(\to\) JAX)}
+  \begin{itemize}
+    \item Hot path was label-indexed transition lookups; profiling showed pandas overhead dominated.
+    \item Integer-indexed arrays + JAX inner loop: large step/s throughput (thesis numbers; environment dependent).
+    \item Kronecker expansion of product-conditioned kernels: research simulator cost, scales with catalog.
+  \end{itemize}
+\end{frame}
+
+% ----- Extended figures (all PDFs in repo) -----
+
+\begin{frame}{Appendix figure: COI by \(\alpha\) (full)}
+  \centering
+  \includegraphics[width=0.92\linewidth,height=0.78\textheight,keepaspectratio]{final_focus_coi_by_alpha.pdf}
+\end{frame}
+
+\begin{frame}{Appendix figure: revenue deltas (full)}
+  \centering
+  \includegraphics[width=0.92\linewidth,height=0.78\textheight,keepaspectratio]{final_focus_revenue_delta.pdf}
+\end{frame}
+
+\begin{frame}{Appendix figure: revenue by \(\alpha\) (full)}
+  \centering
+  \includegraphics[width=0.92\linewidth,height=0.78\textheight,keepaspectratio]{final_focus_revenue_by_alpha.pdf}
+\end{frame}
+
+\begin{frame}{Appendix figure: risk / stability deltas (full)}
+  \centering
+  \includegraphics[width=0.92\linewidth,height=0.78\textheight,keepaspectratio]{final_focus_risk_deltas.pdf}
+\end{frame}
+
+\begin{frame}{Appendix figure: COI preservation grid (full)}
+  \centering
+  \includegraphics[width=0.92\linewidth,height=0.78\textheight,keepaspectratio]{final_focus_coi_preservation_grid.pdf}
+\end{frame}
+
+\begin{frame}{Appendix figure: human MDP (full)}
+  \centering
+  \includegraphics[width=0.75\linewidth,height=0.82\textheight,keepaspectratio]{mdp_human.pdf}
+\end{frame}
+
+\begin{frame}{Appendix figure: agent MDP (full)}
+  \centering
+  \includegraphics[width=0.75\linewidth,height=0.82\textheight,keepaspectratio]{mdp_agent.pdf}
+\end{frame}
+
+% ----- Threat model & evaluation -----
+
+\begin{frame}{Appendix: threat model map}
+  \centering
+  \resizebox{0.98\linewidth}{!}{%
+  \begin{tikzpicture}[
+    font=\sffamily\footnotesize,
+    box/.style={draw=PhantomInk,rounded corners=2pt,thick,align=center,inner sep=5pt,minimum width=2.8cm},
+    arr/.style={-Stealth,thick,PhantomSlate}
+  ]
+    \node[box,fill=PhantomCyan!18] (A) at (0,0) {\textbf{Focus}\\[0.15em]browser agents\\into \(\hat{q}\)};
+    \node[box,fill=white] (B) at (3.8,0) {\textbf{Complementary}\\[0.15em]WAF, CAPTCHA,\\rate limits};
+    \node[box,fill=white] (C) at (7.6,0) {\textbf{Upstream}\\[0.15em]API scrape,\\no UI semantics};
+    \draw[arr] (A) -- node[above] {\tiny scope} (B);
+    \draw[arr] (B) -- node[above] {\tiny out of scope} (C);
+  \end{tikzpicture}%
+  }
+  \vfill
+  \begin{block}{Claim boundary}
+    Residual contamination after security controls is the motivating scenario.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Appendix: evaluation checklist (robustness culture)}
+  \footnotesize
+  \begin{enumerate}
+    \item Session-aware labels: avoid splitting rows inside a trajectory if that inflates scores.
+    \item Document how prototypes \(\bar{T}_H,\bar{T}_A\) were fit (full cohort vs.\ held-out); state explicitly in writing.
+    \item Report temperature \(T\) as calibration, not as a tuned hyperparameter unless a sweep is shown.
+    \item Separate \textbf{architecture} claims from \textbf{coverage} claims (hotel vs.\ airline balance at release).
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Appendix: sim-to-real gap (explicit)}
+  \begin{itemize}
+    \item Kernels and generators reflect a \textbf{small labeled cohort} and a \textbf{browser-use style} agent class.
+    \item RL policies are trained in a \textbf{surrogate} market with engineered rewards and discretized prices.
+    \item Deployment would require legal review, fairness testing, and refreshed baselines at scale.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Appendix: leakage surrogate (query-tax form)}
+  \small
+  \[
+    \mathrm{COI}_{\mathrm{leak}}(p,\tau') \approx f(\tau')\cdot c_{\mathrm{info}}
+  \]
+  \begin{block}{Reading}
+    \(f(\tau')\) is the weak agent score; \(c_{\mathrm{info}}\) is a minimal constant leakage proxy to expose the control channel. Revelation-style \(-\log \pi(p\mid\tau')\) is the natural upgrade.
+  \end{block}
+\end{frame}
+
+\begin{frame}{Appendix: robust pricing template (symbolic)}
+  \footnotesize
+  \[
+    \max_\pi\ \min_{Q\in\mathcal{U}_\epsilon(\hat{P}_N)} \mathbb{E}_{d\sim Q}\bigl[ R(p,d) - \lambda\,\mathrm{COI}_{\mathrm{leak}} - \eta\,\mathrm{UX} \bigr]
+  \]
+  \begin{alertblock}{Code-level substitute}
+    Inner min over a \textbf{finite grid} of \(\alpha_k\in[\alpha_0\pm\epsilon_\alpha]\) around the nominal generator mix, not a continuous adversary over all \(Q\) in the ball.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Appendix: why a Stackelberg game is a useful abstraction}
+  \footnotesize
+  \begin{columns}[T,onlytextwidth]
+    \column{0.52\textwidth}
+    \begin{itemize}
+      \item \textbf{Leader move}: the platform commits a quote via policy \(p_t=\pi(x_t)\).
+      \item \textbf{Follower move}: session behavior then reacts (click, continue, abandon, purchase).
+      \item This ordering matches real serving APIs: price is emitted before response is observed.
+      \item Repeating this local sequence gives a tractable leader-follower control model.
+    \end{itemize}
+
+    \column{0.44\textwidth}
+    \centering
+    \begin{tikzpicture}[
+      font=\scriptsize\sffamily,
+      box/.style={draw=PhantomInk,rounded corners=4pt,minimum width=3.45cm,minimum height=0.9cm,align=center},
+      arr/.style={-{Stealth[length=2.0mm]},thick,PhantomSlate}
+    ]
+      \node[box,fill=PhantomCyan!14] (l) at (0,1.2) {Leader: pricing policy};
+      \node[box,fill=white] (f) at (0,-0.05) {Follower: session response};
+      \node[box,fill=PhantomIndigo!10] (u) at (0,-1.3) {State update \& next round};
+      \draw[arr] (l) -- node[right,font=\tiny] {quote} (f);
+      \draw[arr] (f) -- node[right,font=\tiny] {events} (u);
+      \draw[arr] (u.west) to[bend left=35] node[left,font=\tiny] {context} (l.west);
+    \end{tikzpicture}
+  \end{columns}
+  \begin{alertblock}{Boundary}
+    We do \textbf{not} claim a full market equilibrium. We claim a useful timing model for explainable policy updates under contamination.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Appendix: why Theorem 1 helps (without over-claiming)}
+  \footnotesize
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+    \begin{block}{What the theorem gives us}
+      \begin{itemize}
+        \item A directional mechanism: independent recon pressure compresses COI.
+        \item A sanity check for reward design: leakage penalties should grow with recon likelihood.
+        \item A clean explanatory anchor for stakeholders and governance review.
+      \end{itemize}
+    \end{block}
+
+    \column{0.48\textwidth}
+    \begin{alertblock}{What the theorem does not claim}
+      \begin{itemize}
+        \item It is not a finite-sample forecast for every market.
+        \item It does not cover collusion or all adaptive adversaries.
+        \item It does not replace simulator evidence or offline policy validation.
+      \end{itemize}
+    \end{alertblock}
+  \end{columns}
+
+  \vspace{0.2em}
+  \begin{block}{Three evidence layers used in this thesis}
+    \textbf{Theorem 1} (mechanism direction) \(\rightarrow\) \textbf{simulator} (finite-regime quantification) \(\rightarrow\) \textbf{implementation} (local robust policy training).
+  \end{block}
+\end{frame}
+
+\begin{frame}{Appendix: composite strip (five plots, small multiples)}
+  \centering
+  {\footnotesize\itshape Same PDFs as the main talk, shrunk to scan the full panel at once.\par}
+  \vspace{0.25em}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.19\textwidth}
+    \includegraphics[width=\linewidth,height=0.26\textheight,keepaspectratio]{final_focus_coi_by_alpha.pdf}
+    \column{0.19\textwidth}
+    \includegraphics[width=\linewidth,height=0.26\textheight,keepaspectratio]{final_focus_revenue_delta.pdf}
+    \column{0.19\textwidth}
+    \includegraphics[width=\linewidth,height=0.26\textheight,keepaspectratio]{final_focus_revenue_by_alpha.pdf}
+    \column{0.19\textwidth}
+    \includegraphics[width=\linewidth,height=0.26\textheight,keepaspectratio]{final_focus_risk_deltas.pdf}
+    \column{0.19\textwidth}
+    \includegraphics[width=\linewidth,height=0.26\textheight,keepaspectratio]{final_focus_coi_preservation_grid.pdf}
+  \end{columns}
+\end{frame}

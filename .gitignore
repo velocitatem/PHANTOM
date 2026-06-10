@@ -64,8 +64,8 @@ tests/e2e/test-results/
 tests/e2e/node_modules/**
 
 # rl/sim run outputs
-sim/rl/behavior_loader/*.dot
-sim/rl/behavior_loader/*.png
+# sim/rl/behavior_loader/*.dot
+# sim/rl/behavior_loader/*.png
 sim/rl/behavior_loader/*.svg
 sim/rl/behavior_loader/*.pdf
 sim/rl/runs/

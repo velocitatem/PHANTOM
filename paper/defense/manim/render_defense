@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Render thesis-defense Manim clips. Run from anywhere (script cd's to its dir).
+#
+#   ./render_defense              # main reel: final-full, medium quality
+#   ./render_defense --quality qh # high quality for recording
+#   ./render_defense core         # shorter committee cut (final-core)
+#   ./render_defense all          # everything: main + poster + both appendices
+#   ./render_defense appendix     # behavior + COI appendix only
+#   ./render_defense poster
+#   ./render_defense list
+#   ./render_defense --scene DefenseOpening --scene CardMarketAnalogyScene
+#
+# Env: MANIM_PYTHON=/path/to/python overrides auto-detected venv.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
+
+if [[ -n "${MANIM_PYTHON:-}" ]]; then
+  PY="$MANIM_PYTHON"
+elif [[ -x "$ROOT/../.venv/bin/python" ]]; then
+  PY="$ROOT/../.venv/bin/python"
+else
+  PY="$(command -v python3 2>/dev/null || command -v python)"
+fi
+
+if [[ ! -x "$PY" ]] && ! command -v "$PY" &>/dev/null; then
+  echo "No Python found. Set MANIM_PYTHON or create paper/defense/.venv" >&2
+  exit 1
+fi
+
+export PYTHONPATH="$ROOT"
+
+run() {
+  "$PY" "$ROOT/render.py" "$@"
+}
+
+CMD=full
+case "${1-}" in
+  full|core|all|appendix|poster|list|help|-h|--help)
+    CMD="$1"
+    shift
+    ;;
+esac
+
+case "$CMD" in
+  help|-h|--help)
+    cat <<'EOF'
+Render thesis-defense Manim clips (cd to paper/defense/manim is automatic).
+
+  ./render_defense                 main reel (final-full), default quality qm
+  ./render_defense --quality qh    same, high quality for recording
+  ./render_defense core            shorter cut (final-core)
+  ./render_defense all             main + poster + both appendices
+  ./render_defense appendix        behavior-appendix + coi-appendix
+  ./render_defense poster
+  ./render_defense list            scene names and source files
+  ./render_defense --scene Name [--scene Name2 ...]
+
+Env MANIM_PYTHON overrides Python (default: ../.venv/bin/python next to this dir).
+EOF
+    exit 0
+    ;;
+  list)
+    run --list "$@"
+    exit 0
+    ;;
+  full)
+    run --group final-full "$@"
+    ;;
+  core)
+    run --group final-core "$@"
+    ;;
+  all)
+    run --all "$@"
+    ;;
+  appendix)
+    run --group behavior-appendix "$@"
+    run --group coi-appendix "$@"
+    ;;
+  poster)
+    run --group poster "$@"
+    ;;
+  *)
+    echo "Unknown command: $CMD" >&2
+    exit 1
+    ;;
+esac
